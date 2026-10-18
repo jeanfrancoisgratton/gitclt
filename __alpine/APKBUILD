@@ -1,0 +1,41 @@
+# Maintainer: J.F. Gratton <jean-francois@famillegratton.net>
+# Packager: Package builder <builder@famillegratton.net>
+pkgname=gitclt
+pkgver=1.0.0
+pkgrel=1
+pkgdir=/data/packages
+pkgdesc="forgejo / github management tool"
+url="https://git.famillegratton.net:3000/devops/gitclt.git"
+arch=x86_64
+license="GPL-3.0-or-later"
+#depends="gcompat"
+install="$pkgname.pre-install $pkgname.post-install $pkgname.pre-upgrade $pkgname.post-upgrade $pkgname.pre-deinstall $pkgname.post-deinstall"
+#source="$pkgname-$pkgver-$pkgrel.tar.bz2::http://localhost/$pkgname-$pkgver-$pkgrel.tar.bz2"
+builddir="$startdir/src/BUILD"
+
+binaryname=gitclt
+
+prepare() {
+	mkdir -p "$builddir"
+	cp -R "$startdir"/../src/* "$builddir"/
+}
+
+build() {
+	cd "$builddir"
+
+	go env | egrep 'GOFLAGS|CGO_ENABLED|GOOS|GOARCH' || true
+
+	go vet ./...
+	go test ./...
+
+	MODPATH=$(go list -m)
+	BUILDDATE=$(date -u +%Y-%m-%d)
+
+	# Static, non-PIE, internal linker
+	go build -trimpath -ldflags="-s -w -buildid= -linkmode=internal -X ${MODPATH}/cmd.buildVersion=$pkgver -X ${MODPATH}/cmd.buildDate=$BUILDDATE" -o "$binaryname" .
+}
+
+package() {
+	install -d "$pkgdir"/opt/bin
+	install -m755 "$builddir/$binaryname" "$pkgdir/opt/bin/$binaryname"
+}

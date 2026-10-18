@@ -1,0 +1,49 @@
+# Maintainer: J.F.Gratton <jean-francois@famillegratton.net>
+# Packager: Package builder <builder@famillegratton.net>
+
+pkgname=gitclt
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="forgejo / github management tool"
+arch=('x86_64')
+url="https://git.famillegratton.net:3000/devops/gitclt.git"
+license=('GPL-3.0-or-later')
+
+makedepends=('go')
+depends=()
+
+optdepends=()
+
+options=('!debug')
+
+_binaryname='gitclt'
+_builddir="${pkgname}-${pkgver}"
+
+prepare() {
+  rm -rf "${srcdir:?}/${_builddir}"
+  mkdir -p "${srcdir}/${_builddir}"
+
+  cp -a "${startdir}/../src/." "${srcdir}/${_builddir}/"
+}
+
+build() {
+  cd "${srcdir}/${_builddir}"
+
+  export CGO_ENABLED=0
+  export GOPATH="${srcdir}/gopath"
+  export GOMODCACHE="${GOPATH}/pkg/mod"
+
+  go vet -modcacherw ./...
+  go test -modcacherw ./...
+
+  MODPATH=$(go list -m)
+  BUILDDATE=$(date -u +%Y-%m-%d)
+
+  go build -trimpath -mod=readonly -modcacherw -ldflags="-s -w -buildid= -X ${MODPATH}/cmd.buildVersion=${pkgver} -X ${MODPATH}/cmd.buildDate=${BUILDDATE}" -o "${_binaryname}" .
+}
+
+package() {
+  cd "${srcdir}/${_builddir}"
+
+  install -Dm0755 "${_binaryname}" "${pkgdir}/opt/bin/${_binaryname}"
+}
