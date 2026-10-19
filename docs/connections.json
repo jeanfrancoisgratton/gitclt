@@ -1,0 +1,26 @@
+{
+	"auths": {
+		"CONNECTION1A": {
+			"url": "https://SERVER1:PORT1",
+			"token": "abcdefABCDEF==",
+			"username": "myuser",
+			"password": "mypassword",
+			"servertype": "forgejo"
+		},
+		"CONNECTION1B": {
+			"url": "https://SERVER1:PORT1",
+			"token": "q1w2e3r4Q!W@E#R$==",
+			"username": "myuser2",
+			"password": "mypassword2",
+			"servertype": "forgejo"
+		},
+		"CONNECTION2": {
+			"url": "https://SERVER2:PORT2",
+			"token": "zZxXcCvV==",
+			"username": "myuser3",
+			"password": "mypassword3",
+			"servertype": "github"
+		}
+	},
+	"default_connection": "CONNECTION1A"
+}
