@@ -20,7 +20,7 @@ ARCH      := $(shell . ./$(APKBUILD); echo $$arch)
 BINARY    := $(shell . ./$(APKBUILD); echo $$binaryname)
 
 NEXUSREPO := alpine
-REPODIR := nexus/main
+NEXUSDIR := nexus/main
 
 # abuild -r drops the package at:
 #   /data/packages/<name>/<arch>/<name>-<version>-r<pkgrel>.apk
