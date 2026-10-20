@@ -2,7 +2,7 @@
 %define _build_id_links none
 %define _name gitclt
 %define _prefix /opt
-%define _version 0.1.0
+%define _version 0.2.0
 %define _rel 1
 %define _arch x86_64
 %define _binaryname gitclt
@@ -17,10 +17,7 @@ License:    GPL-3.0-or-later
 URL:        https://git.famillegratton.net:3000/devops/gitclt.git
 
 Source0:    %{name}-%{_version}.tar.gz
-#BuildArchitectures: x86_64
 BuildRequires: gcc
-#Requires: sudo
-#Obsoletes: vmman1 > 1.140
 
 %description
 forgejo / github management tool

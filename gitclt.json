@@ -16,7 +16,7 @@
     "debian": true,
     "redhat": true,
     "archlinux": true,
-    "windows": true,
+    "windows": false,
     "skeleton": true
   }
 }
