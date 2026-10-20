@@ -58,3 +58,11 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Mon Oct 19 2026 Binary package builder <builder@famillegratton.net> 0.1.0-1
+- feature: repo ls is completed
+- Merge remote-tracking branch 'refs/remotes/origin/develop' into develop
+- First attempt at repo ls
+- fixed makefile
+- chore (ALPINE): fixed deps
+- Don't build package
+
