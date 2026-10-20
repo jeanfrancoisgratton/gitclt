@@ -1,5 +1,3 @@
-- [ ] fixme 1<br> 
-- [ ] fixme 2<br>
-- [ ] fixme 3<br>
+- [ ] `repo ls -o MYORG` returns a partial directory listing for github repo ?!?!
 
 <br><br><br>

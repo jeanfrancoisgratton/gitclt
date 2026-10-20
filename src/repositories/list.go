@@ -13,9 +13,11 @@ import (
 	"gitclt/forge"
 	"gitclt/shared"
 	"os"
+	"strings"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
+	hfjson "github.com/jeanfrancoisgratton/helperFunctions/v5/prettyjson"
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
@@ -23,66 +25,101 @@ import (
 
 func yesNo(b bool) string {
 	if b {
-		return hftx.Yellow("yes")
+		return "yes"
 	}
-	return hftx.Green("no")
+	return "no"
 }
 
-func ListRepositories() *cerr.CustomError {
+// fetchRepos collects every page of repositories for owner.
+// An empty owner lists every repository the authenticated user can access (including their orgs' repositories),
+// otherwise the forge only returns that user's or organization's repositories (the filter is applied server-side)
+func fetchRepos(ctx context.Context, c *forge.Client, owner string) ([]gol.Repo, error) {
+	var repos []gol.Repo
+	fetch := func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Repo], error) {
+		return c.Repos().List(ctx, owner, o)
+	}
+	for r, err := range gol.All(ctx, gol.ListOptions{PerPage: listPageSize}, fetch) {
+		if err != nil {
+			return nil, err
+		}
+		repos = append(repos, r)
+	}
+	return repos, nil
+}
+
+func ListRepositories(displayoutput bool) ([]gol.Repo, *cerr.CustomError) {
 	ctx := context.Background()
 	// An empty name means: use the default connection
 	c, err := forge.Connect(ctx, shared.ConnectionName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// An empty owner lists every repository the authenticated user can access (including their orgs' repositories)
-	var repos []gol.Repo
-	fetch := func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Repo], error) {
-		return c.Repos().List(ctx, "", o)
+	repos, lerr := fetchRepos(ctx, c, OwnerOrg)
+	// An unknown owner falls back to the default behaviour: list everything
+	if lerr != nil && OwnerOrg != "" && gol.IsNotFound(lerr) {
+		fmt.Fprintf(os.Stderr, "%s: no such user or organization, listing all repositories\n", hftx.Yellow(OwnerOrg))
+		repos, lerr = fetchRepos(ctx, c, "")
 	}
-	for r, lerr := range gol.All(ctx, gol.ListOptions{PerPage: listPageSize}, fetch) {
-		if lerr != nil {
-			return forge.Error("Unable to list repositories", lerr)
-		}
-		repos = append(repos, r)
+	if lerr != nil {
+		return nil, forge.Error("Unable to list repositories", lerr)
 	}
 
 	if RepoListJSONOutput {
 		jStream, jerr := json.Marshal(repos, jsontext.WithIndent("\t"))
 		if jerr != nil {
-			return &cerr.CustomError{Title: "Unable to encode the repository list", Message: jerr.Error()}
+			return nil, &cerr.CustomError{Title: "Unable to encode the repository list", Message: jerr.Error()}
 		}
-		fmt.Println(string(jStream))
-		return nil
+		if e := hfjson.Print(jStream); e != nil {
+			return nil, &cerr.CustomError{Title: "Unable to print the repository list", Message: e.Error()}
+		}
+		return nil, nil
 	}
 
 	if shared.QuietOutput {
 		for _, r := range repos {
 			fmt.Println(r.FullName)
 		}
-		return nil
+		return nil, nil
 	}
 
+	if !displayoutput {
+		return repos, nil
+	}
 	fmt.Printf("Number of repositories on %s: %s\n", hftx.Green(c.Connection.Name), hftx.Green(fmt.Sprintf("%d", len(repos))))
 	if len(repos) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Repository", "Visibility", "Fork", "Mirror", "Archived", "Default branch", "Last update", "URL"})
+	t.AppendHeader(table.Row{"ID", "Owner", "Repository", "Visibility", "Created", "Last updated", "Empty", "URL", "Web site"})
 
 	for _, r := range repos {
-		t.AppendRow(table.Row{hftx.Green(r.FullName), hftx.Green(string(r.Visibility)), yesNo(r.Fork), yesNo(r.Mirror), yesNo(r.Archived),
-			hftx.Green(r.DefaultBranch), hftx.Green(r.UpdatedAt.Local().Format("2006.01.02 15:04")), hftx.Green(r.HTMLURL)})
+		t.AppendRow(table.Row{r.ID, r.Owner, r.Name, string(r.Visibility), r.CreatedAt.Local().Format("2006.01.02 15:04"),
+			r.UpdatedAt.Local().Format("2006.01.02 15:04"), yesNo(r.Empty), r.HTMLURL, r.Website})
+	}
+	// determine the sort order
+	sb, mode := "", table.Asc
+	switch strings.TrimSpace(strings.ToLower(SortBy)) {
+	case "owner", "organization", "org", "o":
+		sb = "Owner"
+	case "repository", "repo", "r":
+		sb = "Repository"
+	case "created", "creation", "c":
+		sb = "Created"
+	case "updated", "update", "u", "last", "l":
+		sb = "Last updated"
+	default:
+		// table.Asc compares the rendered cells as strings (1, 10, 2...); IDs need a numeric sort
+		sb, mode = "ID", table.AscNumeric
 	}
 	t.SortBy([]table.SortBy{
-		{Name: "Repository", Mode: table.Asc},
+		{Name: sb, Mode: mode},
 	})
-	t.SetStyle(table.StyleBold)
+	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
 	t.Style().Format.Header = text.FormatDefault
 	t.Render()
 
-	return nil
+	return nil, nil
 }

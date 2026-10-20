@@ -1,0 +1,36 @@
+[
+  {
+    "CreatedAt": "2026-02-05T18:15:44-05:00",
+    "Description": "",
+    "Empty": false,
+    "FullName": "devops/_MOTHBALLED",
+    "HTMLURL": "https://git.famillegratton.net:3000/devops/_MOTHBALLED",
+    "ID": 60,
+    "Name": "_MOTHBALLED",
+    "Owner": "devops",
+    "Template": false,
+    "UpdatedAt": "2026-07-24T18:39:34-04:00",
+    "Visibility": "private",
+    "Website": ""
+  },
+  {
+    "Archived": false,
+    "CloneURL": "https://git.famillegratton.net:3000/mainline/yaml2json.git",
+    "CreatedAt": "2025-09-09T21:00:48-04:00",
+    "DefaultBranch": "develop",
+    "Description": "",
+    "Empty": false,
+    "Fork": false,
+    "FullName": "mainline/yaml2json",
+    "HTMLURL": "https://git.famillegratton.net:3000/mainline/yaml2json",
+    "ID": 33,
+    "Mirror": false,
+    "Name": "yaml2json",
+    "Owner": "mainline",
+    "SSHURL": "ssh://git@git.famillegratton.net:9722/mainline/yaml2json.git",
+    "Template": false,
+    "UpdatedAt": "2026-08-16T10:44:34-04:00",
+    "Visibility": "public",
+    "Website": ""
+  }
+]
