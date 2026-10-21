@@ -23,9 +23,10 @@ func TestSortRepos(t *testing.T) {
 		hasIDs          bool
 		want            []string
 	}{
-		{"default: ID, descending", "", "", true, []string{"b/Zeta", "b/beta", "a/alpha"}},
+		{"default: ID, ascending", "", "", true, []string{"a/alpha", "b/beta", "b/Zeta"}},
+		{"ID, descending (numeric)", "id", "", true, []string{"b/Zeta", "b/beta", "a/alpha"}},
 		{"ID, ascending (numeric)", "", "id", true, []string{"a/alpha", "b/beta", "b/Zeta"}},
-		{"no IDs: repository", "", "", false, []string{"b/Zeta", "b/beta", "a/alpha"}},
+		{"no IDs: repository, ascending", "", "", false, []string{"a/alpha", "b/beta", "b/Zeta"}},
 		{"repository, ascending, case-insensitive", "", "r", true, []string{"a/alpha", "b/beta", "b/Zeta"}},
 		{"created, descending", "c", "", true, []string{"a/alpha", "b/Zeta", "b/beta"}},
 		{"owner, descending, ties on full name", "o", "", true, []string{"b/beta", "b/Zeta", "a/alpha"}},

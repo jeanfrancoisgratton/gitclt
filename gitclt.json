@@ -1,7 +1,7 @@
 {
   "softwarename": "gitclt",
   "binaryname": "gitclt",
-  "goversion": "1.27.2",
+  "goversion": "1.27.3",
   "versionnumber": "0.2.0",
   "defaultreleasenumber": "1",
   "description": "forgejo / github management tool",

@@ -19,6 +19,7 @@ var repoCmd = &cobra.Command{
 	Short:   "Repository commands",
 	Long: `The -o flag will filter repos belonging to that organization.
 The -s flag will sort the list in descending order according to the specified sort criteria; -S does the same in ascending order.
+Without -s or -S, the list is sorted by ID in ascending order.
 To select a column, just type in its first letter.`,
 }
 
@@ -52,7 +53,7 @@ func init() {
 	repoCmd.PersistentFlags().StringVarP(&shared.ConnectionName, "connection", "c", "", "Connection to use (default: the default connection)")
 	repoCmd.PersistentFlags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "Only show repositories owned by this user or organization (default: all accessible repositories)")
 	repoListCmd.Flags().BoolVarP(&repositories.RepoListJSONOutput, "json", "j", false, "Output the list as JSON")
-	repoListCmd.Flags().StringVarP(&repositories.SortBy, "sort", "s", "", "Sort on this column, in descending order (the default)")
-	repoListCmd.Flags().StringVarP(&repositories.SortByAsc, "sort-asc", "S", "", "Sort on this column, in ascending order")
+	repoListCmd.Flags().StringVarP(&repositories.SortBy, "sort", "s", "", "Sort on this column, in descending order")
+	repoListCmd.Flags().StringVarP(&repositories.SortByAsc, "sort-asc", "S", "", "Sort on this column, in ascending order (default: ID)")
 	repoListCmd.MarkFlagsMutuallyExclusive("sort", "sort-asc")
 }

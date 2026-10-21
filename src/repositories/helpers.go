@@ -40,11 +40,11 @@ func fetchRepos(ctx context.Context, c *forge.Client, owner string) ([]gol.Repo,
 }
 
 // sortRepos sorts repos in place, on the column given by -s (descending) or -S (ascending)
-// An unknown or empty column means ID, or Repository when the forge has no IDs (Bitbucket)
+// Neither flag means -S ID; an unknown or empty column means ID, or Repository when the forge has no IDs (Bitbucket)
 // Ties are broken on the full name (ascending), so that the order does not depend on the forge's
 func sortRepos(repos []gol.Repo, hasIDs bool) {
 	key, asc := SortBy, false
-	if SortByAsc != "" {
+	if SortBy == "" {
 		key, asc = SortByAsc, true
 	}
 
