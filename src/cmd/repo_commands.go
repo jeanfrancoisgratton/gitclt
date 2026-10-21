@@ -37,7 +37,7 @@ var repoListCmd = &cobra.Command{
 
 var repoInfoCmd = &cobra.Command{
 	Use:     "info",
-	Example: "gitclt repo info [-c CONNECTION] [-o OWNER] [--json] <REPO>",
+	Example: "gitclt repo info [-c CONNECTION] -o OWNER [--json] <REPO>",
 	Short:   "Provides detailed information about a repository",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -48,11 +48,14 @@ var repoInfoCmd = &cobra.Command{
 }
 
 func init() {
-	repoCmd.AddCommand(repoListCmd)
+	repoCmd.AddCommand(repoListCmd, repoInfoCmd)
 
 	repoCmd.PersistentFlags().StringVarP(&shared.ConnectionName, "connection", "c", "", "Connection to use (default: the default connection)")
-	repoCmd.PersistentFlags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "Only show repositories owned by this user or organization (default: all accessible repositories)")
-	repoListCmd.Flags().BoolVarP(&repositories.RepoListJSONOutput, "json", "j", false, "Output the list as JSON")
+	repoInfoCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "Output the list as JSON")
+	repoInfoCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "Only show repositories owned by this user or organization (default: all accessible repositories)")
+	_ = repoInfoCmd.MarkFlagRequired("owner")
+	repoListCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "Output the list as JSON")
+	repoListCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "Only show repositories owned by this user or organization (default: all accessible repositories)")
 	repoListCmd.Flags().StringVarP(&repositories.SortBy, "sort", "s", "", "Sort on this column, in descending order")
 	repoListCmd.Flags().StringVarP(&repositories.SortByAsc, "sort-asc", "S", "", "Sort on this column, in ascending order (default: ID)")
 	repoListCmd.MarkFlagsMutuallyExclusive("sort", "sort-asc")
