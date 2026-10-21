@@ -3,7 +3,7 @@
 
 # gitclt
 ___
-`gitclt` is a CLI client for Forgejo and GitHub (github.com, as well as GitHub Enterprise Server).<br>
+`gitclt` is a CLI client for Forgejo, GitHub (github.com, as well as GitHub Enterprise Server) and Bitbucket Cloud.<br>
 It is meant to handle the usual git server tasks from the command line: repositories, branches, tags, releases, users, orgs, etc.<br>
 It is a front-end to [gitoperationslib](https://github.com/jeanfrancoisgratton/gitoperationslib), which does the actual talking to the forges. Forgejo servers must run version 11.0.10 or later.
 
@@ -60,13 +60,19 @@ The file looks a lot like `$HOME/.docker/config.json`:
 }
 ```
 
-- `servertype` is either `forgejo` or `github`
+- `servertype` is `forgejo`, `github` or `bitbucket`
 - `url` is the server URL, as you'd type it in a browser. The API URL is derived from it:
   - Forgejo: `URL/api/v1` (`url` may also be a sub-path install, ex: `https://example.com/forgejo`)
   - github.com: `https://api.github.com`
   - any other host with `servertype: github` is treated as GitHub Enterprise Server: `URL/api/v3`
+  - bitbucket.org: `https://api.bitbucket.org/2.0`. Only Bitbucket Cloud is supported (not Bitbucket Data Center / Server); any other host with `servertype: bitbucket` is used as the API root itself (ex: a proxy)
 - You need either a token, or a username + password pair. When both are present, **the token always wins**
 - GitHub no longer accepts passwords on its REST API: a GitHub connection needs a token
+- Bitbucket accepts two kinds of tokens in `token`:
+  - a workspace / project / repository access token (`ATCTT...`): sent as a bearer token, no username needed
+  - an Atlassian API token with Bitbucket scopes (`ATATT...`): Bitbucket only accepts it with basic auth, so `username` **must** be your Atlassian account e-mail
+  - without a token, `username` + `password` (an API token or an app password) are used as is
+- On Bitbucket, repository owners are **workspaces**. Bitbucket Cloud has no releases, no tag protection, and no issue tracker anymore: those commands will report that the feature is not supported
 - Tokens and passwords are encrypted when the tool writes the file. You can still hand-edit the file with cleartext secrets; they will get encrypted the next time the tool saves the registry
 - A hand-edited, invalid connection is not rejected on load: `gitclt conn list` flags it, and you can fix it with `gitclt conn edit`, or remove it with `gitclt conn rm`
 - The first connection you add becomes the default one
@@ -94,7 +100,7 @@ All `repo` subcommands accept `-c`, `--connection CONNECTION` to use a given con
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
-| `gitclt repo list [-c CONNECTION] [-j]` (`ls`) | Lists all repositories visible to the connection's user. `-j`, `--json` outputs JSON; `-q` outputs only the `owner/name` of each repo |
+| `gitclt repo list [-c CONNECTION] [-o OWNER] [-s\|-S SORT] [-j]` (`ls`) | Lists all repositories visible to the connection's user. `-o` limits the list to a user / organization (a workspace on Bitbucket); `-s` sorts on a column in descending order, `-S` in ascending order (its first letter is enough: `i`d, `o`wner, `r`epository, `c`reated, `u`pdated; default: descending on ID, or on Repository on Bitbucket, which has no repository IDs); `-j`, `--json` outputs JSON; `-q` outputs only the `owner/name` of each repo. The sort order applies to all three outputs |
 
 <a id="developer-notes"></a>
 # Developer notes: writing a new command
@@ -137,7 +143,8 @@ Behind the scenes:
 - `forge.Connect()` then opens the matching library client:
   - Forgejo: `forgejo.New()` with `forgejo.Token()` or `forgejo.BasicAuth()`. **This already contacts the server**: it reads its version, and refuses anything older than the library's minimum (11.0.10)
   - GitHub: `github.New()` with the token; any host other than `github.com` is treated as GitHub Enterprise Server (`github.WithEnterpriseURL()`, the library appends `/api/v3/`). This makes no request
-- both get an `http.Client` with connect / TLS handshake / response headers timeouts (`forge.FastFailTimeout`, 30s by default), and `gitclt` as User-Agent. There is no global request timeout, so long transfers (ex: release assets) are not cut; use a context if you need a deadline
+  - Bitbucket: `bitbucket.New()` with `bitbucket.Token()` (access tokens) or `bitbucket.BasicAuth()` (username/password) or `bitbucket.APIToken()` (Atlassian API tokens, `ATATT...`, which Bitbucket refuses as bearer tokens: the connection's username must be the Atlassian e-mail); any host other than `bitbucket.org` is passed as is to `bitbucket.WithBaseURL()`. This makes no request
+- all of them get an `http.Client` with connect / TLS handshake / response headers timeouts (`forge.FastFailTimeout`, 30s by default), and `gitclt` as User-Agent. There is no global request timeout, so long transfers (ex: release assets) are not cut; use a context if you need a deadline
 
 You get back a `*forge.Client`:
 - it embeds `gol.Client` (`gol` being the usual alias for `github.com/jeanfrancoisgratton/gitoperationslib`), so the library's areas are called directly on it: `c.Repos()`, `c.Branches()`, `c.Tags()`, `c.Releases()`, `c.PullRequests()`, `c.Issues()`, `c.Labels()`, `c.Milestones()`, `c.Webhooks()`, ...
@@ -185,7 +192,7 @@ for r, lerr := range gol.All(ctx, gol.ListOptions{PerPage: listPageSize}, fetch)
 }
 ```
 - the iteration stops at the first error, which is yielded with a zero item: check `lerr` before using the item
-- `PerPage`: 50 is safe on both forges (Forgejo's maximum is a server setting, 50 by default; GitHub's is 100)
+- `PerPage`: 50 is safe on all forges (Forgejo's maximum is a server setting, 50 by default; GitHub's and Bitbucket's are 100)
 
 ### 4. Creating, editing, deleting
 The library's option structs use the library's own types; nil pointer fields in `Edit...Options` mean "leave unchanged" (`gol.Ptr()` builds a pointer from a value):
@@ -211,9 +218,10 @@ defer cancel()
 The library hides most differences behind its interfaces. When a feature only exists on one backend:
 - `c.Capabilities().Has(gol.CapAdmin)` (or a type assertion such as `c.Client.(gol.Admin)`) tells you whether it's available
 - otherwise, the call returns `gol.ErrNotSupported`: report it, don't work around it
-- `c.Backend()` returns `gol.BackendForgejo` or `gol.BackendGitHub`
+- `c.Backend()` returns `gol.BackendForgejo`, `gol.BackendGitHub` or `gol.BackendBitbucket`
 
-Some fields are not reported by every backend (ex: `gol.Repo.Empty` is always false on GitHub); check the library's doc comments before relying on one.
+Some fields are not reported by every backend (ex: `gol.Repo.Empty` is always false on GitHub, `gol.Repo.ID` is always 0 on Bitbucket); check the library's doc comments before relying on one.
+On Bitbucket, users have no public login name: user fields hold the account's nickname.
 
 <a id="wiring-the-command"></a>
 ## Wiring the command
@@ -232,5 +240,6 @@ Some fields are not reported by every backend (ex: `gol.Repo.Empty` is always fa
 - then call `forge.Connect()` as usual
 - a `forgejo` test server must answer `GET /api/v1/version` (ex: `{"version":"15.0.2"}`), since `forgejo.New()` checks it; the other calls are under `/api/v1/`
 - a `github` test server is treated as GitHub Enterprise Server: the calls are under `/api/v3/`
+- a `bitbucket` test server is used as the API root: set `url` to `SERVER/2.0`, and answer under `/2.0/` (ex: `GET /2.0/user/workspaces`, `GET /2.0/repositories/WORKSPACE`)
 
 `build.sh` runs `go vet ./...` and `go test ./...` before building.

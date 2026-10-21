@@ -13,7 +13,6 @@ import (
 	"gitclt/forge"
 	"gitclt/shared"
 	"os"
-	"strings"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
@@ -23,30 +22,10 @@ import (
 	"github.com/jedib0t/go-pretty/v6/text"
 )
 
-func yesNo(b bool) string {
-	if b {
-		return "yes"
-	}
-	return "no"
-}
-
-// fetchRepos collects every page of repositories for owner.
-// An empty owner lists every repository the authenticated user can access (including their orgs' repositories),
-// otherwise the forge only returns that user's or organization's repositories (the filter is applied server-side)
-func fetchRepos(ctx context.Context, c *forge.Client, owner string) ([]gol.Repo, error) {
-	var repos []gol.Repo
-	fetch := func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Repo], error) {
-		return c.Repos().List(ctx, owner, o)
-	}
-	for r, err := range gol.All(ctx, gol.ListOptions{PerPage: listPageSize}, fetch) {
-		if err != nil {
-			return nil, err
-		}
-		repos = append(repos, r)
-	}
-	return repos, nil
-}
-
+// ListRepositories List all repositories that this userpass or token allows.
+// The result can be displayed as json, or in a tabulated format. if displayoutput is set to false, this means that
+// This function was called from another function, not a user, and we just need its result for internal consumption.
+// The result can be filtered (the -o flag) and/or sorted (-s flag)
 func ListRepositories(displayoutput bool) ([]gol.Repo, *cerr.CustomError) {
 	ctx := context.Background()
 	// An empty name means: use the default connection
@@ -64,6 +43,10 @@ func ListRepositories(displayoutput bool) ([]gol.Repo, *cerr.CustomError) {
 	if lerr != nil {
 		return nil, forge.Error("Unable to list repositories", lerr)
 	}
+	// Bitbucket repositories have no numeric ID (r.ID is always 0)
+	hasIDs := c.Backend() != gol.BackendBitbucket
+	// Sorted before any output, so the table, -q and --json all show the same order
+	sortRepos(repos, hasIDs)
 
 	if RepoListJSONOutput {
 		jStream, jerr := json.Marshal(repos, jsontext.WithIndent("\t"))
@@ -93,33 +76,36 @@ func ListRepositories(displayoutput bool) ([]gol.Repo, *cerr.CustomError) {
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"ID", "Owner", "Repository", "Visibility", "Created", "Last updated", "Empty", "URL", "Web site"})
+	// No IDs on Bitbucket: the column is dropped
+	header := table.Row{"Owner", "Repository", "Visibility", "Created", "Last updated", "Empty", "URL", "Web site"}
+	if hasIDs {
+		header = append(table.Row{"ID"}, header...)
+	}
+	t.AppendHeader(header)
 
 	for _, r := range repos {
-		t.AppendRow(table.Row{r.ID, r.Owner, r.Name, string(r.Visibility), r.CreatedAt.Local().Format("2006.01.02 15:04"),
-			r.UpdatedAt.Local().Format("2006.01.02 15:04"), yesNo(r.Empty), r.HTMLURL, r.Website})
+		row := table.Row{r.Owner, r.Name, string(r.Visibility), r.CreatedAt.Local().Format("2006.01.02 15:04"),
+			r.UpdatedAt.Local().Format("2006.01.02 15:04"), yesNo(r.Empty), r.HTMLURL, r.Website}
+		if hasIDs {
+			row = append(table.Row{r.ID}, row...)
+		}
+		t.AppendRow(row)
 	}
-	// determine the sort order
-	sb, mode := "", table.Asc
-	switch strings.TrimSpace(strings.ToLower(SortBy)) {
-	case "owner", "organization", "org", "o":
-		sb = "Owner"
-	case "repository", "repo", "r":
-		sb = "Repository"
-	case "created", "creation", "c":
-		sb = "Created"
-	case "updated", "update", "u", "last", "l":
-		sb = "Last updated"
-	default:
-		// table.Asc compares the rendered cells as strings (1, 10, 2...); IDs need a numeric sort
-		sb, mode = "ID", table.AscNumeric
-	}
-	t.SortBy([]table.SortBy{
-		{Name: sb, Mode: mode},
-	})
 	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
 	t.Style().Format.Header = text.FormatDefault
 	t.Render()
 
 	return nil, nil
+}
+
+// RepositoryInfo provides extended repository information, provided that the userpass / token allows for it.
+// The result can be displayed as json, or in a key:value format.
+func RepositoryInfo(reponame string, displayoutput bool) (gol.Repo, *cerr.CustomError) {
+	//ctx := context.Background()
+	//c, err := forge.Connect(ctx, shared.ConnectionName)
+	//if err != nil {
+	//	return gol.Repo{}, nil
+	//}
+
+	return gol.Repo{}, nil
 }

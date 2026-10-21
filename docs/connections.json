@@ -20,6 +20,12 @@
 			"username": "myuser3",
 			"password": "mypassword3",
 			"servertype": "github"
+		},
+		"CONNECTION3": {
+			"url": "https://bitbucket.org",
+			"username": "me@example.com",
+			"password": "myAtlassianApiToken",
+			"servertype": "bitbucket"
 		}
 	},
 	"default_connection": "CONNECTION1A"

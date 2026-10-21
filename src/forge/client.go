@@ -17,12 +17,13 @@ import (
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
+	"github.com/jeanfrancoisgratton/gitoperationslib/bitbucket"
 	"github.com/jeanfrancoisgratton/gitoperationslib/forgejo"
 	"github.com/jeanfrancoisgratton/gitoperationslib/github"
 )
 
 // Resolves the named connection (an empty name means the default connection), and opens a gitoperationslib client on it
-// On Forgejo, this already contacts the server: it checks that its version is supported
+// On Forgejo, this already contacts the server: it checks that its version is supported (GitHub and Bitbucket make no request here)
 func Connect(ctx context.Context, connName string) (*Client, *cerr.CustomError) {
 	ac, err := conn_cfg.ResolveConnection(connName)
 	if err != nil {
@@ -46,6 +47,27 @@ func Connect(ctx context.Context, connName string) (*Client, *cerr.CustomError) 
 			opts = append(opts, github.WithEnterpriseURL(ac.URL, ""))
 		}
 		gc, gerr = github.New(ac.Token, opts...)
+	case conn_cfg.ServerTypeBitBucket:
+		// Bitbucket Cloud only (no Data Center)
+		// Access tokens (workspace / project / repository) are bearer tokens, but Atlassian user API tokens (ATATT...)
+		// need the Atlassian account e-mail, which we take from the connection's username
+		creds := bitbucket.Token(ac.Token)
+		switch {
+		case ac.Auth == conn_cfg.AuthBasic:
+			creds = bitbucket.BasicAuth(ac.Username, ac.Password)
+		case isAtlassianAPIToken(ac.Token):
+			if ac.Username == "" {
+				return nil, &cerr.CustomError{Title: "Invalid connection",
+					Message: fmt.Sprintf("Connection %s: an Atlassian API token needs your Atlassian account e-mail as username; fix it with: gitclt conn edit %s", ac.Name, ac.Name)}
+			}
+			creds = bitbucket.APIToken(ac.Username, ac.Token)
+		}
+		opts := []bitbucket.Option{bitbucket.WithHTTPClient(httpClient()), bitbucket.WithUserAgent(userAgent)}
+		if !isBitbucketDotOrg(ac.URL) {
+			// Any other host is taken as the API root itself (ex: a proxy, or https://host/2.0)
+			opts = append(opts, bitbucket.WithBaseURL(ac.URL))
+		}
+		gc, gerr = bitbucket.New(creds, opts...)
 	default:
 		return nil, &cerr.CustomError{Title: "Invalid connection", Message: fmt.Sprintf("Connection %s: unsupported server type '%s'", ac.Name, ac.ServerType)}
 	}
@@ -74,6 +96,24 @@ func isGithubDotCom(serverURL string) bool {
 		return true
 	}
 	return false
+}
+
+// bitbucket.org has its API on a separate host (api.bitbucket.org/2.0/), which the library uses by default
+func isBitbucketDotOrg(serverURL string) bool {
+	u, err := url.Parse(serverURL)
+	if err != nil {
+		return false
+	}
+	switch strings.ToLower(u.Hostname()) {
+	case "bitbucket.org", "www.bitbucket.org", "api.bitbucket.org":
+		return true
+	}
+	return false
+}
+
+// Atlassian user API tokens start with ATATT; access tokens start with ATCTT
+func isAtlassianAPIToken(token string) bool {
+	return strings.HasPrefix(token, "ATATT")
 }
 
 // Fast-fail timeouts on connect / TLS handshake / response headers

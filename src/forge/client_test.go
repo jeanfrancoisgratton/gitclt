@@ -5,6 +5,7 @@ package forge
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -137,6 +138,89 @@ func TestConnect_GithubEnterprise(t *testing.T) {
 	_, gerr := c.Repos().Get(context.Background(), "me", "nope")
 	if e := Error("Unable to fetch the repository", gerr); e == nil || e.Code != http.StatusNotFound {
 		t.Fatalf("got %+v", e)
+	}
+}
+
+// Any host other than bitbucket.org is taken as the API root itself
+func TestConnect_BitbucketBasicAuth(t *testing.T) {
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if u, p, ok := r.BasicAuth(); !ok || u != "me@example.com" || p != "pw" {
+			t.Errorf("%s: basic auth = %q, %q, %v", r.URL.Path, u, p, ok)
+		}
+		switch r.URL.Path {
+		case "/2.0/user/workspaces":
+			fmt.Fprint(w, `{"values":[{"workspace":{"slug":"acme"}}]}`)
+		case "/2.0/repositories/acme":
+			if r.URL.Query().Get("page") == "2" {
+				fmt.Fprint(w, `{"values":[{"full_name":"acme/three","workspace":{"slug":"acme"}}]}`)
+				return
+			}
+			fmt.Fprintf(w, `{"values":[{"full_name":"acme/one","is_private":true},{"full_name":"acme/two"}],"next":"%s/2.0/repositories/acme?page=2&pagelen=2"}`, srv.URL)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, `{"type":"error","error":{"message":"Not Found"}}`)
+		}
+	}))
+	defer srv.Close()
+	writeRegistry(t, `{"url":"`+srv.URL+`/2.0","username":"me@example.com","password":"pw","servertype":"bitbucket"}`)
+
+	c, err := Connect(context.Background(), "")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if c.Backend() != gol.BackendBitbucket {
+		t.Fatalf("backend = %s", c.Backend())
+	}
+	repos := listAll(t, c)
+	if len(repos) != 3 || repos[0].Owner != "acme" || repos[0].Visibility != gol.VisibilityPrivate || repos[2].FullName != "acme/three" {
+		t.Fatalf("got %+v", repos)
+	}
+
+	_, gerr := c.Repos().Get(context.Background(), "acme", "nope")
+	if e := Error("Unable to fetch the repository", gerr); e == nil || e.Code != http.StatusNotFound {
+		t.Fatalf("got %+v", e)
+	}
+}
+
+// Access tokens go as bearer tokens; Atlassian user API tokens (ATATT...) go as basic auth with the account e-mail
+func TestConnect_BitbucketTokens(t *testing.T) {
+	for _, tc := range []struct{ conn, want string }{
+		{`"token":"ATCTTaccess"`, "Bearer ATCTTaccess"},
+		{`"token":"ATATTuser","username":"me@example.com","password":"ignored"`, "Basic " + basic("me@example.com", "ATATTuser")},
+	} {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if got := r.Header.Get("Authorization"); got != tc.want {
+				t.Errorf("%s: Authorization = %q, want %q", tc.conn, got, tc.want)
+			}
+			fmt.Fprint(w, `{"values":[]}`)
+		}))
+		writeRegistry(t, `{"url":"`+srv.URL+`/2.0",`+tc.conn+`,"servertype":"bitbucket"}`)
+		c, err := Connect(context.Background(), "")
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		listAll(t, c)
+		srv.Close()
+	}
+
+	// An API token without the e-mail cannot work: refused upfront
+	writeRegistry(t, `{"url":"https://bitbucket.org","token":"ATATTuser","servertype":"bitbucket"}`)
+	if _, err := Connect(context.Background(), ""); err == nil {
+		t.Fatal("expected an error on an API token without username")
+	}
+}
+
+func basic(user, pass string) string {
+	return base64.StdEncoding.EncodeToString([]byte(user + ":" + pass))
+}
+
+func TestIsBitbucketDotOrg(t *testing.T) {
+	for u, want := range map[string]bool{"https://bitbucket.org": true, "https://BitBucket.org/acme": true,
+		"https://api.bitbucket.org/2.0": true, "https://bitbucket.example.com": false} {
+		if got := isBitbucketDotOrg(u); got != want {
+			t.Errorf("%s: got %v", u, got)
+		}
 	}
 }
 

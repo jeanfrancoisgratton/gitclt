@@ -18,14 +18,16 @@ const (
 	ServerTypeUnknown ServerType = iota
 	ServerTypeForgejo
 	ServerTypeGithub
+	ServerTypeBitBucket
 	serverTypeCount
 )
 
 // In the JSON file, the server type is stored by name, not by value: reordering the constants won't break existing files
 var serverTypeNames = [serverTypeCount]string{
-	ServerTypeUnknown: "",
-	ServerTypeForgejo: "forgejo",
-	ServerTypeGithub:  "github",
+	ServerTypeUnknown:   "",
+	ServerTypeForgejo:   "forgejo",
+	ServerTypeGithub:    "github",
+	ServerTypeBitBucket: "bitbucket",
 }
 
 type ConnectionStruct struct {

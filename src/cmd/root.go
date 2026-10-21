@@ -17,7 +17,7 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "gitclt",
-	Short: "forgejo / github service CLI management tool",
+	Short: "forgejo / github / bitbucket service CLI management tool",
 	Long: `This tools allows you to manage the usual git server tasks. such as
 repository management, branch management, tags, releases, users, orgs, etc`,
 }
