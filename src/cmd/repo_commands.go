@@ -29,8 +29,8 @@ var repoListCmd = &cobra.Command{
 	Example: "gitclt repo list [-c CONNECTION] [-o OWNER] [-s|-S SORT_CRITERIA] [--json]",
 	Short:   "Lists all repositories visible to the configured user",
 	Run: func(cmd *cobra.Command, args []string) {
-		if _, err := repositories.ListRepositories(true); err != nil {
-			fmt.Println(err.Error())
+		if _, e := repositories.ListRepositories(true); e != nil {
+			fmt.Println(e.Error())
 		}
 	},
 }
@@ -41,16 +41,31 @@ var repoInfoCmd = &cobra.Command{
 	Short:   "Provides detailed information about a repository",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if _, err := repositories.RepositoryInfo(args[0], true); err != nil {
-			fmt.Println(err.Error())
+		if _, e := repositories.RepositoryInfo(args[0], true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var repoDeleteCmd = &cobra.Command{
+	Use:     "delete",
+	Aliases: []string{"rm"},
+	Example: "gitclt repo delete [-c CONNECTION] -o OWNER [--json] <REPO>",
+	Short:   "Delete a repository",
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := repositories.DeleteRepo(args[0]); e != nil {
+			fmt.Println(e.Error())
 		}
 	},
 }
 
 func init() {
-	repoCmd.AddCommand(repoListCmd, repoInfoCmd)
+	repoCmd.AddCommand(repoDeleteCmd, repoInfoCmd, repoListCmd)
 
 	repoCmd.PersistentFlags().StringVarP(&shared.ConnectionName, "connection", "c", "", "Connection to use (default: the default connection)")
+	repoDeleteCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "Only show repositories owned by this user or organization (default: all accessible repositories)")
+	_ = repoDeleteCmd.MarkFlagRequired("owner")
 	repoInfoCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "Output the list as JSON")
 	repoInfoCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "Only show repositories owned by this user or organization (default: all accessible repositories)")
 	_ = repoInfoCmd.MarkFlagRequired("owner")
