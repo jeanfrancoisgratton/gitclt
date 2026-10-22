@@ -2,7 +2,7 @@
   "softwarename": "gitclt",
   "binaryname": "gitclt",
   "goversion": "1.27.3",
-  "versionnumber": "0.3.0",
+  "versionnumber": "0.4.0",
   "defaultreleasenumber": "1",
   "description": "forgejo / github management tool",
   "maintainer": "J.F. Gratton <jean-francois@famillegratton.net>",
