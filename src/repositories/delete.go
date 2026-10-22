@@ -13,15 +13,14 @@ import (
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
-
 	//gol "github.com/jeanfrancoisgratton/gitoperationslib"
 )
 
 func DeleteRepo(reponame string) *cerr.CustomError {
 	var c *forge.Client
 	var ce *cerr.CustomError
-
 	ctx := context.Background()
+
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
@@ -32,7 +31,7 @@ func DeleteRepo(reponame string) *cerr.CustomError {
 	}
 
 	if !shared.QuietOutput {
-		fmt.Println(hftx.EnabledSign(fmt.Sprintf("Deleted repository %s", hftx.Blue(OwnerOrg+"/"+reponame))))
+		fmt.Println(hftx.EnabledSign(fmt.Sprintf("Deleted repository %s", hftx.Brown(OwnerOrg+"/"+reponame))))
 	}
 	return nil
 }

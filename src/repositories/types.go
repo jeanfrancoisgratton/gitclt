@@ -17,3 +17,10 @@ var OwnerOrg = ""
 // supported values: ID (the default; Repository on Bitbucket, which has no IDs), Owner, Created At, Last Updated. Any value outside of this list reverts to the default
 var SortBy = ""
 var SortByAsc = ""
+
+// Various variables used at repo creation, with their default values
+var TemplateRepo = false
+var InitializeRepo = false
+var RepoDefaultBranch = "develop"
+var RepoDescription = ""
+var PublicRepo = true
