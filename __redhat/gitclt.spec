@@ -55,6 +55,19 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Wed Oct 21 2026 Binary package builder <builder@famillegratton.net> 0.5.0-1
+- chore: converted CHANGELOG format to the 'Keep a Changelog' format
+- housekeeping: build test on 0.5.0
+- feature: completed repo create (all the repo subcommands, for that matter)
+- housekeeping: version bump
+- housekeeping: version bump
+- feature: completed repo rm
+- feature: completed repo info
+- enhancement : repo ls defaults to -S ID now
+- feature: completed repo ls and added bitbucket support
+- version bump, removed useless packaging files
+- chore: update changelog for 0.1.0-1
+
 * Mon Oct 19 2026 Binary package builder <builder@famillegratton.net> 0.1.0-1
 - feature: repo ls is completed
 - Merge remote-tracking branch 'refs/remotes/origin/develop' into develop
