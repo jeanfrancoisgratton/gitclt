@@ -1,18 +1,14 @@
 // gitclt
 // Written by J.F. Gratton <jean-francois@famillegratton.net>
-// Original filename: src/user/user_non-admin.go
-// Original timestamp : 2026.10.23 12:59:01
+// Original filename: src/user/renderer.go
+// Original timestamp : 2026.10.24 02:17:25
 
 package user
 
 import (
-	"context"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"fmt"
-	"gitclt/forge"
-	"gitclt/shared"
-	"os"
 	"slices"
 	"strings"
 	"text/tabwriter"
@@ -26,87 +22,55 @@ import (
 
 const timeFormat = "2006.01.02 15:04"
 
-// WhoAmI provides information about the user tied to the current connection's credentials.
-// The base profile is always shown; ExtendedInfo adds the forge-specific fields, settings, e-mails,
-// organisations, teams, repositories and keys.
-func WhoAmI(displayOutput bool) (*gol.CurrentUser, *cerr.CustomError) {
-	var c *forge.Client
-	var ce *cerr.CustomError
-	ctx := context.Background()
-
-	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
-		return nil, ce
+// printJSON encodes and pretty-prints any of the user types; what is only used in the error titles
+func printJSON(v any, what string) *cerr.CustomError {
+	jStream, jerr := json.Marshal(v, jsontext.WithIndent("\t"))
+	if jerr != nil {
+		return &cerr.CustomError{Title: "Unable to encode the " + what, Message: jerr.Error()}
 	}
-
-	cu, e := c.Directory().Me(ctx)
-	if e != nil {
-		return nil, forge.Error("Unable to fetch user information", e)
+	if e := hfjson.Print(jStream); e != nil {
+		return &cerr.CustomError{Title: "Unable to print the " + what, Message: e.Error()}
 	}
-
-	// we only want the data, we do not need it sent to stdout
-	if !displayOutput {
-		return cu, nil
-	}
-
-	if JSONoutput {
-		jStream, jerr := json.Marshal(cu, jsontext.WithIndent("\t"))
-		if jerr != nil {
-			return nil, &cerr.CustomError{Title: "Unable to encode the user information", Message: jerr.Error()}
-		}
-		if e := hfjson.Print(jStream); e != nil {
-			return cu, &cerr.CustomError{Title: "Unable to print the user information", Message: e.Error()}
-		}
-		return cu, nil
-	}
-
-	// tabulated output
-	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
-	_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("ID:"), cu.ID)
-	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Login:"), cu.Login)
-	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Full name:"), cu.FullName)
-	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("E-mail:"), cu.Email)
-	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Description:"), cu.Description)
-	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Web site:"), cu.Website)
-	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Location:"), cu.Location)
-	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Visibility:"), cu.Visibility)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Admin:"), cu.IsAdmin)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Active:"), cu.Active)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Restricted:"), cu.Restricted)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Login prohibited:"), cu.ProhibitLogin)
-	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("HTML URL:"), cu.HTMLURL)
-	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Avatar URL:"), cu.AvatarURL)
-	_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("Followers:"), cu.Followers)
-	_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("Following:"), cu.Following)
-	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Created:"), formatTime(cu.CreatedAt))
-	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Last login:"), formatTime(cu.LastLogin))
-
-	if ExtendedInfo {
-		printExtendedInfo(w, cu)
-	}
-	_ = w.Flush()
-
-	// some parts could not be read (most likely a token scope issue); say so instead of silently showing nothing
-	if len(cu.Missing) > 0 {
-		fmt.Println()
-		fmt.Println(hftx.Yellow("Some information could not be fetched:"))
-		for _, m := range cu.Missing {
-			if m.Status != 0 {
-				fmt.Printf("  - %s (HTTP %d): %s\n", m.Part, m.Status, m.Message)
-			} else {
-				fmt.Printf("  - %s: %s\n", m.Part, m.Message)
-			}
-		}
-	}
-
-	return cu, nil
+	return nil
 }
 
-// printExtendedInfo writes the forge-specific fields (only those the forge reported) and the user's collections
-func printExtendedInfo(w *tabwriter.Writer, cu *gol.CurrentUser) {
+// printUser writes the base profile shared by gol.User and gol.CurrentUser.
+// With ExtendedInfo, the forge-specific fields of gol.User follow (only those the forge reported)
+func printUser(w *tabwriter.Writer, u *gol.User) {
+	_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("ID:"), u.ID)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Login:"), u.Login)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Full name:"), u.FullName)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("E-mail:"), u.Email)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Description:"), u.Description)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Web site:"), u.Website)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Location:"), u.Location)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Visibility:"), u.Visibility)
+	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Admin:"), u.IsAdmin)
+	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Active:"), u.Active)
+	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Restricted:"), u.Restricted)
+	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Login prohibited:"), u.ProhibitLogin)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("HTML URL:"), u.HTMLURL)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Avatar URL:"), u.AvatarURL)
+	_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("Followers:"), u.Followers)
+	_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("Following:"), u.Following)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Created:"), formatTime(u.CreatedAt))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Last login:"), formatTime(u.LastLogin))
+
+	if !ExtendedInfo {
+		return
+	}
 	// forge-specific scalars: skip the zero values, as they mostly mean "not reported by this forge"
-	printIfSet(w, "Company:", cu.Company)
-	printIfSet(w, "Pronouns:", cu.Pronouns)
-	printIfSet(w, "Language:", cu.Language)
+	printIfSet(w, "Company:", u.Company)
+	printIfSet(w, "Pronouns:", u.Pronouns)
+	printIfSet(w, "Language:", u.Language)
+	if u.StarredRepos != 0 {
+		_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("Starred repos:"), u.StarredRepos)
+	}
+}
+
+// printExtendedInfo writes what only gol.CurrentUser carries: the forge-specific fields (only those the forge
+// reported), settings, e-mails, organisations, teams, repositories and keys
+func printExtendedInfo(w *tabwriter.Writer, cu *gol.CurrentUser) {
 	printIfSet(w, "Login name:", cu.LoginName)
 	printIfSet(w, "UUID:", cu.UUID)
 	printIfSet(w, "Account ID:", cu.AccountID)
@@ -121,9 +85,6 @@ func printExtendedInfo(w *tabwriter.Writer, cu *gol.CurrentUser) {
 	}
 	if cu.Hireable {
 		_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Hireable:"), cu.Hireable)
-	}
-	if cu.StarredRepos != 0 {
-		_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("Starred repos:"), cu.StarredRepos)
 	}
 	if cu.PublicRepos != 0 || cu.TotalPrivateRepos != 0 {
 		_, _ = fmt.Fprintf(w, "%s\t%d public, %d private (%d owned)\n", hftx.Blue("Repositories:"),
@@ -205,6 +166,23 @@ func printExtendedInfo(w *tabwriter.Writer, cu *gol.CurrentUser) {
 			_, _ = fmt.Fprintf(w, "  %s\t%s\texpires %s\t%s\n", k.KeyID, strings.Join(addrs, ", "), expires,
 				flags(map[string]bool{"sign": k.CanSign, "certify": k.CanCertify,
 					"encrypt": k.CanEncryptComms || k.CanEncryptStorage, "verified": k.Verified}))
+		}
+	}
+}
+
+// printMissing reports the parts of a gol.CurrentUser that could not be read (most likely a token scope issue),
+// instead of silently showing nothing
+func printMissing(missing []gol.PartError) {
+	if len(missing) == 0 {
+		return
+	}
+	fmt.Println()
+	fmt.Println(hftx.Yellow("Some information could not be fetched:"))
+	for _, m := range missing {
+		if m.Status != 0 {
+			fmt.Printf("  - %s (HTTP %d): %s\n", m.Part, m.Status, m.Message)
+		} else {
+			fmt.Printf("  - %s: %s\n", m.Part, m.Message)
 		}
 	}
 }

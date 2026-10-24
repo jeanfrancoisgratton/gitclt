@@ -31,10 +31,25 @@ var userWhoAmICmd = &cobra.Command{
 	},
 }
 
+var userGetCmd = &cobra.Command{
+	Use:     "get",
+	Aliases: []string{"info"},
+	Example: "gitclt user get [-c CONNECTION] [--extended] [--json] <USERNAME>",
+	Short:   "Gives information about a user (needs admin rights, Forgejo only)",
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, e := user.UserGet(args[0], true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
 func init() {
-	userCmd.AddCommand(userWhoAmICmd)
+	userCmd.AddCommand(userWhoAmICmd, userGetCmd)
 
 	userWhoAmICmd.Flags().BoolVarP(&user.ExtendedInfo, "extended", "x", false, "provide extended user information")
 	userWhoAmICmd.Flags().BoolVarP(&user.JSONoutput, "json", "j", false, "Output the list as JSON")
+	userGetCmd.Flags().BoolVarP(&user.ExtendedInfo, "extended", "x", false, "provide extended user information")
+	userGetCmd.Flags().BoolVarP(&user.JSONoutput, "json", "j", false, "Output the list as JSON")
 
 }
