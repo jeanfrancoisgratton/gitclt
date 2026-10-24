@@ -1,9 +1,9 @@
 // gitclt
 // Written by J.F. Gratton <jean-francois@famillegratton.net>
-// Original filename: src/conn_cfg/load_save.go
+// Original filename: src/connection/load_save.go
 // Original timestamp: 2023/08/19 10:02
 
-package conn_cfg
+package connection
 
 import (
 	"encoding/json/jsontext"

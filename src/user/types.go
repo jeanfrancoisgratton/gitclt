@@ -63,19 +63,3 @@ var EditUserRestricted bool
 var EditUserAllowCreateOrg bool
 var EditUserMaxRepos int
 var EditUserVisibility VisibilityFlag
-
-/*
-type CreateUserOptions struct {
-	Login    string `json:"login"` // required
-	Email    string `json:"email"` // required
-	Password string `json:"-"`
-	FullName string `json:"fullName,omitzero"`
-	// MustChangePassword forces a password change at first sign-in.
-	// Nil means the Forgejo default, which is true.
-	MustChangePassword *bool           `json:"mustChangePassword,omitzero"`
-	Visibility         OwnerVisibility `json:"visibility,omitzero"` // zero value: backend default
-	Restricted         bool            `json:"restricted,omitzero"`
-	// SendNotify emails the user about the new account.
-	SendNotify bool `json:"sendNotify,omitzero"`
-}
-*/

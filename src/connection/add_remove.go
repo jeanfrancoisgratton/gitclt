@@ -1,9 +1,9 @@
 // gitclt
 // Written by J.F. Gratton <jean-francois@famillegratton.net>
-// Original filename: src/conn_cfg/add_remove.go
+// Original filename: src/connection/add_remove.go
 // Original timestamp: 2023/09/15 08:23
 
-package conn_cfg
+package connection
 
 import (
 	"fmt"

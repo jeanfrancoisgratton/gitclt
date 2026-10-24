@@ -1,9 +1,9 @@
 // gitclt
 // Written by J.F. Gratton <jean-francois@famillegratton.net>
 // Original timestamp: 2026/03/01 15:41
-// Original filename: src/conn_cfg/types.go
+// Original filename: src/connection/types.go
 
-package conn_cfg
+package connection
 
 var DebugMode = false
 
