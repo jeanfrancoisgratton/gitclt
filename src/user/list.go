@@ -49,11 +49,11 @@ func ListUsers(displayOutput bool) ([]gol.User, *cerr.CustomError) {
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"ID", "Login", "Full name", "E-mail", "Visibility", "Admin", "Active",
-		"Last login", "Website", "Location"})
+	t.AppendHeader(table.Row{"ID", "Login", "Full name", "E-mail", "Visibility", "Admin",
+		"Active", "Last login", "Location"})
 	for _, u := range users {
 		t.AppendRow(table.Row{u.ID, u.Login, u.FullName, u.Email, string(u.Visibility),
-			u.IsAdmin, u.Active, formatTime(u.LastLogin), u.Website, u.Location})
+			u.IsAdmin, u.Active, formatTime(u.LastLogin), u.Location})
 	}
 	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
 	t.Style().Format.Header = text.FormatDefault

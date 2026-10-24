@@ -9,3 +9,6 @@ var QuietOutput = false
 
 // The connection to use, from -c/--connection; empty means the default connection
 var ConnectionName = ""
+
+// DebugMode is set to true when running the app through the IDE step-by-step
+var DebugMode = false

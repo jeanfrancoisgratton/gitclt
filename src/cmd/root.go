@@ -45,6 +45,7 @@ func init() {
 	rootCmd.AddCommand(repoCmd, conn_cfgCmd, userCmd)
 	rootCmd.AddCommand(versionCmd, userWhoAmICmd)
 
-	rootCmd.PersistentFlags().StringVarP(&shared.ConnectionName, "connection", "c", "", "Connection to use (default: the default connection)")
-	rootCmd.PersistentFlags().BoolVarP(&shared.QuietOutput, "quiet", "q", false, "Output will be as quiet as possible")
+	rootCmd.PersistentFlags().StringVarP(&shared.ConnectionName, "connection", "c", "", "connection to use (default: the default connection)")
+	rootCmd.PersistentFlags().BoolVarP(&shared.QuietOutput, "quiet", "q", false, "output will be as quiet as possible")
+	rootCmd.PersistentFlags().BoolVarP(&shared.DebugMode, "debug", "D", false, "debug mode")
 }
