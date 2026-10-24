@@ -2,7 +2,7 @@
 # Packager: Package builder <builder@famillegratton.net>
 
 pkgname=gitclt
-pkgver=0.6.0
+pkgver=0.7.0
 pkgrel=1
 pkgdesc="forgejo / github management tool"
 arch=('x86_64')
