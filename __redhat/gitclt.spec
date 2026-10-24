@@ -55,6 +55,17 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Sat Oct 24 2026 Binary package builder <builder@famillegratton.net> 0.7.0-1
+- housekeeping: version bump
+- feature: completed user create and user edit
+- feature: new command, user delete
+- Merge branch 'develop' into feature/user
+- Merge branch 'main' into develop
+- Merge remote-tracking branch 'refs/remotes/origin/develop' into develop
+- chore: update changelog for 0.6.0-1
+- chore: version bump
+- Completed user whoami, user get and user ls
+
 * Sat Oct 24 2026 Binary package builder <builder@famillegratton.net> 0.6.0-1
 - chore: version bump
 - Merge branch 'develop'
