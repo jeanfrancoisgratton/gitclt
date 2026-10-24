@@ -1,6 +1,6 @@
 // gitclt
 // Written by J.F. Gratton <jean-francois@famillegratton.net>
-// Original filename: src/user/user_get.go
+// Original filename: src/user/get.go
 // Original timestamp : 2026.10.24 01:50:46
 
 package user

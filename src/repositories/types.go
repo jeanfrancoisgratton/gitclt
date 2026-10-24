@@ -7,9 +7,6 @@ package repositories
 
 var JSONoutput = false
 
-// Forgejo's maximum page size is a server setting (50 by default); GitHub's and Bitbucket's are 100
-const listPageSize = 50
-
 // Owner / organization, uses the current user if left empty
 var OwnerOrg = ""
 

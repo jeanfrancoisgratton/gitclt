@@ -9,6 +9,7 @@ import (
 	"cmp"
 	"context"
 	"gitclt/forge"
+	"gitclt/shared"
 	"slices"
 	"strings"
 
@@ -26,17 +27,9 @@ func yesNo(b bool) string {
 // An empty owner lists every repository the authenticated user can access (including their orgs' repositories),
 // otherwise the forge only returns that user's or organization's repositories (the filter is applied server-side)
 func fetchRepos(ctx context.Context, c *forge.Client, owner string) ([]gol.Repo, error) {
-	var repos []gol.Repo
-	fetch := func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Repo], error) {
+	return shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Repo], error) {
 		return c.Repos().List(ctx, owner, o)
-	}
-	for r, err := range gol.All(ctx, gol.ListOptions{PerPage: listPageSize}, fetch) {
-		if err != nil {
-			return nil, err
-		}
-		repos = append(repos, r)
-	}
-	return repos, nil
+	})
 }
 
 // sortRepos sorts repos in place, on the column given by -s (descending) or -S (ascending)

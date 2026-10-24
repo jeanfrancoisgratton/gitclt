@@ -44,12 +44,26 @@ var userGetCmd = &cobra.Command{
 	},
 }
 
+var userListCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Example: "gitclt user list [-c CONNECTION] [--json]",
+	Short:   "Lists all users on the forge (needs admin rights, Forgejo only)",
+	Args:    cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, e := user.UserList(true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
 func init() {
-	userCmd.AddCommand(userWhoAmICmd, userGetCmd)
+	userCmd.AddCommand(userWhoAmICmd, userGetCmd, userListCmd)
 
 	userWhoAmICmd.Flags().BoolVarP(&user.ExtendedInfo, "extended", "x", false, "provide extended user information")
 	userWhoAmICmd.Flags().BoolVarP(&user.JSONoutput, "json", "j", false, "Output the list as JSON")
 	userGetCmd.Flags().BoolVarP(&user.ExtendedInfo, "extended", "x", false, "provide extended user information")
 	userGetCmd.Flags().BoolVarP(&user.JSONoutput, "json", "j", false, "Output the list as JSON")
+	userListCmd.Flags().BoolVarP(&user.JSONoutput, "json", "j", false, "Output the list as JSON")
 
 }
