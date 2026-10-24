@@ -59,13 +59,6 @@ func ListRepositories(displayoutput bool) ([]gol.Repo, *cerr.CustomError) {
 		return nil, nil
 	}
 
-	if shared.QuietOutput {
-		for _, r := range repos {
-			fmt.Println(r.FullName)
-		}
-		return nil, nil
-	}
-
 	if !displayoutput {
 		return repos, nil
 	}

@@ -85,6 +85,17 @@ func Error(title string, err error) *cerr.CustomError {
 	return &cerr.CustomError{Title: title, Message: err.Error(), Code: gol.StatusCode(err)}
 }
 
+// Returns the account-management interface (users, orgs, teams); only Forgejo implements it
+// gol.Admin is not part of gol.Client, so it is not promoted through the embedding: we need a type assertion
+func (c *Client) Admin() (gol.Admin, *cerr.CustomError) {
+	adm, ok := c.Client.(gol.Admin)
+	if !ok {
+		return nil, &cerr.CustomError{Title: "Unsupported operation",
+			Message: fmt.Sprintf("Connection %s: account administration is only available on Forgejo", c.Connection.Name)}
+	}
+	return adm, nil
+}
+
 // github.com has its API on a separate host (api.github.com), which the library uses by default
 func isGithubDotCom(serverURL string) bool {
 	u, err := url.Parse(serverURL)
