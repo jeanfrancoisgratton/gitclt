@@ -55,6 +55,14 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Sat Oct 24 2026 Binary package builder <builder@famillegratton.net> 0.6.0-1
+- chore: version bump
+- Merge branch 'develop'
+- feature: completed user info
+- feature: user commands
+- stubbing users
+- chore: update changelog for 0.5.0-1
+
 * Wed Oct 21 2026 Binary package builder <builder@famillegratton.net> 0.5.0-1
 - chore: converted CHANGELOG format to the 'Keep a Changelog' format
 - housekeeping: build test on 0.5.0
