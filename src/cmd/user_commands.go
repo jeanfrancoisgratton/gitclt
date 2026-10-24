@@ -51,19 +51,34 @@ var userListCmd = &cobra.Command{
 	Short:   "Lists all users on the forge (needs admin rights, Forgejo only)",
 	Args:    cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		if _, e := user.UserList(true); e != nil {
+		if _, e := user.ListUsers(true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var userDeleteCmd = &cobra.Command{
+	Use:     "delete",
+	Aliases: []string{"rm"},
+	Example: "gitclt user delete [-c CONNECTION] <USER> [--purge] [--yes]",
+	Short:   "Delete a user from the server (forgejo only)",
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := user.DeleteUser(args[0]); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
 }
 
 func init() {
-	userCmd.AddCommand(userWhoAmICmd, userGetCmd, userListCmd)
+	userCmd.AddCommand(userWhoAmICmd, userGetCmd, userListCmd, userDeleteCmd)
 
 	userWhoAmICmd.Flags().BoolVarP(&user.ExtendedInfo, "extended", "x", false, "provide extended user information")
 	userWhoAmICmd.Flags().BoolVarP(&user.JSONoutput, "json", "j", false, "Output the list as JSON")
 	userGetCmd.Flags().BoolVarP(&user.ExtendedInfo, "extended", "x", false, "provide extended user information")
 	userGetCmd.Flags().BoolVarP(&user.JSONoutput, "json", "j", false, "Output the list as JSON")
 	userListCmd.Flags().BoolVarP(&user.JSONoutput, "json", "j", false, "Output the list as JSON")
+	userDeleteCmd.Flags().BoolVarP(&user.PurgeUser, "purge", "p", false, "Purge all of the user's contents (repos, etc)")
+	userDeleteCmd.Flags().BoolVarP(&user.AssumeYes, "yes", "y", false, "Do not ask for confirmation before deleting")
 
 }

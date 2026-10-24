@@ -17,8 +17,8 @@ import (
 	"github.com/jedib0t/go-pretty/v6/text"
 )
 
-// UserList lists every account on the forge, as a site admin sees it (Forgejo only)
-func UserList(displayOutput bool) ([]gol.User, *cerr.CustomError) {
+// ListUsers lists every account on the forge, as a site admin sees it (Forgejo only)
+func ListUsers(displayOutput bool) ([]gol.User, *cerr.CustomError) {
 	var c *forge.Client
 	var adm gol.Admin
 	var ce *cerr.CustomError
@@ -49,8 +49,8 @@ func UserList(displayOutput bool) ([]gol.User, *cerr.CustomError) {
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"ID", "Login", "Full name", "E-mail", "Visibility", "Admin", "Active", "Last login",
-		"Website", "Location"})
+	t.AppendHeader(table.Row{"ID", "Login", "Full name", "E-mail", "Visibility", "Admin", "Active",
+		"Last login", "Website", "Location"})
 	for _, u := range users {
 		t.AppendRow(table.Row{u.ID, u.Login, u.FullName, u.Email, string(u.Visibility),
 			u.IsAdmin, u.Active, formatTime(u.LastLogin), u.Website, u.Location})

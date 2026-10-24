@@ -7,3 +7,5 @@ package user
 
 var ExtendedInfo = false
 var JSONoutput = false
+var PurgeUser = false
+var AssumeYes = false
