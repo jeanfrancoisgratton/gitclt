@@ -8,7 +8,6 @@ package cmd
 import (
 	"fmt"
 	"gitclt/repositories"
-	"gitclt/shared"
 
 	"github.com/spf13/cobra"
 )
@@ -85,7 +84,6 @@ Other values are using hardcoded values such as gitignore template (Go, not avai
 func init() {
 	repoCmd.AddCommand(repoDeleteCmd, repoInfoCmd, repoListCmd, repoCreateCmd)
 
-	repoCmd.PersistentFlags().StringVarP(&shared.ConnectionName, "connection", "c", "", "Connection to use (default: the default connection)")
 	repoCreateCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "User or organization that will own the repository")
 	repoCreateCmd.Flags().BoolVar(&repositories.TemplateRepo, "template", false, "Template repo")
 	repoCreateCmd.Flags().BoolVar(&repositories.InitializeRepo, "initialize", false, "Initialize the repo after creation")

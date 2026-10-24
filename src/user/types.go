@@ -6,3 +6,4 @@
 package user
 
 var ExtendedInfo = false
+var JSONoutput = false

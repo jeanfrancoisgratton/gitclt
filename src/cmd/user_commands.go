@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"fmt"
 	"gitclt/user"
 
 	"github.com/spf13/cobra"
@@ -20,14 +21,13 @@ In other words: you must have the appropriate access or auth token to perform so
 
 var userWhoAmICmd = &cobra.Command{
 	Use:     "whoami",
-	Example: "gitclt user [-x] [<USERNAME>]",
+	Aliases: []string{"who"},
+	Example: "gitclt user whoami [--json]",
 	Short:   "Gives information about the current user (if no username is provided)",
-	Long: `The -x flag would give extended information.
-If a username is provided administrative rights are required.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		//if _, e := repositories.ListRepositories(true); e != nil {
-		//	fmt.Println(e.Error())
-		//}
+		if _, e := user.WhoAmI(true); e != nil {
+			fmt.Println(e.Error())
+		}
 	},
 }
 
@@ -35,4 +35,6 @@ func init() {
 	userCmd.AddCommand(userWhoAmICmd)
 
 	userWhoAmICmd.Flags().BoolVarP(&user.ExtendedInfo, "extended", "x", false, "provide extended user information")
+	userWhoAmICmd.Flags().BoolVarP(&user.JSONoutput, "json", "j", false, "Output the list as JSON")
+
 }

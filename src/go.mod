@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	github.com/jeanfrancoisgratton/customError/v3 v3.1.1
-	github.com/jeanfrancoisgratton/gitoperationslib v0.1.7
+	github.com/jeanfrancoisgratton/gitoperationslib v0.3.0
 	github.com/jeanfrancoisgratton/helperFunctions/v5 v5.8.1
 	github.com/jedib0t/go-pretty/v6 v6.8.3
 	github.com/spf13/cobra v1.10.2
@@ -13,7 +13,7 @@ require (
 require (
 	charm.land/lipgloss/v2 v2.0.6 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20261008173134-6b8d4baf91b4 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20261023060817-a45b7c86333f // indirect
 	github.com/charmbracelet/x/ansi v0.11.9 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
