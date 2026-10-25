@@ -7,12 +7,14 @@ package organizations
 
 import (
 	"context"
+	"fmt"
 	"gitclt/forge"
 	"gitclt/shared"
 	"os"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
+	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
@@ -47,12 +49,13 @@ func ListOrgs(username string, displayoutput bool) ([]gol.Org, *cerr.CustomError
 		return orgs, shared.PrintJSON(orgs, "organization list")
 	}
 
+	fmt.Println("\n" + hftx.ScrollSign(hftx.Gold("Managed ?")+" means that repository admins can change team access on the repo\n"))
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"ID", "Name", "Full name", "Description", "Visibility", "Repo admins manage team access"})
+	t.AppendHeader(table.Row{"ID", "Name", "Full name", "Description", "Visibility", "Managed ?", "URL", "Description"})
 	for _, o := range orgs {
 		t.AppendRow(table.Row{o.ID, o.Name, o.FullName, o.Description,
-			string(o.Visibility), o.RepoAdminChangeTeamAccess})
+			string(o.Visibility), o.RepoAdminChangeTeamAccess, o.Website, o.Description})
 	}
 	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
 	t.Style().Format.Header = text.FormatDefault
@@ -91,12 +94,13 @@ func ListAllOrgs(displayoutput bool) ([]gol.Org, *cerr.CustomError) {
 		return orgs, shared.PrintJSON(orgs, "organization list")
 	}
 
+	fmt.Println("\n" + hftx.ScrollSign(hftx.Gold("Managed ?")+" means that repository admins can change team access on the repo\n"))
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"ID", "Name", "Full name", "Description", "Visibility", "Repo admins manage team access"})
+	t.AppendHeader(table.Row{"ID", "Name", "Full name", "Description", "Visibility", "Managed ?", "URL", "Description"})
 	for _, o := range orgs {
 		t.AppendRow(table.Row{o.ID, o.Name, o.FullName, o.Description,
-			string(o.Visibility), o.RepoAdminChangeTeamAccess})
+			string(o.Visibility), o.RepoAdminChangeTeamAccess, o.Website, o.Description})
 	}
 	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
 	t.Style().Format.Header = text.FormatDefault

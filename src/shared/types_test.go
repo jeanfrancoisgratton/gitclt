@@ -1,7 +1,7 @@
 // gitclt
 // Tests the --visibility flag type
 
-package user
+package shared
 
 import "testing"
 

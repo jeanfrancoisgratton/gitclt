@@ -5,23 +5,26 @@
 
 package organizations
 
+import "gitclt/shared"
+
 var JSONoutput = false
 var AssumeYes = false
 
-/*
-type Org struct {
-	ID          int64           `json:"id"`
-	Name        string          `json:"name"`
-	FullName    string          `json:"fullName"`
-	Description string          `json:"description"`
-	Website     string          `json:"website"`
-	Location    string          `json:"location"`
-	Email       string          `json:"email"`
-	Visibility  OwnerVisibility `json:"visibility"`
-	AvatarURL   string          `json:"avatarUrl"`
-	HTMLURL     string          `json:"htmlUrl,omitzero"` // GitHub only
-	// RepoAdminChangeTeamAccess lets repository admins change team access.
-	RepoAdminChangeTeamAccess bool `json:"repoAdminChangeTeamAccess,omitzero"`
-}
+// CreateOrgOptions flags
+var CreateOrgOwner string
+var CreateOrgFullName string
+var CreateOrgDescription string
+var CreateOrgWebsite string
+var CreateOrgEmail string
+var CreateOrgLocation string
+var CreateOrgVisibility shared.VisibilityFlag
+var CreateOrgRepoAdminChangeTeamAccess bool
 
-*/
+// EditOrgOptions flags
+var EditOrgFullName string
+var EditOrgDescription string
+var EditOrgWebsite string
+var EditOrgEmail string
+var EditOrgLocation string
+var EditOrgVisibility shared.VisibilityFlag
+var EditOrgRepoAdminChangeTeamAccess bool
