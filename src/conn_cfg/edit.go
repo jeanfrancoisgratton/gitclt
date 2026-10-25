@@ -7,6 +7,7 @@ package conn_cfg
 
 import (
 	"fmt"
+	"gitclt/shared"
 	"strings"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
@@ -28,7 +29,7 @@ func promptSecretKeep(prompt, current string) string {
 	if current != "" {
 		hint = "set"
 	}
-	v := hf.GetPassword(fmt.Sprintf("%s [%s; ENTER keeps, '-' clears]: ", prompt, hint), DebugMode)
+	v := hf.GetPassword(fmt.Sprintf("%s [%s; ENTER keeps, '-' clears]: ", prompt, hint), shared.DebugMode)
 	switch v {
 	case "":
 		return current

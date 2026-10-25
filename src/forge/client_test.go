@@ -230,3 +230,51 @@ func TestConnect_UnknownConnection(t *testing.T) {
 		t.Fatal("expected an error on an unknown connection")
 	}
 }
+
+func TestIsGithubDotCom(t *testing.T) {
+	for u, want := range map[string]bool{"https://github.com": true, "https://API.github.com/": true,
+		"https://www.github.com/me": true, "https://github.example.com": false, "::bad::": false} {
+		if got := isGithubDotCom(u); got != want {
+			t.Errorf("%s: got %v", u, got)
+		}
+	}
+}
+
+func TestIsAtlassianAPIToken(t *testing.T) {
+	if !isAtlassianAPIToken("ATATTxyz") || isAtlassianAPIToken("ATCTTxyz") || isAtlassianAPIToken("") {
+		t.Fatal("wrong token classification")
+	}
+}
+
+func TestError(t *testing.T) {
+	if Error("title", nil) != nil {
+		t.Fatal("a nil error must stay nil (a non-nil *CustomError holding nil would look like a failure)")
+	}
+	if e := Error("title", fmt.Errorf("boom")); e == nil || e.Title != "title" || e.Message != "boom" || e.Code != 0 {
+		t.Fatalf("got %+v", e)
+	}
+}
+
+// Account administration is Forgejo-only: GitHub and Bitbucket clients refuse it
+func TestAdmin(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"version":"15.0.2"}`)
+	}))
+	defer srv.Close()
+	writeRegistry(t, `{"url":"`+srv.URL+`","token":"abc","servertype":"forgejo"}`)
+	c, err := Connect(context.Background(), "")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if adm, aerr := c.Admin(); aerr != nil || adm == nil {
+		t.Fatalf("forgejo: got %v, %v", adm, aerr)
+	}
+
+	writeRegistry(t, `{"url":"https://github.com","token":"abc","servertype":"github"}`)
+	if c, err = Connect(context.Background(), ""); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, aerr := c.Admin(); aerr == nil || aerr.Title != "Unsupported operation" {
+		t.Fatalf("github: got %+v", aerr)
+	}
+}

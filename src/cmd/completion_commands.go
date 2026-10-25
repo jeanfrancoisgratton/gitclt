@@ -1,7 +1,7 @@
-// dvol
+// gitclt
 // Written by J.F. Gratton <jean-francois@famillegratton.net>
 // Original timestamp: 2025/09/15 08:35
-// Original filename: src/cmd/completion.go
+// Original filename: src/cmd/completion_commands.go
 // Bash/Zsh completion scripts via Cobra.
 
 package cmd
@@ -13,29 +13,29 @@ import (
 )
 
 var completionCmd = &cobra.Command{
-	Use:   "completion",
-	Short: "Generate shell completion scripts",
+	Use:     "completion",
+	Example: "gitclt completion bash\n  gitclt completion zsh",
+	Short:   "Generate shell completion scripts",
 	Long: `Generate completion scripts for your shell.
 
 Bash:
-  $ source <($PROGRAM_NAME completion bash)
+  $ source <(gitclt completion bash)
   # To persist:
-  $ $PROGRAM_NAME completion bash | sudo tee /etc/bash_completion.d/$PROGRAM_NAME > /dev/null
+  $ gitclt completion bash | sudo tee /etc/bash_completion.d/gitclt > /dev/null
 
 Zsh:
-  $ $PROGRAM_NAME completion zsh > ~/.zsh/_$PROGRAM_NAME
+  $ gitclt completion zsh > ~/.zsh[.completion.d]/_gitclt
   $ echo 'fpath=($HOME/.zsh $fpath)' >> ~/.zshrc
   $ echo 'autoload -Uz compinit && compinit' >> ~/.zshrc
   # Or, for current session:
-  $ source <($PROGRAM_NAME completion zsh)
-
-You of course replace $PROGRAM_NAME with this tool's name
+  $ source <(gitclt completion zsh)
 `,
 }
 
 var completionBashCmd = &cobra.Command{
-	Use:   "bash",
-	Short: "Generate a Bash completion script",
+	Use:     "bash",
+	Example: "source <(gitclt completion bash)",
+	Short:   "Generate a Bash completion script",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// V2 is recommended; writes to stdout
 		return rootCmd.GenBashCompletionV2(os.Stdout, true)
@@ -43,8 +43,9 @@ var completionBashCmd = &cobra.Command{
 }
 
 var completionZshCmd = &cobra.Command{
-	Use:   "zsh",
-	Short: "Generate a Zsh completion script",
+	Use:     "zsh",
+	Example: "source <(gitclt completion zsh)",
+	Short:   "Generate a Zsh completion script",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Ensure the script is zsh-compatible
 		return rootCmd.GenZshCompletion(os.Stdout)

@@ -53,7 +53,7 @@ var orgGetCmd = &cobra.Command{
 	Use:     "get",
 	Example: "gitclt org get [-c CONNECTION] [--json] <ORG-NAME>",
 	Short:   "Fetches a given organization's information",
-	Args:    cobra.MaximumNArgs(1),
+	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, e := organizations.OrgGet(args[0], true); e != nil {
 			fmt.Println(e.Error())
@@ -64,9 +64,9 @@ var orgGetCmd = &cobra.Command{
 var orgDeleteCmd = &cobra.Command{
 	Use:     "delete",
 	Aliases: []string{"rm"},
-	Example: "gitclt org delete [-c CONNECTION] [--json] [--yes] <ORG-NAME>",
+	Example: "gitclt org delete [-c CONNECTION] [--yes] <ORG-NAME>",
 	Short:   "Deletes the named organization",
-	Args:    cobra.MaximumNArgs(1),
+	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if e := organizations.DeleteOrg(args[0]); e != nil {
 			fmt.Println(e.Error())

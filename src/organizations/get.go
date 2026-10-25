@@ -33,7 +33,7 @@ func OrgGet(orgname string, displayoutput bool) (*gol.Org, *cerr.CustomError) {
 
 	oo, e := adm.Orgs().Get(ctx, orgname)
 	if e != nil {
-		return nil, forge.Error("Unable to fetch user "+orgname, e)
+		return nil, forge.Error("Unable to fetch organization "+orgname, e)
 	}
 
 	// we only want the data, we do not need it sent to stdout

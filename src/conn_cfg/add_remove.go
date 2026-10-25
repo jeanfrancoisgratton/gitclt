@@ -7,6 +7,7 @@ package conn_cfg
 
 import (
 	"fmt"
+	"gitclt/shared"
 	"strings"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
@@ -49,9 +50,9 @@ func AddConnection(name string) *cerr.CustomError {
 		return err
 	}
 	c.URL = hf.GetStringValFromPrompt("Enter the server URL (ex: https://myserver:myport): ")
-	c.Token = hf.GetPassword("Enter your API token (leave empty if none): ", DebugMode)
+	c.Token = hf.GetPassword("Enter your API token (leave empty if none): ", shared.DebugMode)
 	c.Username = hf.GetStringValFromPrompt("Enter your username: ")
-	c.Password = hf.GetPassword("Enter your password: ", DebugMode)
+	c.Password = hf.GetPassword("Enter your password: ", shared.DebugMode)
 
 	if err = c.Validate(); err != nil {
 		return err

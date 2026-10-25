@@ -5,8 +5,6 @@
 
 package conn_cfg
 
-var DebugMode = false
-
 // This is how the tool will know which connection (target forge) to use
 // The registry lives in $HOME/.config/JFG/gitclt/connections.json, and looks a lot like $HOME/.docker/config.json
 
