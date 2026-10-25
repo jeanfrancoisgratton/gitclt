@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var conn_cfgCmd = &cobra.Command{
+var connectionCmd = &cobra.Command{
 	Use:     "conn",
 	Aliases: []string{"connection"},
 	Example: "gitclt conn list\n" +
@@ -25,7 +25,7 @@ var conn_cfgCmd = &cobra.Command{
 	Long:  `Manages the connections registry, $HOME/.config/JFG/gitclt/connections.json`,
 }
 
-var conn_cfgListCmd = &cobra.Command{
+var connectionListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Example: "gitclt conn list",
@@ -37,7 +37,7 @@ var conn_cfgListCmd = &cobra.Command{
 	},
 }
 
-var conn_cfgInfoCmd = &cobra.Command{
+var connectionInfoCmd = &cobra.Command{
 	Use:     "info",
 	Aliases: []string{"explain"},
 	Example: "gitclt conn info [CONNECTION1 CONNECTION2... CONNECTIONn]",
@@ -50,7 +50,7 @@ var conn_cfgInfoCmd = &cobra.Command{
 	},
 }
 
-var conn_cfgAddCmd = &cobra.Command{
+var connectionAddCmd = &cobra.Command{
 	Use:     "add",
 	Aliases: []string{"create"},
 	Example: "gitclt conn add CONNECTION",
@@ -64,7 +64,7 @@ var conn_cfgAddCmd = &cobra.Command{
 	},
 }
 
-var conn_cfgRmCmd = &cobra.Command{
+var connectionRmCmd = &cobra.Command{
 	Use:     "rm",
 	Aliases: []string{"remove"},
 	Example: "gitclt conn rm CONNECTION",
@@ -77,7 +77,7 @@ var conn_cfgRmCmd = &cobra.Command{
 	},
 }
 
-var conn_cfgEditCmd = &cobra.Command{
+var connectionEditCmd = &cobra.Command{
 	Use:     "edit",
 	Aliases: []string{"update"},
 	Example: "gitclt conn edit CONNECTION",
@@ -91,7 +91,7 @@ var conn_cfgEditCmd = &cobra.Command{
 	},
 }
 
-var conn_cfgDefaultCmd = &cobra.Command{
+var connectionDefaultCmd = &cobra.Command{
 	Use:     "default",
 	Example: "gitclt conn default [CONNECTION]",
 	Short:   "Shows or sets the default connection",
@@ -111,6 +111,6 @@ var conn_cfgDefaultCmd = &cobra.Command{
 }
 
 func init() {
-	conn_cfgCmd.AddCommand(conn_cfgListCmd, conn_cfgInfoCmd, conn_cfgAddCmd, conn_cfgRmCmd,
-		conn_cfgEditCmd, conn_cfgDefaultCmd)
+	connectionCmd.AddCommand(connectionListCmd, connectionInfoCmd, connectionAddCmd,
+		connectionRmCmd, connectionEditCmd, connectionDefaultCmd)
 }

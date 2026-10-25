@@ -42,7 +42,7 @@ func init() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.SilenceUsage = true
 
-	rootCmd.AddCommand(repoCmd, conn_cfgCmd, userCmd, orgCmd)
+	rootCmd.AddCommand(repoCmd, connectionCmd, userCmd, orgCmd)
 	rootCmd.AddCommand(versionCmd, userWhoAmICmd, completionCmd)
 
 	rootCmd.PersistentFlags().StringVarP(&shared.ConnectionName, "connection", "c", "", "connection to use (default: the default connection)")
