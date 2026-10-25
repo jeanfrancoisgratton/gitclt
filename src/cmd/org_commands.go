@@ -61,11 +61,25 @@ var orgGetCmd = &cobra.Command{
 	},
 }
 
+var orgDeleteCmd = &cobra.Command{
+	Use:     "delete",
+	Aliases: []string{"rm"},
+	Example: "gitclt org delete [-c CONNECTION] [--json] [--yes] <ORG-NAME>",
+	Short:   "Deletes the named organization",
+	Args:    cobra.MaximumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := organizations.DeleteOrg(args[0]); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
 func init() {
-	orgCmd.AddCommand(orgListCmd, orgListAllCmd, orgGetCmd)
+	orgCmd.AddCommand(orgListCmd, orgListAllCmd, orgGetCmd, orgDeleteCmd)
 
 	orgListCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output the list as JSON")
 	orgListAllCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output the list as JSON")
 	orgGetCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output the list as JSON")
+	orgDeleteCmd.Flags().BoolVarP(&organizations.AssumeYes, "yes", "y", false, "do not ask for confirmation before deleting")
 
 }

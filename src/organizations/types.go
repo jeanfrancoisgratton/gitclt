@@ -6,7 +6,7 @@
 package organizations
 
 var JSONoutput = false
-var RepoAdminChangeTeamAccess = false
+var AssumeYes = false
 
 /*
 type Org struct {
