@@ -43,7 +43,7 @@ func UserGet(username string, displayOutput bool) (*gol.User, *cerr.CustomError)
 	}
 
 	if JSONoutput {
-		return u, printJSON(u, "user information")
+		return u, shared.PrintJSON(u, "user information")
 	}
 
 	// tabulated output

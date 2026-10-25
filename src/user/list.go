@@ -44,7 +44,7 @@ func ListUsers(displayOutput bool) ([]gol.User, *cerr.CustomError) {
 	}
 
 	if JSONoutput {
-		return users, printJSON(users, "user list")
+		return users, shared.PrintJSON(users, "user list")
 	}
 
 	t := table.NewWriter()

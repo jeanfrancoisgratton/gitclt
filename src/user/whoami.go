@@ -39,7 +39,7 @@ func WhoAmI(displayOutput bool) (*gol.CurrentUser, *cerr.CustomError) {
 	}
 
 	if JSONoutput {
-		return cu, printJSON(cu, "user information")
+		return cu, shared.PrintJSON(cu, "user information")
 	}
 
 	// tabulated output
