@@ -24,7 +24,7 @@ var orgListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Example: "gitclt org list [-c CONNECTION] [--json] <USER>",
-	Short:   "Lists all organizations on the forge (needs admin rights)",
+	Short:   "Lists all organizations on the forge that <USER> can access (needs admin rights)",
 	Args:    cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		username := ""
@@ -37,8 +37,20 @@ var orgListCmd = &cobra.Command{
 	},
 }
 
+var orgListAllCmd = &cobra.Command{
+	Use:     "listall",
+	Example: "gitclt org listall [-c CONNECTION] [--json]",
+	Short:   "Lists all organizations on the forge (needs admin rights)",
+	Args:    cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, e := organizations.ListAllOrgs(true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
 func init() {
-	orgCmd.AddCommand(orgListCmd)
+	orgCmd.AddCommand(orgListCmd, orgListAllCmd)
 
 	orgListCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output the list as JSON")
 }
