@@ -53,7 +53,7 @@ func CreateRepo(reponame string) *cerr.CustomError {
 		fmt.Printf("%s %s has been %s\n", hftx.EnabledSign("Repository"), hftx.Brown(reponame),
 			hftx.Green("created"))
 		if !InitializeRepo {
-			hftx.WarningSign("NOTICE: The repo is not initialized, you will need to locally set it up (git init/commit/remote add/push)")
+			fmt.Println(hftx.WarningSign("NOTICE: The repo is not initialized, you will need to locally set it up (git init/commit/remote add/push)"))
 		}
 	}
 	return nil

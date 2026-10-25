@@ -1,118 +1,145 @@
 #!/usr/bin/env sh
-# version-bump.sh -- synchronize gitclt's version across
-# gitclt.json and every present __<distro> packaging file,
-# resetting each one's own release/pkgrel counter back to 1.
+# gitclt — bump the software version everywhere it needs to be typed by
+# hand, and reset every distro's independent release counter to 1.
 #
-# Deliberately does NOT touch src/cmd/root.go: the binary reads its version
-# via -ldflags -X at build time (see the buildVersion/buildDate vars there),
-# so a version bump genuinely only requires running this one script.
+# Version and release are different things (see docs/CHANGELOG.md history /
+# the packaging Makefiles): release numbers are NOT kept in sync across
+# distros day to day — a Debian-only packaging fix bumps only
+# __debian/control, not the RPM spec. But a new *version* is a fresh package
+# on every distro, so every release counter resets to 1 here. If one distro
+# needs to diverge afterward (e.g. a distro-specific repackaging issue),
+# edit that one file's release field by hand — this script only handles
+# version bumps.
 #
-# Never touches __redhat/gitclt.spec's %changelog -- that is
-# owned by __redhat/updateChangelog.sh / `make commitcl`, not by this script.
+# src/cmd/root.go needs no edit: it reads its version via -ldflags -X at
+# build time from whichever file below is authoritative for that build.
 
 set -eu
 
-SOFTWARE_NAME="gitclt"
-MANIFEST="${SOFTWARE_NAME}.json"
-DEFAULT_RELEASE=1
+SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
+cd "$SCRIPT_DIR"
 
-usage() {
-	cat <<-EOF >&2
-	Usage: $0 NEW_VERSION
+TARGETS="gitclt.json __alpine/APKBUILD __archlinux/PKGBUILD __debian/control __redhat/gitclt.spec"
 
-	  Bumps ${MANIFEST}'s versionnumber and every present __<distro>
-	  packaging file's version field, resetting each one's own
-	  release/pkgrel counter to ${DEFAULT_RELEASE}.
-	EOF
-	exit "${1:-1}"
+print_usage() {
+  cat <<EOF
+Usage: $0 <new-version>   (e.g. $0 1.3.2)
+
+Bumps the software version in gitclt.json and every __*/ packaging file,
+and resets each distro's independent release counter to 1. The version
+must start with a digit and contain only [A-Za-z0-9._~-] (no "v" prefix,
+no flags).
+EOF
 }
+
+die() {
+  echo "ERROR: $1" >&2
+  exit "${2:-1}"
+}
+
+# --- argument handling -------------------------------------------------
 
 case "${1-}" in
-	-h|--help) usage 0 ;;
-	-*)
-		echo "$0: '$1' looks like an option, not a version" >&2
-		usage 1
-		;;
-esac
-[ "$#" -eq 1 ] || usage 1
-
-NEWVER="$1"
-
-case "$NEWVER" in
-	[0-9]*) : ;;
-	*)
-		echo "$0: version must start with a digit: '$NEWVER'" >&2
-		exit 1
-		;;
+  -h | --help)
+    print_usage
+    exit 0
+    ;;
 esac
 
-case "$NEWVER" in
-	*[!A-Za-z0-9._~-]*)
-		echo "$0: version contains invalid characters: '$NEWVER'" >&2
-		exit 1
-		;;
+[ "$#" -eq 1 ] || { print_usage >&2; exit 2; }
+NEWVERSION="$1"
+
+case "$NEWVERSION" in
+  -*)
+    die "'$NEWVERSION' looks like an option, not a version. See '$0 --help'." 2
+    ;;
+  [0-9]*) ;;
+  *)
+    die "version must start with a digit (e.g. 1.3.2), got '$NEWVERSION'"
+    ;;
 esac
 
-if [ ! -f "$MANIFEST" ]; then
-	echo "$0: $MANIFEST not found; run this from the project root" >&2
-	exit 1
+case "$NEWVERSION" in
+  *[!A-Za-z0-9._~-]*)
+    die "'$NEWVERSION' contains characters not expected in a version string"
+    ;;
+esac
+
+# --- preconditions -------------------------------------------------------
+
+for f in $TARGETS; do
+  [ -f "$f" ] || die "expected to find $f here — is this script still at the project root?"
+done
+
+# Refuse to run against a dirty tree for the files we're about to rewrite,
+# so any mistake here (or in a future edit to this script) is always a
+# trivial 'git checkout -- <file>' away from being undone.
+dirty=$(git status --porcelain -- $TARGETS 2>/dev/null || true)
+if [ -n "$dirty" ]; then
+  echo "ERROR: the following files have uncommitted changes; commit or stash them first" >&2
+  echo "so this bump stays trivially revertible:" >&2
+  echo "$dirty" >&2
+  exit 1
 fi
 
-SPEC="__redhat/${SOFTWARE_NAME}.spec"
+# --- patch ----------------------------------------------------------------
 
-FILES="$MANIFEST"
-[ -f __alpine/APKBUILD ]    && FILES="$FILES __alpine/APKBUILD"
-[ -f __archlinux/PKGBUILD ] && FILES="$FILES __archlinux/PKGBUILD"
-[ -f __debian/control ]     && FILES="$FILES __debian/control"
-[ -f "$SPEC" ]              && FILES="$FILES $SPEC"
-
-if git rev-parse --git-dir >/dev/null 2>&1; then
-	# shellcheck disable=SC2086
-	dirty=$(git status --porcelain -- $FILES)
-	if [ -n "$dirty" ]; then
-		echo "$0: refusing to run -- uncommitted changes in a file this script touches:" >&2
-		echo "$dirty" >&2
-		exit 1
-	fi
-fi
-
-# patch_line PATTERN REPLACEMENT FILE : replace the (unique) line starting
-# with PATTERN with REPLACEMENT, preserving FILE's mode across the
-# temp-file+mv swap (mv onto an existing path replaces the inode, which
-# silently drops the executable bit otherwise), then verify the patch landed.
-patch_line() {
-	pattern="$1"; replacement="$2"; file="$3"
-	mode=$(stat -c '%a' "$file" 2>/dev/null || stat -f '%Lp' "$file")
-	tmp=$(mktemp)
-	sed "s|^${pattern}.*|${replacement}|" "$file" >"$tmp"
-	mv "$tmp" "$file"
-	chmod "$mode" "$file"
-	grep -qF "$replacement" "$file" || {
-		echo "$0: failed to patch $file (expected to find: $replacement)" >&2
-		exit 1
-	}
+# patch <file> <sed-script>  — writes via a temp file + mv so this works
+# identically under GNU, BSD, and BusyBox sed (their -i flags don't agree),
+# then restores the original file's permissions (mv onto a freshly created
+# temp file would otherwise silently drop the executable bit).
+patch() {
+  file="$1"
+  script="$2"
+  mode=$(stat -c '%a' "$file" 2>/dev/null || stat -f '%Lp' "$file")
+  sed "$script" "$file" > "$file.bumptmp"
+  mv "$file.bumptmp" "$file"
+  chmod "$mode" "$file"
 }
 
-patch_line '  "versionnumber":' "  \"versionnumber\": \"${NEWVER}\"," "$MANIFEST"
-patch_line '  "defaultreleasenumber":' "  \"defaultreleasenumber\": \"${DEFAULT_RELEASE}\"," "$MANIFEST"
+# verify <file> <expected-literal-line>  — fails loudly instead of silently
+# no-op'ing if a file's format ever drifts out from under this script's sed
+# patterns.
+verify() {
+  grep -qF -- "$2" "$1" || die "expected to find '$2' in $1 after patching — its format may have changed; check 'git diff' before re-running."
+}
 
-if [ -f __alpine/APKBUILD ]; then
-	patch_line 'pkgver=' "pkgver=${NEWVER}" __alpine/APKBUILD
-	patch_line 'pkgrel=' "pkgrel=${DEFAULT_RELEASE}" __alpine/APKBUILD
-fi
+echo "Bumping gitclt to version $NEWVERSION (release reset to 1 on every distro)"
 
-if [ -f __archlinux/PKGBUILD ]; then
-	patch_line 'pkgver=' "pkgver=${NEWVER}" __archlinux/PKGBUILD
-	patch_line 'pkgrel=' "pkgrel=${DEFAULT_RELEASE}" __archlinux/PKGBUILD
-fi
+patch gitclt.json \
+  "s/\"versionnumber\": *\"[^\"]*\"/\"versionnumber\": \"$NEWVERSION\"/
+   s/\"defaultreleasenumber\": *\"[^\"]*\"/\"defaultreleasenumber\": \"1\"/"
+verify gitclt.json "\"versionnumber\": \"$NEWVERSION\""
+verify gitclt.json "\"defaultreleasenumber\": \"1\""
 
-if [ -f __debian/control ]; then
-	patch_line 'Version:' "Version: ${NEWVER}-${DEFAULT_RELEASE}" __debian/control
-fi
+patch __alpine/APKBUILD \
+  "s/^pkgver=.*/pkgver=$NEWVERSION/
+   s/^pkgrel=.*/pkgrel=1/"
+verify __alpine/APKBUILD "pkgver=$NEWVERSION"
+verify __alpine/APKBUILD "pkgrel=1"
 
-if [ -f "$SPEC" ]; then
-	patch_line '%define _version' "%define _version ${NEWVER}" "$SPEC"
-	patch_line '%define _rel'     "%define _rel ${DEFAULT_RELEASE}" "$SPEC"
-fi
+patch __archlinux/PKGBUILD \
+  "s/^pkgver=.*/pkgver=$NEWVERSION/
+   s/^pkgrel=.*/pkgrel=1/"
+verify __archlinux/PKGBUILD "pkgver=$NEWVERSION"
+verify __archlinux/PKGBUILD "pkgrel=1"
 
-echo "Bumped ${SOFTWARE_NAME} to ${NEWVER} (release reset to ${DEFAULT_RELEASE} everywhere it's tracked)."
+patch __redhat/gitclt.spec \
+  "s/^%define _version .*/%define _version $NEWVERSION/
+   s/^%define _rel .*/%define _rel 1/"
+verify __redhat/gitclt.spec "%define _version $NEWVERSION"
+verify __redhat/gitclt.spec "%define _rel 1"
+
+patch __debian/control \
+  "s/^Version: .*/Version: $NEWVERSION-1/"
+verify __debian/control "Version: $NEWVERSION-1"
+
+echo
+echo "Changed:"
+grep -H '"versionnumber"\|"defaultreleasenumber"' gitclt.json
+grep -H '^pkgver=\|^pkgrel=' __alpine/APKBUILD
+grep -H '^pkgver=\|^pkgrel=' __archlinux/PKGBUILD
+grep -H '^Version:' __debian/control
+grep -H '^%define _version\|^%define _rel' __redhat/gitclt.spec
+echo
+echo "Nothing else to edit by hand — src/cmd/root.go picks this up via -ldflags at build time."

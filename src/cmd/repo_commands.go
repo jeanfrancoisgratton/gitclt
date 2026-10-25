@@ -49,7 +49,7 @@ var repoInfoCmd = &cobra.Command{
 var repoDeleteCmd = &cobra.Command{
 	Use:     "delete",
 	Aliases: []string{"rm"},
-	Example: "gitclt repo delete [-c CONNECTION] -o OWNER [--json] <REPO>",
+	Example: "gitclt repo delete [-c CONNECTION] -o OWNER <REPO>",
 	Short:   "Delete a repository",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -65,7 +65,7 @@ Optional flags are below, with default values in parentheses:
 
 --description () -> repo description
 --defaultbranch (develop)
---publicrepo (true) -> repo visibility: true = public repo, private otherwise
+--public (true) -> repo visibility: true = public repo, private otherwise (--public=false)
 --template (false) -> is this repo a template repo ?
 --initialize (false) --> the repo will be created with basic .gitignore and README.md files
 
@@ -89,7 +89,7 @@ func init() {
 	repoCreateCmd.Flags().BoolVar(&repositories.InitializeRepo, "initialize", false, "initialize the repo after creation")
 	repoCreateCmd.Flags().StringVar(&repositories.RepoDefaultBranch, "defaultbranch", "develop", "the default branch to use after creation")
 	repoCreateCmd.Flags().StringVar(&repositories.RepoDescription, "description", "", "repository description")
-	repoCreateCmd.Flags().BoolVar(&repositories.PublicRepo, "public", true, "public repository (use --publicrepo=false for a private one)")
+	repoCreateCmd.Flags().BoolVar(&repositories.PublicRepo, "public", true, "public repository (use --public=false for a private one)")
 	repoDeleteCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user or organization that owns the repository")
 	repoInfoCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "output the list as JSON")
 	repoInfoCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user or organization that owns the repository")

@@ -6,33 +6,17 @@
 package user
 
 import (
-	"encoding/json/jsontext"
-	"encoding/json/v2"
 	"fmt"
 	"slices"
 	"strings"
 	"text/tabwriter"
 	"time"
 
-	cerr "github.com/jeanfrancoisgratton/customError/v3"
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
-	hfjson "github.com/jeanfrancoisgratton/helperFunctions/v5/prettyjson"
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 )
 
 const timeFormat = "2006.01.02 15:04"
-
-// printJSON encodes and pretty-prints any of the user types; what is only used in the error titles
-func printJSON(v any, what string) *cerr.CustomError {
-	jStream, jerr := json.Marshal(v, jsontext.WithIndent("\t"))
-	if jerr != nil {
-		return &cerr.CustomError{Title: "Unable to encode the " + what, Message: jerr.Error()}
-	}
-	if e := hfjson.Print(jStream); e != nil {
-		return &cerr.CustomError{Title: "Unable to print the " + what, Message: e.Error()}
-	}
-	return nil
-}
 
 // printUser writes the base profile shared by gol.User and gol.CurrentUser.
 // With ExtendedInfo, the forge-specific fields of gol.User follow (only those the forge reported)

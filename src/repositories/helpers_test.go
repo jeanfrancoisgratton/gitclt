@@ -44,3 +44,9 @@ func TestSortRepos(t *testing.T) {
 	}
 	SortBy, SortByAsc = "", ""
 }
+
+func TestYesNo(t *testing.T) {
+	if yesNo(true) != "yes" || yesNo(false) != "no" {
+		t.Fatal("wrong yesNo")
+	}
+}

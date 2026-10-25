@@ -39,7 +39,7 @@ func WhoAmI(displayOutput bool) (*gol.CurrentUser, *cerr.CustomError) {
 	}
 
 	if JSONoutput {
-		return cu, printJSON(cu, "user information")
+		return cu, shared.PrintJSON(cu, "user information")
 	}
 
 	// tabulated output
@@ -49,7 +49,10 @@ func WhoAmI(displayOutput bool) (*gol.CurrentUser, *cerr.CustomError) {
 		printExtendedInfo(w, cu)
 	}
 	_ = w.Flush()
-	printMissing(cu.Missing)
+	// Every part that can go missing belongs to the extended info: without -x, there is nothing to report
+	if ExtendedInfo {
+		printMissing(cu.Missing)
+	}
 
 	return cu, nil
 }
