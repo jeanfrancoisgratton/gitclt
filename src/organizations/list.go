@@ -49,7 +49,7 @@ func ListOrgs(username string, displayoutput bool) ([]gol.Org, *cerr.CustomError
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"ID", "Name", "Full name", "Description", "Visibility", "OrgRepoAdmin"})
+	t.AppendHeader(table.Row{"ID", "Name", "Full name", "Description", "Visibility", "Repo admins manage team access"})
 	for _, o := range orgs {
 		t.AppendRow(table.Row{o.ID, o.Name, o.FullName, o.Description,
 			string(o.Visibility), o.RepoAdminChangeTeamAccess})
@@ -93,7 +93,7 @@ func ListAllOrgs(displayoutput bool) ([]gol.Org, *cerr.CustomError) {
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"ID", "Name", "Full name", "Description", "Visibility", "OrgRepoAdmin"})
+	t.AppendHeader(table.Row{"ID", "Name", "Full name", "Description", "Visibility", "Repo admins manage team access"})
 	for _, o := range orgs {
 		t.AppendRow(table.Row{o.ID, o.Name, o.FullName, o.Description,
 			string(o.Visibility), o.RepoAdminChangeTeamAccess})

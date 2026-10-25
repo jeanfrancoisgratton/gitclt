@@ -49,8 +49,23 @@ var orgListAllCmd = &cobra.Command{
 	},
 }
 
+var orgGetCmd = &cobra.Command{
+	Use:     "get",
+	Example: "gitclt org get [-c CONNECTION] [--json] <ORG-NAME>",
+	Short:   "Fetches a given organization's information",
+	Args:    cobra.MaximumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, e := organizations.OrgGet(args[0], true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
 func init() {
-	orgCmd.AddCommand(orgListCmd, orgListAllCmd)
+	orgCmd.AddCommand(orgListCmd, orgListAllCmd, orgGetCmd)
 
 	orgListCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output the list as JSON")
+	orgListAllCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output the list as JSON")
+	orgGetCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output the list as JSON")
+
 }
