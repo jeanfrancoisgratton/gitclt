@@ -9,8 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	"gitclt/organizations"
 	"gitclt/testutil"
-	"gitclt/user"
+	"gitclt/users"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -23,7 +24,9 @@ func execute(t *testing.T, args []string, answers ...string) (string, string) {
 	t.Helper()
 	defer func() {
 		resetFlags(rootCmd)
-		user.CreateUserVisibility, user.EditUserVisibility = "", "" // VisibilityFlag refuses its own "" default
+		// VisibilityFlag refuses its own "" default
+		users.CreateUserVisibility, users.EditUserVisibility = "", ""
+		organizations.CreateOrgVisibility, organizations.EditOrgVisibility = "", ""
 	}()
 	var stderr bytes.Buffer
 	rootCmd.SetArgs(args)
