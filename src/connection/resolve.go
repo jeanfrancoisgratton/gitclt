@@ -1,9 +1,9 @@
 // gitclt
 // Written by J.F. Gratton <jean-francois@famillegratton.net>
-// Original filename: src/conn_cfg/resolve.go
+// Original filename: src/connection/resolve.go
 // Original timestamp : 2026.10.18 12:30:00
 
-package conn_cfg
+package connection
 
 import (
 	"fmt"

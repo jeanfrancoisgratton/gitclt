@@ -1,13 +1,14 @@
 // gitclt
 // Tests conn list / conn info: secrets are never shown, invalid connections are flagged
 
-package conn_cfg
+package connection
 
 import (
 	"strings"
 	"testing"
 
 	"gitclt/testutil"
+
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 )
 

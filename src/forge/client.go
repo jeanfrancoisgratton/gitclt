@@ -8,7 +8,7 @@ package forge
 import (
 	"context"
 	"fmt"
-	"gitclt/conn_cfg"
+	"gitclt/connection"
 	"net"
 	"net/http"
 	"net/url"
@@ -25,7 +25,7 @@ import (
 // Resolves the named connection (an empty name means the default connection), and opens a gitoperationslib client on it
 // On Forgejo, this already contacts the server: it checks that its version is supported (GitHub and Bitbucket make no request here)
 func Connect(ctx context.Context, connName string) (*Client, *cerr.CustomError) {
-	ac, err := conn_cfg.ResolveConnection(connName)
+	ac, err := connection.ResolveConnection(connName)
 	if err != nil {
 		return nil, err
 	}
@@ -33,13 +33,13 @@ func Connect(ctx context.Context, connName string) (*Client, *cerr.CustomError) 
 	var gc gol.Client
 	var gerr error
 	switch ac.ServerType {
-	case conn_cfg.ServerTypeForgejo:
+	case connection.ServerTypeForgejo:
 		creds := forgejo.Token(ac.Token)
-		if ac.Auth == conn_cfg.AuthBasic {
+		if ac.Auth == connection.AuthBasic {
 			creds = forgejo.BasicAuth(ac.Username, ac.Password)
 		}
 		gc, gerr = forgejo.New(ctx, ac.URL, creds, forgejo.WithHTTPClient(httpClient()), forgejo.WithUserAgent(userAgent))
-	case conn_cfg.ServerTypeGithub:
+	case connection.ServerTypeGithub:
 		// ResolveConnection() already refused GitHub connections without a token
 		opts := []github.Option{github.WithHTTPClient(httpClient()), github.WithUserAgent(userAgent)}
 		if !isGithubDotCom(ac.URL) {
@@ -47,13 +47,13 @@ func Connect(ctx context.Context, connName string) (*Client, *cerr.CustomError) 
 			opts = append(opts, github.WithEnterpriseURL(ac.URL, ""))
 		}
 		gc, gerr = github.New(ac.Token, opts...)
-	case conn_cfg.ServerTypeBitBucket:
+	case connection.ServerTypeBitBucket:
 		// Bitbucket Cloud only (no Data Center)
 		// Access tokens (workspace / project / repository) are bearer tokens, but Atlassian user API tokens (ATATT...)
 		// need the Atlassian account e-mail, which we take from the connection's username
 		creds := bitbucket.Token(ac.Token)
 		switch {
-		case ac.Auth == conn_cfg.AuthBasic:
+		case ac.Auth == connection.AuthBasic:
 			creds = bitbucket.BasicAuth(ac.Username, ac.Password)
 		case isAtlassianAPIToken(ac.Token):
 			if ac.Username == "" {

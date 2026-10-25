@@ -1,7 +1,7 @@
 // gitclt
 // Tests conn edit (ENTER keeps, '-' clears a secret) and conn default
 
-package conn_cfg
+package connection
 
 import (
 	"strings"
@@ -9,6 +9,7 @@ import (
 
 	"gitclt/shared"
 	"gitclt/testutil"
+
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 )
 

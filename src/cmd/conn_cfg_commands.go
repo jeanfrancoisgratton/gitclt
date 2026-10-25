@@ -7,7 +7,7 @@ package cmd
 
 import (
 	"fmt"
-	"gitclt/conn_cfg"
+	"gitclt/connection"
 
 	"github.com/spf13/cobra"
 )
@@ -31,7 +31,7 @@ var conn_cfgListCmd = &cobra.Command{
 	Example: "gitclt conn list",
 	Short:   "Lists all connections in the registry",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := conn_cfg.ListConnections(); err != nil {
+		if err := connection.ListConnections(); err != nil {
 			fmt.Println(err.Error())
 		}
 	},
@@ -44,7 +44,7 @@ var conn_cfgInfoCmd = &cobra.Command{
 	Short:   "Prints the details of the given connections",
 	Long:    `You can list as many connections as you wish; no connection means the default one`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := conn_cfg.ExplainConnections(args); err != nil {
+		if err := connection.ExplainConnections(args); err != nil {
 			fmt.Println(err.Error())
 		}
 	},
@@ -58,7 +58,7 @@ var conn_cfgAddCmd = &cobra.Command{
 	Long:    `The first connection added to the registry becomes the default connection`,
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := conn_cfg.AddConnection(args[0]); err != nil {
+		if err := connection.AddConnection(args[0]); err != nil {
 			fmt.Println(err.Error())
 		}
 	},
@@ -71,7 +71,7 @@ var conn_cfgRmCmd = &cobra.Command{
 	Short:   "Removes CONNECTION from the registry",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := conn_cfg.RemoveConnection(args[0]); err != nil {
+		if err := connection.RemoveConnection(args[0]); err != nil {
 			fmt.Println(err.Error())
 		}
 	},
@@ -85,7 +85,7 @@ var conn_cfgEditCmd = &cobra.Command{
 	Long:    `Pressing ENTER at a prompt keeps the current value`,
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := conn_cfg.EditConnection(args[0]); err != nil {
+		if err := connection.EditConnection(args[0]); err != nil {
 			fmt.Println(err.Error())
 		}
 	},
@@ -99,12 +99,12 @@ var conn_cfgDefaultCmd = &cobra.Command{
 	Args:    cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			if err := conn_cfg.ShowDefaultConnection(); err != nil {
+			if err := connection.ShowDefaultConnection(); err != nil {
 				fmt.Println(err.Error())
 			}
 			return
 		}
-		if err := conn_cfg.SetDefaultConnection(args[0]); err != nil {
+		if err := connection.SetDefaultConnection(args[0]); err != nil {
 			fmt.Println(err.Error())
 		}
 	},

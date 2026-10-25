@@ -1,9 +1,9 @@
 // gitclt
 // Written by J.F. Gratton <jean-francois@famillegratton.net>
 // Original timestamp: 2026/03/01 15:41
-// Original filename: src/conn_cfg/types.go
+// Original filename: src/connection/types.go
 
-package conn_cfg
+package connection
 
 // This is how the tool will know which connection (target forge) to use
 // The registry lives in $HOME/.config/JFG/gitclt/connections.json, and looks a lot like $HOME/.docker/config.json

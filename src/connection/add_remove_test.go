@@ -1,7 +1,7 @@
 // gitclt
 // Tests Validate, and the conn add / conn rm commands (prompts answered through testutil.Run)
 
-package conn_cfg
+package connection
 
 import (
 	"strings"
@@ -9,6 +9,7 @@ import (
 
 	"gitclt/shared"
 	"gitclt/testutil"
+
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 )
 

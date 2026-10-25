@@ -1,7 +1,7 @@
 // gitclt
 // Tests ResolveConnection: how the authentication method is picked, and URL checks
 
-package conn_cfg
+package connection
 
 import (
 	"testing"

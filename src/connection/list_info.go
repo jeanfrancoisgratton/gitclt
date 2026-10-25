@@ -1,9 +1,9 @@
 // gitclt
 // Written by J.F. Gratton <jean-francois@famillegratton.net>
-// Original filename: src/conn_cfg/list_info.go
+// Original filename: src/connection/list_info.go
 // Original timestamp: 2023/09/13 16:01
 
-package conn_cfg
+package connection
 
 import (
 	"fmt"

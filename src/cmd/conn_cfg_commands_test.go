@@ -1,5 +1,5 @@
 // gitclt
-// Tests the conn commands' wiring: arguments, and which conn_cfg function each one reaches
+// Tests the conn commands' wiring: arguments, and which connection function each one reaches
 
 package cmd
 

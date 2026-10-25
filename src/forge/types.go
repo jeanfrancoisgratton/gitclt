@@ -6,7 +6,7 @@
 package forge
 
 import (
-	"gitclt/conn_cfg"
+	"gitclt/connection"
 	"time"
 
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
@@ -21,5 +21,5 @@ const userAgent = "gitclt"
 // gol.Client is embedded: c.Repos(), c.Branches(), c.Releases()... are called directly on it
 type Client struct {
 	gol.Client
-	Connection conn_cfg.ActiveConnection
+	Connection connection.ActiveConnection
 }

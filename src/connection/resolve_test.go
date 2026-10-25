@@ -1,7 +1,7 @@
 // gitclt
 // Tests GetConnection: default connection, unknown and hand-edited invalid connections
 
-package conn_cfg
+package connection
 
 import (
 	"strings"

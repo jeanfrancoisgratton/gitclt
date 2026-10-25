@@ -1,7 +1,7 @@
 // gitclt
 // Tests the connections file: missing / broken files, secrets encrypted on disk, hand-edited cleartext secrets
 
-package conn_cfg
+package connection
 
 import (
 	"os"

@@ -1,7 +1,7 @@
 // gitclt
 // Tests the server type names, parsing, and their (un)marshalling as JSON strings
 
-package conn_cfg
+package connection
 
 import (
 	"encoding/json/v2"
