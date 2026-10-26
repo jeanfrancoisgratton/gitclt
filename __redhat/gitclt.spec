@@ -55,6 +55,27 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Sun Oct 25 2026 Binary package builder <builder@famillegratton.net> 0.8.0-1
+- version bump
+- feature: completed the org subcommand
+- bug: removed duplicate field on output
+- housekeeping: version bump
+- feature: added org edit and org create
+- housekeeping: packages renamed in a consistent manner
+- chore: completed conn_cfg refactoring
+- Merge branch 'feature/orgs_teams' into develop
+- refactored conn_cfg
+- refactored conn_cfg
+- chore: ensuring that we are running a DEV version
+- housekeeping: version bump
+- enhancement: added full test coverage
+- feature: completed org rm
+- feature: added the org get command
+- org list all completed
+- feature: org ls completed
+- chore: refactored conn_cfg -> connection
+- chore: update changelog for 0.7.0-1
+
 * Sat Oct 24 2026 Binary package builder <builder@famillegratton.net> 0.7.0-1
 - housekeeping: version bump
 - feature: completed user create and user edit
