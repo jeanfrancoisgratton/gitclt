@@ -55,6 +55,12 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Mon Oct 26 2026 Binary package builder <builder@famillegratton.net> 0.8.2-1
+- feature: teams command is complete
+- completed teams, and major directory restructure
+- Merge branch 'main' into develop
+- chore: update changelog for 0.8.0-1
+
 * Sun Oct 25 2026 Binary package builder <builder@famillegratton.net> 0.8.0-1
 - version bump
 - feature: completed the org subcommand
