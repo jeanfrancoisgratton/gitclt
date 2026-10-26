@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.2] - 2026-10-26
+
+### Added
+
+- Completed: the `team` subcommand (`list`, `get`, `create`, `edit`, `delete`, `members`, `ismember`, `addmember`, `removemember`, `repos`, `addrepo`, `removerepo`)
+
+### Changed
+
+- Source layout: the feature packages are now grouped by area, under `src/access_mgmt/` (`users`, `organizations`, `teams`) and `src/repo_mgmt/` (`repositories`); `src/branch_mgmt/` and `src/release_mgmt/` are scaffolded for the upcoming branch, tag and release commands
+
+<br><br>
 ## [0.8.0] - 2026-10-25
 
 ### Added

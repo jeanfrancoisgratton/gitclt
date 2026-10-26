@@ -12,6 +12,7 @@ What is currently implemented:
 - repositories: list, info, create, delete
 - users: whoami, get, list, create, edit, delete
 - organizations: list, get, create, edit, rename, delete, membership (list, check, remove)
+- teams: list, get, create, edit, delete, membership (list, check, add, remove), repository access (list, add, remove)
 
 **TABLE OF CONTENTS**<br>
 
@@ -148,6 +149,25 @@ Forgejo only. Some commands are self-service; the others need admin rights, or t
 | `gitclt org ismember <ORG> <USER>`              | Tells whether `<USER>` is a member of `<ORG>`; a missing `<ORG>` is an error, not a "no" |
 | `gitclt org removemember [-y] <ORG> <USER>` (`rmmember`) | Removes `<USER>` from `<ORG>`, after confirmation (`-y`, `--yes` skips it) |
 
+### Teams: `gitclt team`
+Forgejo only. Teams are addressed by their organization and their name (case-insensitive): `<ORG> <TEAM>`. Forgejo only shows an organization's teams to its members; managing them needs admin rights, or to be an owner of the organization.<br>
+A team's access is set either with `-p`, `--permission read|write|admin` (the same level on every unit), or with `-u`, `--units UNIT=LEVEL,...` (a level per unit: `none`, `read` or `write`), never both. The units are `code`, `issues`, `ext_issues`, `wiki`, `ext_wiki`, `pulls`, `releases`, `projects`, `packages`, `actions` (the `repo.` prefix is optional).
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt team list [-j] <ORG>` (`ls`)            | Lists the teams of an organization |
+| `gitclt team get [-j] <ORG> <TEAM>` (`info`)    | Shows a team, with its per-unit access; `gitclt team get <TEAM-ID>` fetches it by ID instead |
+| `gitclt team create [flags] <ORG> <TEAM>` (`add`) | Creates a team. `-d`, `--description`, `-p`, `--permission` or `-u`, `--units` (neither: read on every unit), `-a`, `--all-repos` (access to every repository of the organization, current and future), `-r`, `--can-create-repos` |
+| `gitclt team edit [flags] <ORG> <TEAM>` (`modify`, `update`) | Edits a team, with the same flags as `create`, plus `-n`, `--name` to rename it; **only the flags passed are sent**. `--permission` / `--units` replace the whole access. Booleans are revoked with `=false`, and `""` clears a text field. The owner team cannot be renamed, nor have its access changed |
+| `gitclt team delete [-y] <ORG> <TEAM>` (`rm`, `remove`) | Deletes a team, after confirmation (`-y`, `--yes` skips it); the owner team cannot be deleted |
+| `gitclt team members [-j] <ORG> <TEAM>`         | Lists the members of a team |
+| `gitclt team ismember <ORG> <TEAM> <USER>`      | Tells whether `<USER>` is a member of the team; a missing `<ORG>` or `<TEAM>` is an error, not a "no" |
+| `gitclt team addmember <ORG> <TEAM> <USER>`     | Adds `<USER>` to the team, which also makes them a member of the organization |
+| `gitclt team removemember [-y] <ORG> <TEAM> <USER>` (`rmmember`) | Removes `<USER>` from the team, after confirmation (`-y`, `--yes` skips it) |
+| `gitclt team repos [-j] <ORG> <TEAM>`           | Lists the repositories the team has access to |
+| `gitclt team addrepo <ORG> <TEAM> <REPO>`       | Gives the team access to `<REPO>`, which must belong to `<ORG>` |
+| `gitclt team removerepo [-y] <ORG> <TEAM> <REPO>` (`rmrepo`) | Revokes the team's access to `<REPO>`, after confirmation (`-y`, `--yes` skips it); the repository itself is kept |
+
 <a id="completion"></a>
 ## Shell completion
 ```bash
@@ -170,9 +190,20 @@ The code lives under `src/`, and dependencies only flow downward:
 ```
 cmd/            cobra commands; parses flags, calls the feature package, prints the error if any
   │
-repositories/   feature packages, one per resource (users/, organizations/, later teams/, branches/, ...)
-users/          calls the library, formats the output (table / JSON / quiet)
-organizations/
+access_mgmt/    feature packages, one per resource, grouped by area (these folders are not packages themselves):
+  users/          they call the library, and format the output (table / JSON / quiet)
+  organizations/
+  teams/
+repo_mgmt/
+  repositories/
+  webhooks/       (scaffolded)
+branch_mgmt/
+  branches/       (scaffolded)
+  protections/    (scaffolded)
+release_mgmt/
+  tags/           (scaffolded)
+  protections/    (scaffolded)
+  releases/       (scaffolded)
   │
 forge/          opens a gitoperationslib client on a connection; converts library errors
   │
@@ -181,6 +212,7 @@ shared/         global flag values (QuietOutput, ConnectionName), FetchAll(), Pr
 testutil/       test helpers only (fake Forgejo, throw-away registry, prompt answering); never in the binary
 ```
 
+The two `protections` packages share a name: a file importing both needs an alias for at least one of them.<br>
 A feature package never reads `connections.json`, never decides how to authenticate, and never sends HTTP requests by itself.
 If the library lacks something a command needs, the fix belongs in gitoperationslib, not in `gitclt`.
 
@@ -249,7 +281,7 @@ if lerr != nil {
 ```
 - it stops at the first error, and returns it
 - page size: `shared.ListPageSize` (50), which is safe on all forges (Forgejo's maximum is a server setting, 50 by default; GitHub's and Bitbucket's are 100)
-- a list of users renders with `users.RenderUserTable()`, whoever it comes from (`org members`, later team members, ...)
+- a list of users renders with `users.RenderUserTable()`, whoever it comes from (`org members`, `team members`, ...)
 
 ### 4. Creating, editing, deleting
 The library's option structs use the library's own types; nil pointer fields in `Edit...Options` mean "leave unchanged" (`gol.Ptr()` builds a pointer from a value):
@@ -286,7 +318,7 @@ On Bitbucket, users have no public login name: user fields hold the account's ni
 - Honour the output flags: `shared.QuietOutput` (bare output, one item per line), and a `--json` flag when it makes sense (`shared.PrintJSON()`). The JSON output is the library's types as-is (Go field names, ex: `FullName`)
 - `-c`/`--connection`, `-q` and `-D` are persistent flags on the root command: a new command group gets them for free
 - Feature functions that fetch data take a `displayoutput bool`: `false` returns the data without printing anything, so other packages can reuse the call
-- Edit commands only send the flags that were passed: hand `cmd.Flags().Changed` to the feature function, which sets the matching `gol.Edit...Options` pointer fields (see `organizations/edit.go`)
+- Edit commands only send the flags that were passed: hand `cmd.Flags().Changed` to the feature function, which sets the matching `gol.Edit...Options` pointer fields (see `access_mgmt/organizations/edit.go`)
 - A `--visibility` flag is a `shared.VisibilityFlag` (it refuses anything but `public`, `limited`, `private`); register `completeVisibility` as its completion function
 - Conventions for the cobra files (`cmd/*_commands.go`), checked in part by `cmd/root_test.go`:
   - `Short` starts with a third-person verb ("Lists...", "Deletes..."), and states "(needs admin rights)" / "(Forgejo only)" when it applies
