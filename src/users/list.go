@@ -9,12 +9,9 @@ import (
 	"context"
 	"gitclt/forge"
 	"gitclt/shared"
-	"os"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
-	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/jedib0t/go-pretty/v6/text"
 )
 
 // ListUsers lists every account on the forge, as a site admin sees it (Forgejo only)
@@ -47,17 +44,6 @@ func ListUsers(displayOutput bool) ([]gol.User, *cerr.CustomError) {
 		return users, shared.PrintJSON(users, "user list")
 	}
 
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"ID", "Login", "Full name", "E-mail", "Visibility", "Admin",
-		"Active", "Last login", "Location"})
-	for _, u := range users {
-		t.AppendRow(table.Row{u.ID, u.Login, u.FullName, u.Email, string(u.Visibility),
-			u.IsAdmin, u.Active, formatTime(u.LastLogin), u.Location})
-	}
-	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
-	t.Style().Format.Header = text.FormatDefault
-	t.Render()
-
+	RenderUserTable(users)
 	return users, nil
 }

@@ -19,8 +19,8 @@ func createServer(t *testing.T, createStatus, editStatus int) (creates, edits *[
 	t.Helper()
 	creates, edits = &[]map[string]any{}, &[]map[string]any{}
 	testutil.Forgejo(t, map[string]http.HandlerFunc{
-		"POST /api/v1/admin/users":      record(t, creates, createStatus, jfgUser),
-		"PATCH /api/v1/admin/users/jfg": record(t, edits, editStatus, jfgUser),
+		"POST /api/v1/admin/users":      testutil.Record(t, creates, createStatus, jfgUser),
+		"PATCH /api/v1/admin/users/jfg": testutil.Record(t, edits, editStatus, jfgUser),
 	})
 	return creates, edits
 }
@@ -28,10 +28,10 @@ func createServer(t *testing.T, createStatus, editStatus int) (creates, edits *[
 func TestCreateUser_WithFollowUpEdit(t *testing.T) {
 	defaults(t)
 	testutil.Set(t, &CreateUserEmail, "jfg@example.com")
-	testutil.Set(t, &CreateUserFullname, "J.F. Gratton")
+	testutil.Set(t, &CreateUserFullName, "J.F. Gratton")
 	testutil.Set(t, &CreateUserPasswdFile, writeFile(t, "s3cr3t\n", 0600))
 	testutil.Set(t, &CreateUserVisibility, "limited")
-	testutil.Set(t, &CreateUserRestrictedUser, true)
+	testutil.Set(t, &CreateUserRestricted, true)
 	testutil.Set(t, &CreateUserLocation, "Montreal")
 	testutil.Set(t, &CreateUserAdmin, true)
 	creates, edits := createServer(t, http.StatusCreated, http.StatusOK)

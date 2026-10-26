@@ -25,10 +25,10 @@ func CreateUser(username string, mustchangepassword *bool) *cerr.CustomError {
 	cuo := gol.CreateUserOptions{
 		Login:              username,
 		Email:              CreateUserEmail,
-		FullName:           CreateUserFullname,
+		FullName:           CreateUserFullName,
 		MustChangePassword: mustchangepassword,
 		Visibility:         gol.OwnerVisibility(CreateUserVisibility),
-		Restricted:         CreateUserRestrictedUser,
+		Restricted:         CreateUserRestricted,
 		SendNotify:         CreateUserSendNotification,
 	}
 	if CreateUserPasswdFile == "" {

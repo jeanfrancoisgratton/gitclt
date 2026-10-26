@@ -10,7 +10,9 @@ package testutil
 
 import (
 	"bytes"
+	"encoding/json/v2"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -82,6 +84,26 @@ func Status(code int) http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(code)
+	}
+}
+
+// Record stores the JSON body of each request into *bodies, then answers with status and reply (a JSON body);
+// an error status gets the same answer as Status()
+func Record(t *testing.T, bodies *[]map[string]any, status int, reply string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		m := map[string]any{}
+		if err := json.Unmarshal(b, &m); err != nil {
+			t.Errorf("%s %s: body %s: %v", r.Method, r.URL.Path, b, err)
+		}
+		*bodies = append(*bodies, m)
+		if status >= 400 {
+			Status(status)(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_, _ = io.WriteString(w, reply)
 	}
 }
 

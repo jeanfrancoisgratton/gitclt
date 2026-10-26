@@ -7,6 +7,7 @@ package users
 
 import (
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 	"text/tabwriter"
@@ -14,9 +15,27 @@ import (
 
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 )
 
 const timeFormat = "2006.01.02 15:04"
+
+// RenderUserTable prints a list of users as a table; exported so that any user list (org or team members, ...)
+// renders the same way
+func RenderUserTable(list []gol.User) {
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"ID", "Login", "Full name", "E-mail", "Visibility", "Admin",
+		"Active", "Last login", "Location"})
+	for _, u := range list {
+		t.AppendRow(table.Row{u.ID, u.Login, u.FullName, u.Email, string(u.Visibility),
+			u.IsAdmin, u.Active, formatTime(u.LastLogin), u.Location})
+	}
+	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
+	t.Style().Format.Header = text.FormatDefault
+	t.Render()
+}
 
 // printUser writes the base profile shared by gol.User and gol.CurrentUser.
 // With ExtendedInfo, the forge-specific fields of gol.User follow (only those the forge reported)

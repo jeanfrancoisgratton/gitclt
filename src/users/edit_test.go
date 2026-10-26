@@ -31,7 +31,7 @@ func TestEditUser_OnlyPassedFlagsAreSent(t *testing.T) {
 	testutil.Set(t, &EditUserAdmin, false)
 	testutil.Set(t, &EditUserMaxRepos, 5)
 	var bodies []map[string]any
-	testutil.Forgejo(t, map[string]http.HandlerFunc{"PATCH /api/v1/admin/users/jfg": record(t, &bodies, 200, jfgUser)})
+	testutil.Forgejo(t, map[string]http.HandlerFunc{"PATCH /api/v1/admin/users/jfg": testutil.Record(t, &bodies, 200, jfgUser)})
 
 	var err *cerr.CustomError
 	out := testutil.Run(t, func() { err = EditUser("jfg", passed("email", "admin", "max-repos")) })
@@ -56,7 +56,7 @@ func TestEditUser_OnlyPassedFlagsAreSent(t *testing.T) {
 
 func TestEditOptionsFromFlags(t *testing.T) {
 	defaults(t)
-	testutil.Set(t, &EditUserFullname, "")
+	testutil.Set(t, &EditUserFullName, "")
 	testutil.Set(t, &EditUserVisibility, "private")
 
 	// An empty string clears the field: it is sent, as ""
@@ -126,7 +126,7 @@ func TestEditUser_VisibilityIgnoredByServer(t *testing.T) {
 	defaults(t)
 	testutil.Set(t, &EditUserVisibility, "public")
 	var bodies []map[string]any
-	testutil.Forgejo(t, map[string]http.HandlerFunc{"PATCH /api/v1/admin/users/jfg": record(t, &bodies, 200, jfgUser)})
+	testutil.Forgejo(t, map[string]http.HandlerFunc{"PATCH /api/v1/admin/users/jfg": testutil.Record(t, &bodies, 200, jfgUser)})
 
 	var err *cerr.CustomError
 	out := testutil.Run(t, func() { err = EditUser("jfg", passed("visibility")) })

@@ -41,6 +41,17 @@ func TestFlags(t *testing.T) {
 	}
 }
 
+func TestRenderUserTable(t *testing.T) {
+	out := testutil.Run(t, func() {
+		RenderUserTable([]gol.User{{ID: 4, Login: "jfg", Email: "jfg@example.com"}, {ID: 9, Login: "zed"}})
+	})
+	for _, want := range []string{"LOGIN", "LAST LOGIN", "jfg", "jfg@example.com", "zed"} {
+		if !strings.Contains(strings.ToUpper(out), strings.ToUpper(want)) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+}
+
 func TestPrintUser(t *testing.T) {
 	testutil.Set(t, &ExtendedInfo, false)
 	u := &gol.User{ID: 4, Login: "jfg", FullName: "J.F. Gratton", IsAdmin: true, Company: "ACME", StarredRepos: 3}

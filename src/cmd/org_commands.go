@@ -23,8 +23,8 @@ In other words: you must have the appropriate access or auth token to perform so
 var orgListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Example: "gitclt org list [-c CONNECTION] [--json] <USER>",
-	Short:   "Lists all organizations on the forge that <USER> can access (needs admin rights)",
+	Example: "  gitclt org list [-c CONNECTION] [--json] [<USER>]",
+	Short:   "Lists the organizations <USER> belongs to (default: yourself)",
 	Args:    cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		username := ""
@@ -39,7 +39,7 @@ var orgListCmd = &cobra.Command{
 
 var orgListAllCmd = &cobra.Command{
 	Use:     "listall",
-	Example: "gitclt org listall [-c CONNECTION] [--json]",
+	Example: "  gitclt org listall [-c CONNECTION] [--json]",
 	Short:   "Lists all organizations on the forge (needs admin rights)",
 	Args:    cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -51,8 +51,9 @@ var orgListAllCmd = &cobra.Command{
 
 var orgGetCmd = &cobra.Command{
 	Use:     "get",
-	Example: "gitclt org get [-c CONNECTION] [--json] <ORG-NAME>",
-	Short:   "Fetches a given organization's information",
+	Aliases: []string{"info"},
+	Example: "  gitclt org get [-c CONNECTION] [--json] <ORG>",
+	Short:   "Gives information about an organization",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, e := organizations.OrgGet(args[0], true); e != nil {
@@ -63,9 +64,9 @@ var orgGetCmd = &cobra.Command{
 
 var orgDeleteCmd = &cobra.Command{
 	Use:     "delete",
-	Aliases: []string{"rm"},
-	Example: "gitclt org delete [-c CONNECTION] [--yes] <ORG-NAME>",
-	Short:   "Deletes the named organization",
+	Aliases: []string{"rm", "remove"},
+	Example: "  gitclt org delete [-c CONNECTION] [--yes] <ORG>",
+	Short:   "Deletes an organization",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if e := organizations.DeleteOrg(args[0]); e != nil {
@@ -77,8 +78,8 @@ var orgDeleteCmd = &cobra.Command{
 var orgRenameCmd = &cobra.Command{
 	Use:     "rename",
 	Aliases: []string{"mv"},
-	Example: "gitclt org rename [-c CONNECTION] <CURRENT_ORG-NAME> <NEW_ORG-NAME>",
-	Short:   "Changes (renames) an organization name",
+	Example: "  gitclt org rename [-c CONNECTION] <ORG> <NEW-NAME>",
+	Short:   "Renames an organization",
 	Args:    cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		if e := organizations.RenameOrg(args[0], args[1]); e != nil {
@@ -90,9 +91,10 @@ var orgRenameCmd = &cobra.Command{
 var orgCreateCmd = &cobra.Command{
 	Use:     "create",
 	Aliases: []string{"add"},
-	Example: "gitclt org create [-c CONNECTION] [flags] <ORG-NAME>\ngitclt org create --owner jfg --visibility private acme",
-	Short:   "Creates an organization; --owner other than yourself needs admin rights",
-	Args:    cobra.ExactArgs(1),
+	Example: "  gitclt org create [-c CONNECTION] [flags] <ORG>\n" +
+		"  gitclt org create --owner jfg --visibility private acme",
+	Short: "Creates an organization; --owner other than yourself needs admin rights",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if e := organizations.CreateOrg(args[0]); e != nil {
 			fmt.Println(e.Error())
@@ -102,9 +104,10 @@ var orgCreateCmd = &cobra.Command{
 
 var orgEditCmd = &cobra.Command{
 	Use:     "edit",
-	Aliases: []string{"set"},
-	Example: "gitclt org edit [-c CONNECTION] [flags] <ORG-NAME>\ngitclt org edit --repo-admin-team-access=false --location Montreal acme",
-	Short:   "Edits an organization settings; only the flags passed are changed",
+	Aliases: []string{"modify", "update"},
+	Example: "  gitclt org edit [-c CONNECTION] [flags] <ORG>\n" +
+		"  gitclt org edit --repo-admin-team-access=false --location Montreal acme",
+	Short: "Edits an organization; only the flags passed are changed",
 	Long: `Only the fields whose flag is passed are sent to the server; everything else is left unchanged.
 Boolean flags can be revoked with =false (e.g. --repo-admin-team-access=false), and an empty string clears a text field (e.g. --website "").`,
 	Args: cobra.ExactArgs(1),
@@ -115,13 +118,53 @@ Boolean flags can be revoked with =false (e.g. --repo-admin-team-access=false), 
 	},
 }
 
-func init() {
-	orgCmd.AddCommand(orgListCmd, orgListAllCmd, orgGetCmd, orgDeleteCmd, orgRenameCmd, orgCreateCmd, orgEditCmd)
+var orgMembersCmd = &cobra.Command{
+	Use:     "members",
+	Example: "  gitclt org members [-c CONNECTION] [--json] <ORG>",
+	Short:   "Lists the members of an organization",
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, e := organizations.ListMembers(args[0], true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
 
-	orgListCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output the list as JSON")
-	orgListAllCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output the list as JSON")
-	orgGetCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output the list as JSON")
+var orgIsMemberCmd = &cobra.Command{
+	Use:     "ismember",
+	Example: "  gitclt org ismember [-c CONNECTION] <ORG> <USER>",
+	Short:   "Checks whether <USER> is a member of <ORG>",
+	Args:    cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, e := organizations.IsMemberOfOrg(args[0], args[1]); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var orgRemoveMemberCmd = &cobra.Command{
+	Use:     "removemember",
+	Aliases: []string{"rmmember"},
+	Example: "  gitclt org removemember [-c CONNECTION] [--yes] <ORG> <USER>",
+	Short:   "Removes <USER> from the organization <ORG>",
+	Args:    cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := organizations.RemoveMemberFromOrg(args[0], args[1]); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+func init() {
+	orgCmd.AddCommand(orgListCmd, orgListAllCmd, orgGetCmd, orgDeleteCmd, orgRenameCmd,
+		orgCreateCmd, orgEditCmd, orgMembersCmd, orgIsMemberCmd, orgRemoveMemberCmd)
+
+	orgListCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output as JSON")
+	orgListAllCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output as JSON")
+	orgGetCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output as JSON")
 	orgDeleteCmd.Flags().BoolVarP(&organizations.AssumeYes, "yes", "y", false, "do not ask for confirmation before deleting")
+	orgMembersCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output as JSON")
+	orgRemoveMemberCmd.Flags().BoolVarP(&organizations.AssumeYes, "yes", "y", false, "do not ask for confirmation before removing")
 
 	orgCreateCmd.Flags().StringVarP(&organizations.CreateOrgOwner, "owner", "o", "", "user who will own the organization (default: yourself)")
 	orgCreateCmd.Flags().StringVarP(&organizations.CreateOrgFullName, "fullname", "f", "", "organization full name")
@@ -131,6 +174,7 @@ func init() {
 	orgCreateCmd.Flags().StringVarP(&organizations.CreateOrgLocation, "location", "l", "", "organization location")
 	orgCreateCmd.Flags().VarP(&organizations.CreateOrgVisibility, "visibility", "v", "organization visibility (default: server default)")
 	orgCreateCmd.Flags().BoolVarP(&organizations.CreateOrgRepoAdminChangeTeamAccess, "repo-admin-team-access", "t", false, "repository admins can change team access")
+	_ = orgCreateCmd.RegisterFlagCompletionFunc("visibility", completeVisibility)
 
 	orgEditCmd.Flags().StringVarP(&organizations.EditOrgFullName, "fullname", "f", "", "organization full name")
 	orgEditCmd.Flags().StringVarP(&organizations.EditOrgDescription, "description", "d", "", "organization description")
@@ -139,10 +183,5 @@ func init() {
 	orgEditCmd.Flags().StringVarP(&organizations.EditOrgLocation, "location", "l", "", "organization location")
 	orgEditCmd.Flags().VarP(&organizations.EditOrgVisibility, "visibility", "v", "organization visibility")
 	orgEditCmd.Flags().BoolVarP(&organizations.EditOrgRepoAdminChangeTeamAccess, "repo-admin-team-access", "t", false, "repository admins can change team access")
-
-	for _, c := range []*cobra.Command{orgCreateCmd, orgEditCmd} {
-		_ = c.RegisterFlagCompletionFunc("visibility", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-			return []string{"public", "limited", "private"}, cobra.ShellCompDirectiveNoFileComp
-		})
-	}
+	_ = orgEditCmd.RegisterFlagCompletionFunc("visibility", completeVisibility)
 }

@@ -9,7 +9,9 @@ It is a front-end to [gitoperationslib](https://github.com/jeanfrancoisgratton/g
 
 What is currently implemented:
 - a connections registry (multiple servers, multiple accounts, one default connection)
-- repository listing
+- repositories: list, info, create, delete
+- users: whoami, get, list, create, edit, delete
+- organizations: list, get, create, edit, rename, delete, membership (list, check, remove)
 
 **TABLE OF CONTENTS**<br>
 
@@ -18,6 +20,7 @@ What is currently implemented:
 [Using the tool](#using-the-tool)
 - [The connections registry](#connections)
 - [Command summary](#command-summary)
+- [Shell completion](#completion)
 
 [Developer notes: writing a new command](#developer-notes)
 - [Package layout](#package-layout)
@@ -80,27 +83,81 @@ The file looks a lot like `$HOME/.docker/config.json`:
 <a id="command-summary"></a>
 ## Command summary
 
+Notation: `<ARG>` is a positional argument, `[...]` is optional, and the aliases are in parentheses.<br>
+The same aliases work everywhere: `list` (`ls`), `get` / `info`, `create` (`add`), `edit` (`modify`, `update`), `delete` (`rm`, `remove`).
+
 ### Global flags
-| Flag            | Meaning                         |
-|-----------------|---------------------------------|
-| `-q`, `--quiet` | Output will be as quiet as possible |
+These work on every command:
+
+| Flag                            | Meaning                                                      |
+|---------------------------------|--------------------------------------------------------------|
+| `-c`, `--connection CONNECTION` | Use this connection instead of the default one               |
+| `-q`, `--quiet`                 | Output will be as quiet as possible                          |
+| `-D`, `--debug`                 | Debug mode (also lets the password prompts read from a pipe) |
+
+### Other commands
+| Command                       | Description                                       |
+|-------------------------------|---------------------------------------------------|
+| `gitclt version`              | Shows the software version                        |
+| `gitclt whoami`               | Shortcut for `gitclt user whoami`                 |
+| `gitclt completion bash\|zsh` | Generates a shell completion script (see [below](#completion)) |
 
 ### Connections: `gitclt conn` (alias: `connection`)
 | Command                                   | Description                                                                 |
 |-------------------------------------------|-----------------------------------------------------------------------------|
 | `gitclt conn list` (`ls`)                 | Lists all connections in the registry                                       |
-| `gitclt conn info [CONNECTION...]`        | Shows the details of the given connections; no argument means the default one |
-| `gitclt conn add CONNECTION`              | Adds a connection (interactive)                                             |
-| `gitclt conn edit CONNECTION`             | Edits a connection in-place; ENTER keeps the current value, `-` clears a secret |
-| `gitclt conn rm CONNECTION`               | Removes a connection                                                        |
-| `gitclt conn default [CONNECTION]`        | Shows the default connection, or sets it                                    |
+| `gitclt conn info [<CONNECTION>...]` (`explain`) | Shows the details of the given connections; no argument means the default one |
+| `gitclt conn add <CONNECTION>` (`create`) | Adds a connection (interactive)                                             |
+| `gitclt conn edit <CONNECTION>` (`modify`, `update`) | Edits a connection in-place; ENTER keeps the current value, `-` clears a secret |
+| `gitclt conn delete <CONNECTION>` (`rm`, `remove`) | Removes a connection                                               |
+| `gitclt conn default [<CONNECTION>]`      | Shows the default connection, or sets it                                    |
 
 ### Repositories: `gitclt repo` (alias: `repository`)
-All `repo` subcommands accept `-c`, `--connection CONNECTION` to use a given connection instead of the default one.
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt repo list [-o OWNER] [-s\|-S SORT] [-j]` (`ls`) | Lists all repositories visible to the connection's user. `-o` limits the list to a user / organization (a workspace on Bitbucket); `-s` sorts on a column in descending order, `-S` in ascending order (its first letter is enough: `i`d, `o`wner, `r`epository, `c`reated, `u`pdated; default: descending on ID, or on Repository on Bitbucket, which has no repository IDs); `-j`, `--json` outputs JSON; `-q` outputs only the `owner/name` of each repo. The sort order applies to all three outputs |
+| `gitclt repo info -o OWNER [-j] <REPO>` (`get`) | Shows the details of a repository |
+| `gitclt repo create -o OWNER [flags] <REPO>` (`add`) | Creates a repository. `--description`, `--default-branch` (default: `develop`), `--public=false` for a private repo, `--template`, `--initialize` (creates it with a `.gitignore` and a `README.md`) |
+| `gitclt repo delete -o OWNER <REPO>` (`rm`, `remove`) | Deletes a repository |
+
+### Users: `gitclt user`
+Except `whoami`, these need admin rights, and only work on Forgejo.
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
-| `gitclt repo list [-c CONNECTION] [-o OWNER] [-s\|-S SORT] [-j]` (`ls`) | Lists all repositories visible to the connection's user. `-o` limits the list to a user / organization (a workspace on Bitbucket); `-s` sorts on a column in descending order, `-S` in ascending order (its first letter is enough: `i`d, `o`wner, `r`epository, `c`reated, `u`pdated; default: descending on ID, or on Repository on Bitbucket, which has no repository IDs); `-j`, `--json` outputs JSON; `-q` outputs only the `owner/name` of each repo. The sort order applies to all three outputs |
+| `gitclt user whoami [-x] [-j]` (`who`)          | Shows the connection's user; `-x`, `--extended` adds the forge-specific fields |
+| `gitclt user get [-x] [-j] <USER>` (`info`)     | Shows a user |
+| `gitclt user list [-j]` (`ls`)                  | Lists all users on the forge |
+| `gitclt user create -e EMAIL [flags] <USER>` (`add`) | Creates a user; the password is prompted for, or read from `-p`, `--password-file FILE`. Also: `-f`, `--fullname`, `-d`, `--description`, `-w`, `--website`, `-l`, `--location`, `-v`, `--visibility public\|limited\|private`, `-a`, `--admin`, `-r`, `--restricted`, `-m`, `--must-change-passwd` (server default when omitted), `-s`, `--send-notification` |
+| `gitclt user edit [flags] <USER>` (`modify`, `update`) | Edits a user; **only the flags passed are sent**. Same text flags as `create`, plus `-P`, `--passwd` (prompt) or `-p`, `--password-file`, `--active`, `--prohibit-login`, `--allow-create-org`, `--max-repos N`. Booleans are revoked with `=false` (ex: `--admin=false`), and `""` clears a text field |
+| `gitclt user delete [-p] [-y] <USER>` (`rm`, `remove`) | Deletes a user, after confirmation (`-y`, `--yes` skips it); `-p`, `--purge` also deletes everything the user owns |
+
+### Organizations: `gitclt org` (alias: `organization`)
+Forgejo only. Some commands are self-service; the others need admin rights, or to be an owner of the organization.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt org list [-j] [<USER>]` (`ls`)          | Lists the organizations `<USER>` belongs to (default: yourself) |
+| `gitclt org listall [-j]`                       | Lists all organizations on the forge (needs admin rights) |
+| `gitclt org get [-j] <ORG>` (`info`)            | Shows an organization |
+| `gitclt org create [flags] <ORG>` (`add`)       | Creates an organization. `-o`, `--owner USER` creates it for someone else (needs admin rights); `-f`, `--fullname`, `-d`, `--description`, `-w`, `--website`, `-e`, `--email`, `-l`, `--location`, `-v`, `--visibility public\|limited\|private`, `-t`, `--repo-admin-team-access` (repository admins can change team access) |
+| `gitclt org edit [flags] <ORG>` (`modify`, `update`) | Edits an organization, with the same flags as `create` (except `--owner`); **only the flags passed are sent**. Booleans are revoked with `=false`, and `""` clears a text field |
+| `gitclt org rename <ORG> <NEW-NAME>` (`mv`)     | Renames an organization |
+| `gitclt org delete [-y] <ORG>` (`rm`, `remove`) | Deletes an organization, after confirmation (`-y`, `--yes` skips it) |
+| `gitclt org members [-j] <ORG>`                 | Lists the members of an organization |
+| `gitclt org ismember <ORG> <USER>`              | Tells whether `<USER>` is a member of `<ORG>`; a missing `<ORG>` is an error, not a "no" |
+| `gitclt org removemember [-y] <ORG> <USER>` (`rmmember`) | Removes `<USER>` from `<ORG>`, after confirmation (`-y`, `--yes` skips it) |
+
+<a id="completion"></a>
+## Shell completion
+```bash
+# Bash: current session, then for good
+source <(gitclt completion bash)
+gitclt completion bash | sudo tee /etc/bash_completion.d/gitclt > /dev/null
+
+# Zsh: any directory in your $fpath
+gitclt completion zsh > ~/.zsh/_gitclt
+```
 
 <a id="developer-notes"></a>
 # Developer notes: writing a new command
@@ -113,12 +170,15 @@ The code lives under `src/`, and dependencies only flow downward:
 ```
 cmd/            cobra commands; parses flags, calls the feature package, prints the error if any
   │
-repositories/   feature packages (one per resource: repositories/, later branches/, releases/, ...)
-  │             calls the library, formats the output (table / JSON / quiet)
+repositories/   feature packages, one per resource (users/, organizations/, later teams/, branches/, ...)
+users/          calls the library, formats the output (table / JSON / quiet)
+organizations/
+  │
 forge/          opens a gitoperationslib client on a connection; converts library errors
   │
-conn_cfg/       the connections registry; resolves a connection name into an ActiveConnection
-shared/         global flag values (QuietOutput, ConnectionName)
+connections/    the connections registry; resolves a connection name into an ActiveConnection
+shared/         global flag values (QuietOutput, ConnectionName), FetchAll(), PrintJSON(), VisibilityFlag
+testutil/       test helpers only (fake Forgejo, throw-away registry, prompt answering); never in the binary
 ```
 
 A feature package never reads `connections.json`, never decides how to authenticate, and never sends HTTP requests by itself.
@@ -139,7 +199,7 @@ if err != nil {
 `shared.ConnectionName`, which holds the `-c`/`--connection` flag value. It returns a `*cerr.CustomError`, so you can return it as-is.
 
 Behind the scenes:
-- `conn_cfg.ResolveConnection()` loads the registry, picks the connection (and errors out if it's unknown, invalid, or if there's no default connection), and decides the authentication method (token over username/password)
+- `connections.ResolveConnection()` loads the registry, picks the connection (and errors out if it's unknown, invalid, or if there's no default connection), and decides the authentication method (token over username/password)
 - `forge.Connect()` then opens the matching library client:
   - Forgejo: `forgejo.New()` with `forgejo.Token()` or `forgejo.BasicAuth()`. **This already contacts the server**: it reads its version, and refuses anything older than the library's minimum (11.0.10)
   - GitHub: `github.New()` with the token; any host other than `github.com` is treated as GitHub Enterprise Server (`github.WithEnterpriseURL()`, the library appends `/api/v3/`). This makes no request
@@ -148,7 +208,7 @@ Behind the scenes:
 
 You get back a `*forge.Client`:
 - it embeds `gol.Client` (`gol` being the usual alias for `github.com/jeanfrancoisgratton/gitoperationslib`), so the library's areas are called directly on it: `c.Repos()`, `c.Branches()`, `c.Tags()`, `c.Releases()`, `c.PullRequests()`, `c.Issues()`, `c.Labels()`, `c.Milestones()`, `c.Webhooks()`, ...
-- `c.Connection` is the resolved `conn_cfg.ActiveConnection`: its `Name` is handy in output messages, its `Username` in user-scoped calls
+- `c.Connection` is the resolved `connections.ActiveConnection`: its `Name` is handy in output messages, its `Username` in user-scoped calls
 
 See the [gitoperationslib README](https://github.com/jeanfrancoisgratton/gitoperationslib#readme) for the full API of each area.
 
@@ -176,23 +236,20 @@ case gerr != nil:
 ```
 Also available: `gol.IsUnauthorized()`, `gol.IsForbidden()`, `gol.StatusCode()`, and `*gol.APIError` (via `errors.As`) for the forge's message and details.
 
-### 3. Lists: always iterate with `gol.All()`
-List methods return **one page** (`gol.Page[T]`). Calling them once only gives you the first page, without any warning. Use `gol.All()`, which follows the pages for you:
+### 3. Lists: always go through `shared.FetchAll()`
+List methods return **one page** (`gol.Page[T]`). Calling them once only gives you the first page, without any warning. `shared.FetchAll()` wraps `gol.All()`, which follows the pages for you:
 
 ```go
-var repos []gol.Repo
-fetch := func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Repo], error) {
+repos, lerr := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Repo], error) {
 	return c.Repos().List(ctx, "", o)
-}
-for r, lerr := range gol.All(ctx, gol.ListOptions{PerPage: listPageSize}, fetch) {
-	if lerr != nil {
-		return forge.Error("Unable to list repositories", lerr)
-	}
-	repos = append(repos, r)
+})
+if lerr != nil {
+	return forge.Error("Unable to list repositories", lerr)
 }
 ```
-- the iteration stops at the first error, which is yielded with a zero item: check `lerr` before using the item
-- `PerPage`: 50 is safe on all forges (Forgejo's maximum is a server setting, 50 by default; GitHub's and Bitbucket's are 100)
+- it stops at the first error, and returns it
+- page size: `shared.ListPageSize` (50), which is safe on all forges (Forgejo's maximum is a server setting, 50 by default; GitHub's and Bitbucket's are 100)
+- a list of users renders with `users.RenderUserTable()`, whoever it comes from (`org members`, later team members, ...)
 
 ### 4. Creating, editing, deleting
 The library's option structs use the library's own types; nil pointer fields in `Edit...Options` mean "leave unchanged" (`gol.Ptr()` builds a pointer from a value):
@@ -226,19 +283,28 @@ On Bitbucket, users have no public login name: user fields hold the account's ni
 <a id="wiring-the-command"></a>
 ## Wiring the command
 - The feature function returns a `*cerr.CustomError`; the cobra command prints it (see `cmd/repo_commands.go`)
-- Honour the output flags: `shared.QuietOutput` (bare output, one item per line), and a `--json` flag when it makes sense. The JSON output is the library's types as-is (Go field names, ex: `FullName`)
-- `-c`/`--connection` is a persistent flag on the `repo` command group. A new command group (ex: `branch`) must declare it too:
-  ```go
-  branchCmd.PersistentFlags().StringVarP(&shared.ConnectionName, "connection", "c", "", "Connection to use (default: the default connection)")
-  ```
-  It is deliberately not on the root command: the `conn` commands take connection names as arguments
+- Honour the output flags: `shared.QuietOutput` (bare output, one item per line), and a `--json` flag when it makes sense (`shared.PrintJSON()`). The JSON output is the library's types as-is (Go field names, ex: `FullName`)
+- `-c`/`--connection`, `-q` and `-D` are persistent flags on the root command: a new command group gets them for free
+- Feature functions that fetch data take a `displayoutput bool`: `false` returns the data without printing anything, so other packages can reuse the call
+- Edit commands only send the flags that were passed: hand `cmd.Flags().Changed` to the feature function, which sets the matching `gol.Edit...Options` pointer fields (see `organizations/edit.go`)
+- A `--visibility` flag is a `shared.VisibilityFlag` (it refuses anything but `public`, `limited`, `private`); register `completeVisibility` as its completion function
+- Conventions for the cobra files (`cmd/*_commands.go`), checked in part by `cmd/root_test.go`:
+  - `Short` starts with a third-person verb ("Lists...", "Deletes..."), and states "(needs admin rights)" / "(Forgejo only)" when it applies
+  - `Example` lines start with two spaces; positional arguments are written `<ARG>`, flag values bare (`-c CONNECTION`), and flags come before the arguments
+  - every leaf command declares `Args`; aliases follow the table in the [command summary](#command-summary)
+  - every `--flag` mentioned in `Long` or `Example` must exist on that command, and every documented command line must be listed in `TestCommandTree`
 
 <a id="testing"></a>
 ## Testing
-`forge/client_test.go` shows the pattern: an in-process `httptest` server stands in for the forge, and the registry is a temporary one.
-- point `HOME` to a temporary directory (`t.Setenv("HOME", t.TempDir())`), and write a `.config/JFG/gitclt/connections.json` there, with the `httptest` server URL as `url` and a cleartext token (see `writeRegistry()`)
-- then call `forge.Connect()` as usual
-- a `forgejo` test server must answer `GET /api/v1/version` (ex: `{"version":"15.0.2"}`), since `forgejo.New()` checks it; the other calls are under `/api/v1/`
+An in-process `httptest` server stands in for the forge, and the registry is a temporary one. The `testutil` package does the plumbing:
+- `testutil.Forgejo(t, routes)` starts a fake Forgejo (it already answers `GET /api/v1/version`, which `forgejo.New()` checks) and makes it the default connection; any route not listed answers 404
+- `testutil.Reply(json)`, `testutil.Status(code)` and `testutil.Record(t, &bodies, status, json)` are ready-made handlers; `Record` keeps the JSON body of each request, to check what was (and was not) sent
+- `testutil.WriteRegistry(t, json)` writes a throw-away registry under a temporary `HOME` (`""`: no connection at all)
+- `testutil.Run(t, f, answers...)` captures what `f` prints (colour codes stripped), and answers its prompts in turn
+- `testutil.Set(t, &flagVar, value)` changes a package-level flag variable for the duration of the test only
+- in `cmd/`, `execute(t, args, answers...)` runs a whole command line, and resets every flag afterwards
+
+For the other backends (see `forge/client_test.go`):
 - a `github` test server is treated as GitHub Enterprise Server: the calls are under `/api/v3/`
 - a `bitbucket` test server is used as the API root: set `url` to `SERVER/2.0`, and answer under `/2.0/` (ex: `GET /2.0/user/workspaces`, `GET /2.0/repositories/WORKSPACE`)
 

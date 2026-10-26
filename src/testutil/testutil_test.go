@@ -81,3 +81,29 @@ func TestForgejo_RoutesAndRegistry(t *testing.T) {
 		t.Fatalf("registry = %s, %v", b, err)
 	}
 }
+
+func TestRecord(t *testing.T) {
+	var bodies []map[string]any
+	srv := Forgejo(t, map[string]http.HandlerFunc{
+		"POST /api/v1/ok":  Record(t, &bodies, http.StatusCreated, `{"id":1}`),
+		"POST /api/v1/bad": Record(t, &bodies, http.StatusConflict, ""),
+	})
+
+	for path, want := range map[string]struct {
+		status int
+		body   string
+	}{"/api/v1/ok": {201, `{"id":1}`}, "/api/v1/bad": {409, `{"message":"Conflict"}`}} {
+		resp, err := http.Post(srv.URL+path, "application/json", strings.NewReader(`{"name":"acme"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != want.status || string(b) != want.body {
+			t.Errorf("%s: %d %s", path, resp.StatusCode, b)
+		}
+	}
+	if len(bodies) != 2 || bodies[0]["name"] != "acme" || bodies[1]["name"] != "acme" {
+		t.Fatalf("recorded %v", bodies)
+	}
+}

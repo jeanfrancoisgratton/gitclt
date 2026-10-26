@@ -1,12 +1,9 @@
 // gitclt
-// Tests readPasswordFile, and holds what the other user tests share (fixtures, a request recorder)
+// Tests readPasswordFile, and holds what the other user tests share (fixtures, defaults)
 
 package users
 
 import (
-	"encoding/json/v2"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,37 +20,18 @@ const jfgUser = `{"id":4,"login":"jfg","full_name":"J.F. Gratton","email":"jfg@e
 // Resets the package flags to their defaults for the duration of the test
 func defaults(t *testing.T) {
 	t.Helper()
-	for _, b := range []*bool{&ExtendedInfo, &JSONoutput, &PurgeUser, &AssumeYes, &CreateUserRestrictedUser,
+	for _, b := range []*bool{&ExtendedInfo, &JSONoutput, &PurgeUser, &AssumeYes, &CreateUserRestricted,
 		&CreateUserSendNotification, &CreateUserAdmin, &shared.QuietOutput} {
 		testutil.Set(t, b, false)
 	}
-	for _, s := range []*string{&CreateUserEmail, &CreateUserPasswdFile, &CreateUserFullname, &CreateUserDescription,
-		&CreateUserWebsite, &CreateUserLocation, &EditUserEmail, &EditUserFullname, &EditUserDescription,
+	for _, s := range []*string{&CreateUserEmail, &CreateUserPasswdFile, &CreateUserFullName, &CreateUserDescription,
+		&CreateUserWebsite, &CreateUserLocation, &EditUserEmail, &EditUserFullName, &EditUserDescription,
 		&EditUserWebsite, &EditUserLocation, &EditUserPasswdFile} {
 		testutil.Set(t, s, "")
 	}
 	testutil.Set(t, &CreateUserVisibility, "")
 	testutil.Set(t, &EditUserVisibility, "")
 	testutil.Set(t, &shared.DebugMode, true) // GetPassword needs a terminal otherwise
-}
-
-// Records the JSON body of each request into *bodies, and answers with reply
-func record(t *testing.T, bodies *[]map[string]any, status int, reply string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		b, _ := io.ReadAll(r.Body)
-		m := map[string]any{}
-		if err := json.Unmarshal(b, &m); err != nil {
-			t.Errorf("%s %s: body %s: %v", r.Method, r.URL.Path, b, err)
-		}
-		*bodies = append(*bodies, m)
-		if status >= 400 {
-			testutil.Status(status)(w, r)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		_, _ = io.WriteString(w, reply)
-	}
 }
 
 func writeFile(t *testing.T, content string, perm os.FileMode) string {

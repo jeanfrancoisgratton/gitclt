@@ -15,9 +15,9 @@ var AssumeYes = false
 // CreateUserOptions flags
 var CreateUserEmail string
 var CreateUserPasswdFile string
-var CreateUserFullname string
+var CreateUserFullName string
 var CreateUserMustChangePasswd bool
-var CreateUserRestrictedUser bool
+var CreateUserRestricted bool
 var CreateUserSendNotification bool
 var CreateUserVisibility shared.VisibilityFlag
 
@@ -29,7 +29,7 @@ var CreateUserAdmin bool
 
 // EditUserOptions flags
 var EditUserEmail string
-var EditUserFullname string
+var EditUserFullName string
 var EditUserDescription string
 var EditUserWebsite string
 var EditUserLocation string

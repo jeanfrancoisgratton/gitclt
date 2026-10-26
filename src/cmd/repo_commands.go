@@ -25,8 +25,9 @@ To select a column, just type in its first letter.`,
 var repoListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Example: "gitclt repo list [-c CONNECTION] [-o OWNER] [-s|-S SORT_CRITERIA] [--json]",
+	Example: "  gitclt repo list [-c CONNECTION] [-o OWNER] [-s|-S SORT_CRITERIA] [--json]",
 	Short:   "Lists all repositories visible to the configured user",
+	Args:    cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, e := repositories.ListRepositories(true); e != nil {
 			fmt.Println(e.Error())
@@ -36,7 +37,8 @@ var repoListCmd = &cobra.Command{
 
 var repoInfoCmd = &cobra.Command{
 	Use:     "info",
-	Example: "gitclt repo info [-c CONNECTION] -o OWNER [--json] <REPO>",
+	Aliases: []string{"get"},
+	Example: "  gitclt repo info [-c CONNECTION] -o OWNER [--json] <REPO>",
 	Short:   "Provides detailed information about a repository",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -48,9 +50,9 @@ var repoInfoCmd = &cobra.Command{
 
 var repoDeleteCmd = &cobra.Command{
 	Use:     "delete",
-	Aliases: []string{"rm"},
-	Example: "gitclt repo delete [-c CONNECTION] -o OWNER <REPO>",
-	Short:   "Delete a repository",
+	Aliases: []string{"rm", "remove"},
+	Example: "  gitclt repo delete [-c CONNECTION] -o OWNER <REPO>",
+	Short:   "Deletes a repository",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if e := repositories.DeleteRepo(args[0]); e != nil {
@@ -60,20 +62,21 @@ var repoDeleteCmd = &cobra.Command{
 }
 
 var repoCreateCmd = &cobra.Command{
+	Use:     "create",
+	Aliases: []string{"add"},
+	Example: "  gitclt repo create [-c CONNECTION] -o OWNER [flags] <REPO>",
+	Short:   "Creates a repository",
 	Long: `
 Optional flags are below, with default values in parentheses:
 
 --description () -> repo description
---defaultbranch (develop)
+--default-branch (develop)
 --public (true) -> repo visibility: true = public repo, private otherwise (--public=false)
 --template (false) -> is this repo a template repo ?
 --initialize (false) --> the repo will be created with basic .gitignore and README.md files
 
 Other values are using hardcoded values such as gitignore template (Go, not available on Bitbucket), License (none supplied), etc`,
-	Use:     "create",
-	Example: "gitclt repo create [-c CONNECTION] -o OWNER [OTHER FLAGS] <REPO>",
-	Short:   "Create a repository",
-	Args:    cobra.ExactArgs(1),
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if e := repositories.CreateRepo(args[0]); e != nil {
 			fmt.Println(e.Error())
@@ -87,20 +90,19 @@ func init() {
 	repoCreateCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user or organization that will own the repository")
 	repoCreateCmd.Flags().BoolVar(&repositories.TemplateRepo, "template", false, "template repo")
 	repoCreateCmd.Flags().BoolVar(&repositories.InitializeRepo, "initialize", false, "initialize the repo after creation")
-	repoCreateCmd.Flags().StringVar(&repositories.RepoDefaultBranch, "defaultbranch", "develop", "the default branch to use after creation")
+	repoCreateCmd.Flags().StringVar(&repositories.RepoDefaultBranch, "default-branch", "develop", "the default branch to use after creation")
 	repoCreateCmd.Flags().StringVar(&repositories.RepoDescription, "description", "", "repository description")
 	repoCreateCmd.Flags().BoolVar(&repositories.PublicRepo, "public", true, "public repository (use --public=false for a private one)")
 	repoDeleteCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user or organization that owns the repository")
-	repoInfoCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "output the list as JSON")
+	repoInfoCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "output as JSON")
 	repoInfoCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user or organization that owns the repository")
-	repoListCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "output the list as JSON")
+	repoListCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "output as JSON")
 	repoListCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "only show repositories owned by this user or organization (default: all accessible repositories)")
 	repoListCmd.Flags().StringVarP(&repositories.SortBy, "sort", "s", "", "sort on this column, in descending order")
 	repoListCmd.Flags().StringVarP(&repositories.SortByAsc, "sort-asc", "S", "", "sort on this column, in ascending order (default: ID)")
 
 	repoListCmd.MarkFlagsMutuallyExclusive("sort", "sort-asc")
-	repoCreateCmd.MarkFlagRequired("owner")
-	repoDeleteCmd.MarkFlagRequired("owner")
-	repoInfoCmd.MarkFlagRequired("owner")
-
+	_ = repoCreateCmd.MarkFlagRequired("owner")
+	_ = repoDeleteCmd.MarkFlagRequired("owner")
+	_ = repoInfoCmd.MarkFlagRequired("owner")
 }

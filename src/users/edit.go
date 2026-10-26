@@ -70,7 +70,7 @@ func editOptionsFromFlags(changed func(string) bool) (gol.EditUserOptions, *cerr
 		dst  **string
 	}{
 		{"email", EditUserEmail, &euo.Email},
-		{"fullname", EditUserFullname, &euo.FullName},
+		{"fullname", EditUserFullName, &euo.FullName},
 		{"description", EditUserDescription, &euo.Description},
 		{"website", EditUserWebsite, &euo.Website},
 		{"location", EditUserLocation, &euo.Location},

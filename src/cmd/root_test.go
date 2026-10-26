@@ -6,6 +6,7 @@ package cmd
 import (
 	"bytes"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -51,12 +52,15 @@ func resetFlags(c *cobra.Command) {
 func TestCommandTree(t *testing.T) {
 	for _, line := range []string{
 		"version", "whoami", "completion bash", "completion zsh",
-		"repo ls", "repository list", "repo info", "repo rm", "repo delete", "repo create",
-		"conn ls", "connection list", "conn info", "conn explain", "conn add", "conn create", "conn rm", "conn remove",
-		"conn edit", "conn update", "conn default",
-		"user whoami", "user who", "user get", "user info", "user ls", "user rm", "user create", "user add",
-		"user edit", "user modify",
-		"org ls", "organization list", "org listall", "org get", "org rm", "org delete",
+		"repo ls", "repository list", "repo info", "repo get", "repo rm", "repo delete", "repo remove",
+		"repo create", "repo add",
+		"conn ls", "connection list", "conn info", "conn explain", "conn add", "conn create",
+		"conn rm", "conn delete", "conn remove", "conn edit", "conn modify", "conn update", "conn default",
+		"user whoami", "user who", "user get", "user info", "user ls", "user rm", "user delete", "user remove",
+		"user create", "user add", "user edit", "user modify", "user update",
+		"org ls", "organization list", "org listall", "org get", "org info", "org rm", "org delete", "org remove",
+		"org rename", "org mv", "org create", "org add", "org edit", "org modify", "org update",
+		"org members", "org ismember", "org removemember", "org rmmember",
 	} {
 		c, rest, err := rootCmd.Find(strings.Fields(line))
 		if err != nil || len(rest) != 0 || !c.Runnable() {
@@ -114,5 +118,18 @@ func TestPersistentFlags(t *testing.T) {
 	out, _ := execute(t, []string{"conn", "info", "-c", "elsewhere", "-q", "-D", "nosuch"})
 	if !strings.Contains(out, "Connection nosuch does not exist") {
 		t.Fatalf("output = %q", out)
+	}
+}
+
+func TestCompleteVisibility(t *testing.T) {
+	for _, c := range []*cobra.Command{userCreateCmd, userEditCmd, orgCreateCmd, orgEditCmd} {
+		f, ok := c.GetFlagCompletionFunc("visibility")
+		if !ok {
+			t.Errorf("%s: no completion for --visibility", c.CommandPath())
+			continue
+		}
+		if got, _ := f(c, nil, ""); !slices.Equal(got, []string{"public", "limited", "private"}) {
+			t.Errorf("%s: got %v", c.CommandPath(), got)
+		}
 	}
 }

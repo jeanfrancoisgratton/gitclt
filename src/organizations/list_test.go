@@ -21,9 +21,17 @@ const twoOrgs = `[` + acmeOrg + `,{"id":3,"name":"umbrella","full_name":"Umbrell
 // Resets the package flags to their defaults for the duration of the test
 func defaults(t *testing.T) {
 	t.Helper()
-	testutil.Set(t, &JSONoutput, false)
-	testutil.Set(t, &AssumeYes, false)
-	testutil.Set(t, &shared.QuietOutput, false)
+	for _, b := range []*bool{&JSONoutput, &AssumeYes, &CreateOrgRepoAdminChangeTeamAccess,
+		&EditOrgRepoAdminChangeTeamAccess, &shared.QuietOutput} {
+		testutil.Set(t, b, false)
+	}
+	for _, s := range []*string{&CreateOrgOwner, &CreateOrgFullName, &CreateOrgDescription, &CreateOrgWebsite,
+		&CreateOrgEmail, &CreateOrgLocation, &EditOrgFullName, &EditOrgDescription, &EditOrgWebsite,
+		&EditOrgEmail, &EditOrgLocation} {
+		testutil.Set(t, s, "")
+	}
+	testutil.Set(t, &CreateOrgVisibility, "")
+	testutil.Set(t, &EditOrgVisibility, "")
 }
 
 const githubRegistry = `{"auths":{"gh":{"url":"https://github.com","token":"x","servertype":"github"}},"default_connection":"gh"}`

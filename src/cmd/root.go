@@ -1,5 +1,7 @@
 // gitclt
-// src/cmd/root.go
+// Written by J.F. Gratton <jean-francois@famillegratton.net>
+// Original filename: src/cmd/root.go
+// Original timestamp : 2026.10.17 23:47:23
 
 package cmd
 
@@ -17,14 +19,15 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "gitclt",
-	Short: "forgejo / github / bitbucket service CLI management tool",
-	Long: `This tools allows you to manage your usual git server tasks. such as
+	Short: "Forgejo / GitHub / Bitbucket service CLI management tool",
+	Long: `This tool allows you to manage your usual git server tasks, such as
 repository management, branch management, tags, releases, users, orgs, etc`,
 }
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Shows the software version",
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(hftx.White("gitclt v" + buildVersion + " (" + buildDate + "), Go version = v" + strings.TrimPrefix(runtime.Version(), "go") + " (" + runtime.GOARCH + ")"))
 	},

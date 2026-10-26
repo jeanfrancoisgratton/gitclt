@@ -22,8 +22,9 @@ In other words: you must have the appropriate access or auth token to perform so
 var userWhoAmICmd = &cobra.Command{
 	Use:     "whoami",
 	Aliases: []string{"who"},
-	Example: "gitclt user whoami [--json]",
-	Short:   "Gives information about the current user (if no username is provided)",
+	Example: "  gitclt user whoami [-c CONNECTION] [--extended] [--json]",
+	Short:   "Gives information about the current user",
+	Args:    cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, e := users.WhoAmI(true); e != nil {
 			fmt.Println(e.Error())
@@ -34,7 +35,7 @@ var userWhoAmICmd = &cobra.Command{
 var userGetCmd = &cobra.Command{
 	Use:     "get",
 	Aliases: []string{"info"},
-	Example: "gitclt user get [-c CONNECTION] [--extended] [--json] <USERNAME>",
+	Example: "  gitclt user get [-c CONNECTION] [--extended] [--json] <USER>",
 	Short:   "Gives information about a user (needs admin rights, Forgejo only)",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -47,7 +48,7 @@ var userGetCmd = &cobra.Command{
 var userListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Example: "gitclt user list [-c CONNECTION] [--json]",
+	Example: "  gitclt user list [-c CONNECTION] [--json]",
 	Short:   "Lists all users on the forge (needs admin rights, Forgejo only)",
 	Args:    cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -59,9 +60,9 @@ var userListCmd = &cobra.Command{
 
 var userDeleteCmd = &cobra.Command{
 	Use:     "delete",
-	Aliases: []string{"rm"},
-	Example: "gitclt user delete [-c CONNECTION] <USER> [--purge] [--yes]",
-	Short:   "Delete a user from the server (forgejo only)",
+	Aliases: []string{"rm", "remove"},
+	Example: "  gitclt user delete [-c CONNECTION] [--purge] [--yes] <USER>",
+	Short:   "Deletes a user (needs admin rights, Forgejo only)",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if e := users.DeleteUser(args[0]); e != nil {
@@ -73,8 +74,8 @@ var userDeleteCmd = &cobra.Command{
 var userCreateCmd = &cobra.Command{
 	Use:     "create",
 	Aliases: []string{"add"},
-	Example: "gitclt user create [-c CONNECTION] -e EMAIL_ADDRESS [other flags] <USER>",
-	Short:   "Create a user on the server (forgejo only)",
+	Example: "  gitclt user create [-c CONNECTION] -e EMAIL [flags] <USER>",
+	Short:   "Creates a user (needs admin rights, Forgejo only)",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var mustChange *bool // nil: server default (true on Forgejo)
@@ -90,9 +91,10 @@ var userCreateCmd = &cobra.Command{
 
 var userEditCmd = &cobra.Command{
 	Use:     "edit",
-	Aliases: []string{"modify"},
-	Example: "gitclt user edit [-c CONNECTION] [flags] <USER>\ngitclt user edit --admin=false --location Montreal jfg2",
-	Short:   "Edit a user on the server; only the flags passed are changed (forgejo only)",
+	Aliases: []string{"modify", "update"},
+	Example: "  gitclt user edit [-c CONNECTION] [flags] <USER>\n" +
+		"  gitclt user edit --admin=false --location Montreal jfg2",
+	Short: "Edits a user; only the flags passed are changed (needs admin rights, Forgejo only)",
 	Long: `Only the fields whose flag is passed are sent to the server; everything else is left unchanged.
 Boolean flags can be revoked with =false (e.g. --admin=false), and an empty string clears a text field (e.g. --website "").`,
 	Args: cobra.ExactArgs(1),
@@ -107,31 +109,29 @@ func init() {
 	userCmd.AddCommand(userWhoAmICmd, userGetCmd, userListCmd, userDeleteCmd, userCreateCmd, userEditCmd)
 
 	userWhoAmICmd.Flags().BoolVarP(&users.ExtendedInfo, "extended", "x", false, "provide extended user information")
-	userWhoAmICmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output the list as JSON")
+	userWhoAmICmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output as JSON")
 	userGetCmd.Flags().BoolVarP(&users.ExtendedInfo, "extended", "x", false, "provide extended user information")
-	userGetCmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output the list as JSON")
-	userListCmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output the list as JSON")
+	userGetCmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output as JSON")
+	userListCmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output as JSON")
 	userDeleteCmd.Flags().BoolVarP(&users.PurgeUser, "purge", "p", false, "purge all of the user's contents (repos, etc)")
 	userDeleteCmd.Flags().BoolVarP(&users.AssumeYes, "yes", "y", false, "do not ask for confirmation before deleting")
 
 	userCreateCmd.Flags().StringVarP(&users.CreateUserEmail, "email", "e", "", "user email")
 	userCreateCmd.Flags().StringVarP(&users.CreateUserPasswdFile, "password-file", "p", "", "read the password from file")
-	userCreateCmd.Flags().StringVarP(&users.CreateUserFullname, "fullname", "f", "", "user full name")
+	userCreateCmd.Flags().StringVarP(&users.CreateUserFullName, "fullname", "f", "", "user full name")
 	userCreateCmd.Flags().BoolVarP(&users.CreateUserMustChangePasswd, "must-change-passwd", "m", false, "created user must change password")
-	userCreateCmd.Flags().BoolVarP(&users.CreateUserRestrictedUser, "restricted", "r", false, "restricted user")
+	userCreateCmd.Flags().BoolVarP(&users.CreateUserRestricted, "restricted", "r", false, "restricted user")
 	userCreateCmd.Flags().BoolVarP(&users.CreateUserSendNotification, "send-notification", "s", false, "send an email notification to the new user")
 	userCreateCmd.Flags().VarP(&users.CreateUserVisibility, "visibility", "v", "user visibility (default: server default)")
-	_ = userCreateCmd.RegisterFlagCompletionFunc("visibility", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return []string{"public", "limited", "private"}, cobra.ShellCompDirectiveNoFileComp
-	})
 	userCreateCmd.Flags().StringVarP(&users.CreateUserDescription, "description", "d", "", "user description")
 	userCreateCmd.Flags().StringVarP(&users.CreateUserWebsite, "website", "w", "", "user web site")
 	userCreateCmd.Flags().StringVarP(&users.CreateUserLocation, "location", "l", "", "user location")
 	userCreateCmd.Flags().BoolVarP(&users.CreateUserAdmin, "admin", "a", false, "make the user a site administrator")
+	_ = userCreateCmd.RegisterFlagCompletionFunc("visibility", completeVisibility)
 	_ = userCreateCmd.MarkFlagRequired("email")
 
 	userEditCmd.Flags().StringVarP(&users.EditUserEmail, "email", "e", "", "user email")
-	userEditCmd.Flags().StringVarP(&users.EditUserFullname, "fullname", "f", "", "user full name")
+	userEditCmd.Flags().StringVarP(&users.EditUserFullName, "fullname", "f", "", "user full name")
 	userEditCmd.Flags().StringVarP(&users.EditUserDescription, "description", "d", "", "user description")
 	userEditCmd.Flags().StringVarP(&users.EditUserWebsite, "website", "w", "", "user web site")
 	userEditCmd.Flags().StringVarP(&users.EditUserLocation, "location", "l", "", "user location")
@@ -145,9 +145,6 @@ func init() {
 	userEditCmd.Flags().BoolVar(&users.EditUserAllowCreateOrg, "allow-create-org", false, "user may create organizations")
 	userEditCmd.Flags().IntVar(&users.EditUserMaxRepos, "max-repos", 0, "maximum number of repositories (-1: instance default)")
 	userEditCmd.Flags().VarP(&users.EditUserVisibility, "visibility", "v", "user visibility")
+	_ = userEditCmd.RegisterFlagCompletionFunc("visibility", completeVisibility)
 	userEditCmd.MarkFlagsMutuallyExclusive("password-file", "passwd")
-	_ = userEditCmd.RegisterFlagCompletionFunc("visibility", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return []string{"public", "limited", "private"}, cobra.ShellCompDirectiveNoFileComp
-	})
-
 }
