@@ -10,9 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	"gitclt/organizations"
+	"gitclt/access_mgmt/organizations"
+	"gitclt/access_mgmt/teams"
+	"gitclt/access_mgmt/users"
 	"gitclt/testutil"
-	"gitclt/users"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -28,6 +29,7 @@ func execute(t *testing.T, args []string, answers ...string) (string, string) {
 		// VisibilityFlag refuses its own "" default
 		users.CreateUserVisibility, users.EditUserVisibility = "", ""
 		organizations.CreateOrgVisibility, organizations.EditOrgVisibility = "", ""
+		teams.CreateTeamPermission, teams.EditTeamPermission = "", ""
 	}()
 	var stderr bytes.Buffer
 	rootCmd.SetArgs(args)
@@ -61,6 +63,9 @@ func TestCommandTree(t *testing.T) {
 		"org ls", "organization list", "org listall", "org get", "org info", "org rm", "org delete", "org remove",
 		"org rename", "org mv", "org create", "org add", "org edit", "org modify", "org update",
 		"org members", "org ismember", "org removemember", "org rmmember",
+		"team ls", "team list", "team get", "team info", "team create", "team add", "team edit", "team modify",
+		"team update", "team rm", "team delete", "team remove", "team members", "team ismember", "team addmember",
+		"team removemember", "team rmmember", "team repos", "team addrepo", "team removerepo", "team rmrepo",
 	} {
 		c, rest, err := rootCmd.Find(strings.Fields(line))
 		if err != nil || len(rest) != 0 || !c.Runnable() {

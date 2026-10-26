@@ -7,7 +7,7 @@ package cmd
 
 import (
 	"fmt"
-	"gitclt/users"
+	"gitclt/access_mgmt/users"
 
 	"github.com/spf13/cobra"
 )

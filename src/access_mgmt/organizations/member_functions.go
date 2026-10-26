@@ -8,9 +8,9 @@ package organizations
 import (
 	"context"
 	"fmt"
+	"gitclt/access_mgmt/users"
 	"gitclt/forge"
 	"gitclt/shared"
-	"gitclt/users"
 	"strings"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
