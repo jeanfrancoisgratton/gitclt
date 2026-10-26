@@ -3,7 +3,7 @@
 %define _name gitclt
 %define _prefix /opt
 %define _version 0.8.2
-%define _rel 1
+%define _rel 2
 %define _arch x86_64
 %define _binaryname gitclt
 

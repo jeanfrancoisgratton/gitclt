@@ -3,7 +3,7 @@
 
 pkgname=gitclt
 pkgver=0.8.2
-pkgrel=1
+pkgrel=2
 pkgdesc="forgejo / github management tool"
 arch=('x86_64')
 url="https://git.famillegratton.net:3000/devops/gitclt.git"

@@ -21,12 +21,12 @@ import (
 func renderTeamTable(list []gol.Team) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"ID", "Organization", "Name", "Description", "Permission", "All repos", "Can create repos"})
+	t.AppendHeader(table.Row{"ID", "Organization", "Team name", "Description", "Permission", "All repos", "Can create repos"})
 	for _, tm := range list {
 		t.AppendRow(table.Row{tm.ID, tm.Org, tm.Name, tm.Description, string(tm.Permission),
 			tm.IncludesAllRepos, tm.CanCreateOrgRepo})
 	}
-	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
+	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
 	t.Style().Format.Header = text.FormatDefault
 	t.Render()
 }
@@ -35,7 +35,7 @@ func printTeam(tm *gol.Team) {
 	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
 	_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("ID:"), tm.ID)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Organization:"), tm.Org)
-	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Name:"), tm.Name)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Team name:"), tm.Name)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Description:"), tm.Description)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Permission:"), tm.Permission)
 	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Access to all repos:"), tm.IncludesAllRepos)
@@ -62,7 +62,7 @@ func renderRepoTable(list []gol.Repo) {
 	for _, r := range list {
 		t.AppendRow(table.Row{r.ID, r.FullName, r.Description, string(r.Visibility), r.Archived, r.HTMLURL})
 	}
-	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
+	t.SetStyle(table.StyleColoredBlackOnRedWhite)
 	t.Style().Format.Header = text.FormatDefault
 	t.Render()
 }

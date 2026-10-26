@@ -52,12 +52,12 @@ func ListOrgs(username string, displayoutput bool) ([]gol.Org, *cerr.CustomError
 	fmt.Println("\n" + hftx.ScrollSign(hftx.Gold("Managed ?")+" means that repository admins can change team access on the repo\n"))
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"ID", "Name", "Full name", "Description", "Visibility", "Managed ?", "URL"})
+	t.AppendHeader(table.Row{"ID", "Org Name", "Org Full name", "Description", "Visibility", "Managed ?", "URL"})
 	for _, o := range orgs {
 		t.AppendRow(table.Row{o.ID, o.Name, o.FullName, o.Description,
 			string(o.Visibility), o.RepoAdminChangeTeamAccess, o.Website})
 	}
-	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
+	t.SetStyle(table.StyleColoredBlueWhiteOnBlack)
 	t.Style().Format.Header = text.FormatDefault
 	t.Render()
 
@@ -97,7 +97,7 @@ func ListAllOrgs(displayoutput bool) ([]gol.Org, *cerr.CustomError) {
 	fmt.Println("\n" + hftx.ScrollSign(hftx.Gold("Managed ?")+" means that repository admins can change team access on the repo\n"))
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"ID", "Name", "Full name", "Description", "Visibility", "Managed ?", "URL"})
+	t.AppendHeader(table.Row{"ID", "Org Name", "Org Full name", "Description", "Visibility", "Managed ?", "URL"})
 	for _, o := range orgs {
 		t.AppendRow(table.Row{o.ID, o.Name, o.FullName, o.Description,
 			string(o.Visibility), o.RepoAdminChangeTeamAccess, o.Website})
