@@ -71,6 +71,24 @@ var userDeleteCmd = &cobra.Command{
 	},
 }
 
+var userWipeCmd = &cobra.Command{
+	Use:     "wipe",
+	Example: "  gitclt user wipe [-c CONNECTION] [--purge] [--dry-run] [--yes] <USER>",
+	Short:   "Removes a user from all of their organizations and teams, then deletes them (needs admin rights, Forgejo only)",
+	Long: `Everything is checked before anything is changed; the wipe stops, and changes nothing, if:
+  - the connection's user is not a site administrator, or is the user to wipe
+  - the user is the last owner of an organization that still has other members or repositories
+  - the user owns repositories, and --purge was not passed
+An organization whose only member is the user, and which owns no repositories, is deleted as well.
+The plan is shown, then confirmed once (--yes skips the confirmation, --dry-run stops after the plan).`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := users.WipeUser(args[0]); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
 var userCreateCmd = &cobra.Command{
 	Use:     "create",
 	Aliases: []string{"add"},
@@ -106,7 +124,7 @@ Boolean flags can be revoked with =false (e.g. --admin=false), and an empty stri
 }
 
 func init() {
-	userCmd.AddCommand(userWhoAmICmd, userGetCmd, userListCmd, userDeleteCmd, userCreateCmd, userEditCmd)
+	userCmd.AddCommand(userWhoAmICmd, userGetCmd, userListCmd, userDeleteCmd, userWipeCmd, userCreateCmd, userEditCmd)
 
 	userWhoAmICmd.Flags().BoolVarP(&users.ExtendedInfo, "extended", "x", false, "provide extended user information")
 	userWhoAmICmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output as JSON")
@@ -115,6 +133,9 @@ func init() {
 	userListCmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output as JSON")
 	userDeleteCmd.Flags().BoolVarP(&users.PurgeUser, "purge", "p", false, "purge all of the user's contents (repos, etc)")
 	userDeleteCmd.Flags().BoolVarP(&users.AssumeYes, "yes", "y", false, "do not ask for confirmation before deleting")
+	userWipeCmd.Flags().BoolVarP(&users.PurgeUser, "purge", "p", false, "also delete the repositories (and other content) the user owns")
+	userWipeCmd.Flags().BoolVarP(&users.AssumeYes, "yes", "y", false, "do not ask for confirmation before wiping")
+	userWipeCmd.Flags().BoolVarP(&users.WipeDryRun, "dry-run", "n", false, "show what the wipe would do, and stop")
 
 	userCreateCmd.Flags().StringVarP(&users.CreateUserEmail, "email", "e", "", "user email")
 	userCreateCmd.Flags().StringVarP(&users.CreateUserPasswdFile, "password-file", "p", "", "read the password from file")

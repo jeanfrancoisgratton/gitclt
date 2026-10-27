@@ -51,6 +51,7 @@ func TestUserCommands(t *testing.T) {
 		{[]string{"user", "rm", "jfg"}, []string{"n"}, "Aborted"},
 		{[]string{"user", "rm", "-y", "jfg"}, nil, "Deleted user jfg"},
 		{[]string{"user", "edit", "jfg"}, nil, "Nothing to edit"},
+		{[]string{"user", "wipe", "-n", "bob"}, nil, "Admin rights required"},
 	} {
 		if out, _ := execute(t, tc.args, tc.answers...); !strings.Contains(out, tc.want) {
 			t.Errorf("%v: output = %q", tc.args, out)

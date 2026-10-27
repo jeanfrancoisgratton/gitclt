@@ -20,7 +20,7 @@ const jfgUser = `{"id":4,"login":"jfg","full_name":"J.F. Gratton","email":"jfg@e
 // Resets the package flags to their defaults for the duration of the test
 func defaults(t *testing.T) {
 	t.Helper()
-	for _, b := range []*bool{&ExtendedInfo, &JSONoutput, &PurgeUser, &AssumeYes, &CreateUserRestricted,
+	for _, b := range []*bool{&ExtendedInfo, &JSONoutput, &PurgeUser, &AssumeYes, &WipeDryRun, &CreateUserRestricted,
 		&CreateUserSendNotification, &CreateUserAdmin, &shared.QuietOutput} {
 		testutil.Set(t, b, false)
 	}

@@ -11,6 +11,7 @@ var ExtendedInfo = false
 var JSONoutput = false
 var PurgeUser = false
 var AssumeYes = false
+var WipeDryRun = false
 
 // CreateUserOptions flags
 var CreateUserEmail string
