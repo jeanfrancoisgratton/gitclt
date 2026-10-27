@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-10-26
+
+### Added
+
+- `user wipe`: removes a user from all of their organizations (and thus teams), then deletes the user. Everything is checked first, and nothing changes if:
+  - the connection's user is not a site administrator, or is the user to wipe
+  - the user is the last owner of an organization that still has other members or repositories
+  - the user owns repositories, and `--purge` was not passed
+
+  An organization whose only member is the user, and which owns no repositories, is deleted as well. The plan is shown and confirmed once; `-n`, `--dry-run` stops after the plan, `-y`, `--yes` skips the confirmation
+
+<br><br>
 ## [0.8.2] - 2026-10-26
 
 ### Added
