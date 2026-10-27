@@ -4,10 +4,11 @@ go 1.27.3
 
 require (
 	github.com/jeanfrancoisgratton/customError/v3 v3.1.1
-	github.com/jeanfrancoisgratton/gitoperationslib v0.3.0
+	github.com/jeanfrancoisgratton/gitoperationslib v0.4.0
 	github.com/jeanfrancoisgratton/helperFunctions/v5 v5.8.1
 	github.com/jedib0t/go-pretty/v6 v6.8.3
 	github.com/spf13/cobra v1.10.2
+	github.com/spf13/pflag v1.0.10
 )
 
 require (
@@ -29,7 +30,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.31 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/xo/terminfo v1.2.0 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
@@ -37,3 +37,4 @@ require (
 	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 )
+

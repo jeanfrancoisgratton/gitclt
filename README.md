@@ -169,6 +169,13 @@ A team's access is set either with `-p`, `--permission read|write|admin` (the sa
 | `gitclt team addrepo <ORG> <TEAM> <REPO>`       | Gives the team access to `<REPO>`, which must belong to `<ORG>` |
 | `gitclt team removerepo [-y] <ORG> <TEAM> <REPO>` (`rmrepo`) | Revokes the team's access to `<REPO>`, after confirmation (`-y`, `--yes` skips it); the repository itself is kept |
 
+### Branches: `gitclt branch`
+Every `branch` command takes the repository's owner with `-o`, `--owner OWNER`. The local branches are those of the git working copy in the current directory (or one of its parents), read straight from its `.git` directory: the git client does not need to be installed.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt branch list -o OWNER [-l \| -r \| -a] [-j] <REPO>` (`ls`) | Lists the branches: `-l`, `--local` the working copy's (a rough equivalent of `git branch`; `-o` and `<REPO>` are then optional, and when given, the working copy must be a clone of that repository), `-r`, `--remote` the server's, with their last commit (date and author; not reported by GitHub's branch list), default and protected flags, `-a`, `--all` (the default; it overrides `-l` and `-r`, and `-l -r` together means the same) both, merged by name, with a status seen from the local branch, like `git status`: `in sync`, `ahead N`, `behind N`, `ahead N, behind M` (counted by the server, for the branches that differ only), `unpushed commits` (the local head is unknown to the server, so it cannot count), `local only`, `server only`. If the current directory is not a working copy of `<REPO>`, `--all` shows the server's branches only. The checked out branch is marked with `*` |
+
 <a id="completion"></a>
 ## Shell completion
 ```bash
