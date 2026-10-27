@@ -55,6 +55,13 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Mon Oct 26 2026 Binary package builder <builder@famillegratton.net> 0.9.0-1
+- housekeeping: version bump
+- feature: added a new 'wipe' command to fully remove a user
+- chore: update changelog for 0.8.2-2
+- enhancement: clarifying header titles
+- chore: update changelog for 0.8.2-1
+
 * Mon Oct 26 2026 Binary package builder <builder@famillegratton.net> 0.8.2-2
 - enhancement: clarifying header titles
 - chore: update changelog for 0.8.2-1
