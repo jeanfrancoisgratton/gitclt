@@ -5,15 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.11.0] - 2026-10-28
+
+### Added
+
+- `branch get -o OWNER [--json] <REPO> <BRANCH>`: shows one branch, from both sides when it exists on both: local commit (and whether it is checked out), server commit, last commit (date, author and title), default and protected flags, and the same status as `branch ls`. A branch on one side only is still shown; outside of a working copy of the repository, only the server's side is shown, with the reason
+- `branch rename [-o OWNER] [-l | -r | -a] <REPO> <BRANCH> <NEW NAME>` (alias `mv`): renames a branch locally (the default), on the server, or both (local first). On the server, open pull requests and protection rules follow the branch; with both sides, the local branch then tracks the server's new name. The local rename is done by the git client
+- `branch compare -o OWNER [--json] <REPO> <BASE> <HEAD>` (alias `cmp`): counts, on the server, how far ahead of and behind the base the head is (branches, tags or commits), and tells if the head can be merged as a fast-forward
+- Tests for `branch rm`, `get`, `rename` and `compare`; those writing to a working copy use a throw-away git repository, and are skipped when the git client is not installed
+
+<br><br>
+## [0.10.0] - 2026-10-27
 
 ### Added
 
 - `branch ls -o OWNER [-l | -r | -a] <REPO>`: lists the local branches (the working copy in the current directory), the server's, or both (the default), merged by name with a status seen from the local branch: `in sync`, `ahead N` / `behind N` (counted by the server), `unpushed commits`, `local only`, `server only`. The server's side shows each branch's last commit (date and author). The local side is read from the `.git` directory, without the git client
+- `branch delete [-o OWNER] [-l | -r | -a] [-f] [-y] <REPO> <BRANCH>...` (aliases `rm`, `del`): deletes branches locally (the default), on the server, or both (local first). The local deletion is done by the git client, which refuses the checked out branch and, unless `-f`, `--force` is passed, an unmerged one. Everything is checked before the confirmation; the run stops at the first failure
 
 ### Changed
 
-- Requires gitoperationslib's `Branch.LastCommit` and `Branches.Compare` (unreleased: `go.mod` temporarily points to the local checkout with a `replace` directive)
+- Requires gitoperationslib 0.4.0 (`Branch.LastCommit`, `Branches.Compare`)
 
 <br><br>
 ## [0.9.0] - 2026-10-26
