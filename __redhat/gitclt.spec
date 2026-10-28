@@ -55,6 +55,16 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Wed Oct 28 2026 Binary package builder <builder@famillegratton.net> 0.11.0-1
+- Merge remote-tracking branch 'refs/remotes/origin/develop' into develop
+- updated changelog
+- Merge branch 'feature/branches' into develop
+- housekeeping: new release 0.11.0
+- feature: branch compare and branch rename
+- feature: branch compare and branch rename
+- feature: completed branch get
+- chore: update changelog for 0.10.0-1
+
 * Tue Oct 27 2026 Binary package builder <builder@famillegratton.net> 0.10.0-1
 - version bump
 - fixed: branch rm can now remove all local or remote branches
