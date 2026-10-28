@@ -8,8 +8,11 @@ package branches
 import (
 	"fmt"
 	"os"
+	"strings"
+	"text/tabwriter"
 
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
+	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
@@ -40,14 +43,21 @@ func status(b Branch) string {
 		return "in sync"
 	case b.Unpushed:
 		return "unpushed commits"
-	case b.Ahead > 0 && b.Behind > 0:
-		return fmt.Sprintf("ahead %d, behind %d", b.Ahead, b.Behind)
-	case b.Ahead > 0:
-		return fmt.Sprintf("ahead %d", b.Ahead)
-	case b.Behind > 0:
-		return fmt.Sprintf("behind %d", b.Behind)
 	}
-	return "differs"
+	return aheadBehind(b.Ahead, b.Behind)
+}
+
+// aheadBehind words a commit count the way git status does
+func aheadBehind(ahead, behind int) string {
+	switch {
+	case ahead > 0 && behind > 0:
+		return fmt.Sprintf("ahead %d, behind %d", ahead, behind)
+	case ahead > 0:
+		return fmt.Sprintf("ahead %d", ahead)
+	case behind > 0:
+		return fmt.Sprintf("behind %d", behind)
+	}
+	return "in sync"
 }
 
 // The server's last commit: its date, and its author
@@ -98,4 +108,51 @@ func renderBranchTable(list []Branch, withLocal, withServer bool) {
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
 	t.Style().Format.Header = text.FormatDefault
 	t.Render()
+}
+
+// renderBranch shows both sides of one branch, as far as they exist
+// noLocal, when set, tells why the local side could not be read (not in a working copy of the repo...)
+func renderBranch(b Branch, noLocal string) {
+	local := short(b.LocalSHA)
+	switch {
+	case noLocal != "":
+		local = "n/a (" + noLocal + ")"
+	case b.LocalSHA == "":
+		local = "not in the local working copy"
+	case b.Current:
+		local += " (checked out)"
+	}
+
+	// tabulated output
+	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Branch name:"), b.Name)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Local commit:"), local)
+	if b.ServerSHA == "" {
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Server commit:"), "not on the server")
+	} else {
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Server commit:"), short(b.ServerSHA))
+		if b.LastCommit != nil {
+			title, _, _ := strings.Cut(b.LastCommit.Message, "\n")
+			_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Last commit:"), lastCommit(b.LastCommit))
+			_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Commit title:"), title)
+		}
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Default:"), yesNo(b.IsDefault))
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Protected:"), yesNo(b.Protected))
+	}
+	if noLocal == "" {
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Status:"), status(b))
+	}
+	_ = w.Flush()
+}
+
+// renderComparison shows how head relates to base; a head that is only ahead can be merged into base as a fast-forward
+func renderComparison(cmp *gol.Comparison) {
+	// tabulated output
+	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Base:"), cmp.Base)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Head:"), cmp.Head)
+	// From head's point of view, like the status of branch ls is from the local branch's
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Status:"), aheadBehind(cmp.Ahead, cmp.Behind))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Fast-forward:"), yesNo(cmp.Ahead > 0 && cmp.Behind == 0))
+	_ = w.Flush()
 }

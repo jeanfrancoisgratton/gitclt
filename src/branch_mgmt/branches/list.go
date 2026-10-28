@@ -89,17 +89,8 @@ func ListBranches(reponame string, displayoutput bool) ([]Branch, *cerr.CustomEr
 	// (only the differing branches cost a comparison)
 	if withLocal && withServer {
 		for _, b := range rows {
-			if b.LocalSHA == "" || b.ServerSHA == "" || b.LocalSHA == b.ServerSHA {
-				continue
-			}
-			cmp, e := c.Branches().Compare(ctx, OwnerOrg, reponame, b.Name, b.LocalSHA)
-			switch {
-			case gol.IsNotFound(e):
-				b.Unpushed = true
-			case e != nil:
-				return nil, forge.Error(fmt.Sprintf("Unable to compare branch %s with the server's", b.Name), e)
-			default:
-				b.Ahead, b.Behind = cmp.Ahead, cmp.Behind
+			if ce := compareSides(ctx, c, reponame, b); ce != nil {
+				return nil, ce
 			}
 		}
 	}
@@ -119,6 +110,24 @@ func ListBranches(reponame string, displayoutput bool) ([]Branch, *cerr.CustomEr
 	}
 	renderBranchTable(branches, withLocal, withServer)
 	return branches, nil
+}
+
+// compareSides fills how the local branch relates to the server's, when both exist and differ
+// The local head is unknown to the server (404) when it has unpushed commits
+func compareSides(ctx context.Context, c *forge.Client, reponame string, b *Branch) *cerr.CustomError {
+	if b.LocalSHA == "" || b.ServerSHA == "" || b.LocalSHA == b.ServerSHA {
+		return nil
+	}
+	cmp, e := c.Branches().Compare(ctx, OwnerOrg, reponame, b.Name, b.LocalSHA)
+	switch {
+	case gol.IsNotFound(e):
+		b.Unpushed = true
+	case e != nil:
+		return forge.Error(fmt.Sprintf("Unable to compare branch %s with the server's", b.Name), e)
+	default:
+		b.Ahead, b.Behind = cmp.Ahead, cmp.Behind
+	}
+	return nil
 }
 
 // localBranches reads the working copy of the current directory, and makes sure it is OwnerOrg/reponame's

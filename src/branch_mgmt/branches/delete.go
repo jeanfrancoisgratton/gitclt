@@ -103,21 +103,26 @@ func deleteLocalBranch(branch string) *cerr.CustomError {
 		flag = "-D"
 	}
 	if out, e := exec.Command("git", "branch", flag, branch).CombinedOutput(); e != nil {
-		// git's hints point to its own flags (git branch -D); ours is --force
-		var lines []string
-		for l := range strings.Lines(string(out)) {
-			if l = strings.TrimSpace(l); l != "" && !strings.HasPrefix(l, "hint:") {
-				lines = append(lines, l)
-			}
-		}
-		msg := strings.Join(lines, "; ")
-		if msg == "" {
-			msg = e.Error()
-		}
+		msg := gitMessage(out, e)
 		if strings.Contains(msg, "not fully merged") {
 			msg += " (use --force to delete it anyway)"
 		}
 		return &cerr.CustomError{Title: "Unable to delete the local branch " + branch, Message: msg}
 	}
 	return nil
+}
+
+// gitMessage turns a failed git command's output into one line
+// git's hints are dropped: they point to its own flags (git branch -D), not to gitclt's
+func gitMessage(out []byte, e error) string {
+	var lines []string
+	for l := range strings.Lines(string(out)) {
+		if l = strings.TrimSpace(l); l != "" && !strings.HasPrefix(l, "hint:") {
+			lines = append(lines, l)
+		}
+	}
+	if len(lines) == 0 {
+		return e.Error()
+	}
+	return strings.Join(lines, "; ")
 }
