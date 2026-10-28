@@ -8,6 +8,8 @@ package branches
 import gol "github.com/jeanfrancoisgratton/gitoperationslib"
 
 var JSONoutput = false
+var AssumeYes = false
+var SuppressWarnings = false
 
 // Owner / organization of the repository on the server
 var OwnerOrg = ""

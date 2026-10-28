@@ -13,14 +13,15 @@ import (
 )
 
 var branchCmd = &cobra.Command{
-	Use:   "branch",
-	Short: "Branch management commands",
+	Use:     "branch",
+	Aliases: []string{"bra"},
+	Short:   "Branch management commands",
 }
 
 var branchListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Example: "  gitclt branch ls [-c CONNECTION] -o OWNER [-l | -r | -a] [--json] <REPO>\n" +
+	Example: "  gitclt branch list [-c CONNECTION] -o OWNER [-l | -r | -a] [--json] <REPO>\n" +
 		"  gitclt branch ls -l",
 	Short: "Lists a repository's branches: local, on the server, or both (the default)",
 	Long: `The local branches are those of the git working copy in the current directory (or one of its parents);
@@ -41,12 +42,34 @@ If the current directory is not a working copy of the repository, --all shows th
 	},
 }
 
+var branchDeleteCmd = &cobra.Command{
+	Use:     "delete",
+	Aliases: []string{"rm", "del"},
+	Example: "  gitclt branch delete [-c CONNECTION] -o OWNER <REPO> <BRANCH>",
+	Short:   "Deletes a repository branch: local, on the server, or both (the default)",
+	//	Long: `The local branches are those of the git working copy in the current directory (or one of its parents);
+	//when a repository is given, that working copy must be a clone of it.
+	//--remote and --all need the owner (-o) and the repository; --local alone needs neither.
+	//--all (or -l and -r together, or neither) lists both sides; it overrides -l and -r.
+	//The branches are then merged by name, and their status tells if both sides point to the same commit.
+	//If the current directory is not a working copy of the repository, --all shows the server's branches only.`,
+	Args: cobra.MinimumNArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := branches.DeleteBranch(args[0], args[1:]); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
 func init() {
-	branchCmd.AddCommand(branchListCmd)
+	branchCmd.AddCommand(branchListCmd, branchDeleteCmd)
 
 	branchCmd.PersistentFlags().StringVarP(&branches.OwnerOrg, "owner", "o", "", "user or organization that owns the repository")
 	branchListCmd.Flags().BoolVarP(&branches.JSONoutput, "json", "j", false, "output as JSON")
 	branchListCmd.Flags().BoolVarP(&branches.LocalOnly, "local", "l", false, "only list the local branches")
 	branchListCmd.Flags().BoolVarP(&branches.RemoteOnly, "remote", "r", false, "only list the branches on the server")
 	branchListCmd.Flags().BoolVarP(&branches.AllBranches, "all", "a", false, "list both the local branches and the server's, overriding -l and -r (default)")
+	branchListCmd.Flags().BoolVarP(&branches.SuppressWarnings, "warnings", "w", false, "suppress all warnings")
+
+	branchDeleteCmd.Flags().BoolVarP(&branches.AssumeYes, "yes", "y", false, "confirm deletion")
 }

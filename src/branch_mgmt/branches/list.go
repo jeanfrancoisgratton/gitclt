@@ -52,7 +52,11 @@ func ListBranches(reponame string, displayoutput bool) ([]Branch, *cerr.CustomEr
 			// --all: the server's side is still worth showing
 			withLocal = false
 			if displayoutput && !shared.QuietOutput && !JSONoutput {
-				fmt.Println(hftx.InfoSign(ce.Message + "; showing the server's branches only"))
+				if !SuppressWarnings {
+					fmt.Println(hftx.InfoSign(ce.Message + "; showing the server's branches only"))
+				} else {
+					fmt.Println(hftx.InfoSign(" We are not in the local repo so we can only shot the server's branches"))
+				}
 			}
 		} else {
 			for name, sha := range lr.branches {
