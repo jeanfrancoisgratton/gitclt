@@ -63,8 +63,8 @@ The run stops at the first failure; the branches deleted before it stay deleted.
 
 var branchGetCmd = &cobra.Command{
 	Use: "get",
-	Example: "  gitclt branch get [-c CONNECTION] -o OWNER <REPO> <BRANCH>...\n" +
-		"  gitclt branch rm -a -o OWNER myrepo feature/x feature/y",
+	Example: "  gitclt branch get [-c CONNECTION] -o OWNER [--json] <REPO> <BRANCH>\n" +
+		"  gitclt branch get -o OWNER myrepo feature/x",
 	Short: "Shows extended information about a repository branch",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -74,8 +74,44 @@ var branchGetCmd = &cobra.Command{
 	},
 }
 
+var branchRenameCmd = &cobra.Command{
+	Use:     "rename",
+	Aliases: []string{"mv"},
+	Example: "  gitclt branch rename [-c CONNECTION] [-o OWNER] [-l | -r | -a] <REPO> <BRANCH> <NEW NAME>\n" +
+		"  gitclt branch mv -a -o OWNER myrepo dev develop",
+	Short: "Renames a repository branch: local (the default), on the server, or both",
+	Long: `The local branches are those of the git working copy in the current directory (or one of its parents),
+which must be a clone of the repository; the git client does the renaming, so it must be installed.
+On the server, the open pull requests and the protection rules follow the branch.
+--remote and --all need the owner (-o); --all (or -l and -r together) renames on both sides, local first,
+and the local branch then tracks the server's new name.`,
+	Args: cobra.ExactArgs(3),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := branches.RenameBranch(args[0], args[1], args[2]); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var branchCompareCmd = &cobra.Command{
+	Use:     "compare",
+	Aliases: []string{"cmp"},
+	Example: "  gitclt branch compare [-c CONNECTION] -o OWNER [--json] <REPO> <BASE> <HEAD>\n" +
+		"  gitclt branch cmp -o OWNER myrepo develop feature/x",
+	Short: "Compares two branches on the server: how far ahead of, and behind, the base the head is",
+	Long: `Base and head can be branches, tags or commits; the comparison is the server's.
+Ahead counts the commits of head that base lacks, behind the reverse.
+When head is only ahead, it can be merged into base as a fast-forward.`,
+	Args: cobra.ExactArgs(3),
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, e := branches.CompareBranches(args[0], args[1], args[2], true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
 func init() {
-	branchCmd.AddCommand(branchListCmd, branchDeleteCmd, branchGetCmd)
+	branchCmd.AddCommand(branchListCmd, branchDeleteCmd, branchGetCmd, branchRenameCmd, branchCompareCmd)
 
 	branchCmd.PersistentFlags().StringVarP(&branches.OwnerOrg, "owner", "o", "", "user or organization that owns the repository")
 	branchListCmd.Flags().BoolVarP(&branches.JSONoutput, "json", "j", false, "output as JSON")
@@ -89,4 +125,12 @@ func init() {
 	branchDeleteCmd.Flags().BoolVarP(&branches.RemoteOnly, "remote", "r", false, "delete the branches on the server")
 	branchDeleteCmd.Flags().BoolVarP(&branches.AllBranches, "all", "a", false, "delete both the local branches and the server's, overriding -l and -r")
 	branchDeleteCmd.Flags().BoolVarP(&branches.ForceDelete, "force", "f", false, "delete local branches even if they are not merged")
+
+	branchGetCmd.Flags().BoolVarP(&branches.JSONoutput, "json", "j", false, "output as JSON")
+
+	branchRenameCmd.Flags().BoolVarP(&branches.LocalOnly, "local", "l", false, "rename the local branch (default)")
+	branchRenameCmd.Flags().BoolVarP(&branches.RemoteOnly, "remote", "r", false, "rename the branch on the server")
+	branchRenameCmd.Flags().BoolVarP(&branches.AllBranches, "all", "a", false, "rename both the local branch and the server's, overriding -l and -r")
+
+	branchCompareCmd.Flags().BoolVarP(&branches.JSONoutput, "json", "j", false, "output as JSON")
 }

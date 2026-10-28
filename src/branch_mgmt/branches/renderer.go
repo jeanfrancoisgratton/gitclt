@@ -43,14 +43,21 @@ func status(b Branch) string {
 		return "in sync"
 	case b.Unpushed:
 		return "unpushed commits"
-	case b.Ahead > 0 && b.Behind > 0:
-		return fmt.Sprintf("ahead %d, behind %d", b.Ahead, b.Behind)
-	case b.Ahead > 0:
-		return fmt.Sprintf("ahead %d", b.Ahead)
-	case b.Behind > 0:
-		return fmt.Sprintf("behind %d", b.Behind)
 	}
-	return "differs"
+	return aheadBehind(b.Ahead, b.Behind)
+}
+
+// aheadBehind words a commit count the way git status does
+func aheadBehind(ahead, behind int) string {
+	switch {
+	case ahead > 0 && behind > 0:
+		return fmt.Sprintf("ahead %d, behind %d", ahead, behind)
+	case ahead > 0:
+		return fmt.Sprintf("ahead %d", ahead)
+	case behind > 0:
+		return fmt.Sprintf("behind %d", behind)
+	}
+	return "in sync"
 }
 
 // The server's last commit: its date, and its author
@@ -135,5 +142,17 @@ func renderBranch(b Branch, noLocal string) {
 	if noLocal == "" {
 		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Status:"), status(b))
 	}
+	_ = w.Flush()
+}
+
+// renderComparison shows how head relates to base; a head that is only ahead can be merged into base as a fast-forward
+func renderComparison(cmp *gol.Comparison) {
+	// tabulated output
+	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Base:"), cmp.Base)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Head:"), cmp.Head)
+	// From head's point of view, like the status of branch ls is from the local branch's
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Status:"), aheadBehind(cmp.Ahead, cmp.Behind))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Fast-forward:"), yesNo(cmp.Ahead > 0 && cmp.Behind == 0))
 	_ = w.Flush()
 }
