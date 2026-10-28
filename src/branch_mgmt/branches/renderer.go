@@ -8,8 +8,11 @@ package branches
 import (
 	"fmt"
 	"os"
+	"strings"
+	"text/tabwriter"
 
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
+	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
@@ -98,4 +101,39 @@ func renderBranchTable(list []Branch, withLocal, withServer bool) {
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
 	t.Style().Format.Header = text.FormatDefault
 	t.Render()
+}
+
+// renderBranch shows both sides of one branch, as far as they exist
+// noLocal, when set, tells why the local side could not be read (not in a working copy of the repo...)
+func renderBranch(b Branch, noLocal string) {
+	local := short(b.LocalSHA)
+	switch {
+	case noLocal != "":
+		local = "n/a (" + noLocal + ")"
+	case b.LocalSHA == "":
+		local = "not in the local working copy"
+	case b.Current:
+		local += " (checked out)"
+	}
+
+	// tabulated output
+	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Branch name:"), b.Name)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Local commit:"), local)
+	if b.ServerSHA == "" {
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Server commit:"), "not on the server")
+	} else {
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Server commit:"), short(b.ServerSHA))
+		if b.LastCommit != nil {
+			title, _, _ := strings.Cut(b.LastCommit.Message, "\n")
+			_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Last commit:"), lastCommit(b.LastCommit))
+			_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Commit title:"), title)
+		}
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Default:"), yesNo(b.IsDefault))
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Protected:"), yesNo(b.Protected))
+	}
+	if noLocal == "" {
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Status:"), status(b))
+	}
+	_ = w.Flush()
 }

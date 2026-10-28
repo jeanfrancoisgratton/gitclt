@@ -45,7 +45,7 @@ If the current directory is not a working copy of the repository, --all shows th
 var branchDeleteCmd = &cobra.Command{
 	Use:     "delete",
 	Aliases: []string{"rm", "del"},
-	Example: "  gitclt branch delete [-c CONNECTION] [-o OWNER] [-l | -r | -a] [-f] [-y] <REPO> <BRANCH>...\n" +
+	Example: "  gitclt branch delete [-c CONNECTION] -o OWNER [-l | -r | -a] [-f] [-y] <REPO> <BRANCH>...\n" +
 		"  gitclt branch rm -a -o OWNER myrepo feature/x feature/y",
 	Short: "Deletes repository branches: local (the default), on the server, or both",
 	Long: `The local branches are those of the git working copy in the current directory (or one of its parents),
@@ -61,8 +61,21 @@ The run stops at the first failure; the branches deleted before it stay deleted.
 	},
 }
 
+var branchGetCmd = &cobra.Command{
+	Use: "get",
+	Example: "  gitclt branch get [-c CONNECTION] -o OWNER <REPO> <BRANCH>...\n" +
+		"  gitclt branch rm -a -o OWNER myrepo feature/x feature/y",
+	Short: "Shows extended information about a repository branch",
+	Args:  cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, e := branches.GetBranch(args[0], args[1], true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
 func init() {
-	branchCmd.AddCommand(branchListCmd, branchDeleteCmd)
+	branchCmd.AddCommand(branchListCmd, branchDeleteCmd, branchGetCmd)
 
 	branchCmd.PersistentFlags().StringVarP(&branches.OwnerOrg, "owner", "o", "", "user or organization that owns the repository")
 	branchListCmd.Flags().BoolVarP(&branches.JSONoutput, "json", "j", false, "output as JSON")
