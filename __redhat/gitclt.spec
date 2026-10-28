@@ -55,6 +55,13 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Tue Oct 27 2026 Binary package builder <builder@famillegratton.net> 0.10.0-1
+- version bump
+- fixed: branch rm can now remove all local or remote branches
+- feature: branch rm
+- completed branch ls
+- chore: update changelog for 0.9.0-1
+
 * Mon Oct 26 2026 Binary package builder <builder@famillegratton.net> 0.9.0-1
 - housekeeping: version bump
 - feature: added a new 'wipe' command to fully remove a user
