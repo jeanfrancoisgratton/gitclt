@@ -11,6 +11,9 @@ var JSONoutput = false
 var AssumeYes = false
 var SuppressWarnings = false
 
+// branch rm: delete local branches that are not merged (git branch -D)
+var ForceDelete = false
+
 // Owner / organization of the repository on the server
 var OwnerOrg = ""
 
