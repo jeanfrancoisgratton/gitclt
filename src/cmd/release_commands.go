@@ -75,9 +75,9 @@ Every tag is checked before asking; the run stops at the first failed deletion, 
 }
 
 var releaseAssetsCmd = &cobra.Command{
-	Use:     "assets <REPO> <TAG>",
+	Use:     "list-assets <REPO> <TAG>",
 	Aliases: []string{"lsa"},
-	Example: "  gitclt release assets [-c CONNECTION] [-o OWNER] [-j] <REPO> <TAG>",
+	Example: "  gitclt release list-assets [-c CONNECTION] [-o OWNER] [-j] <REPO> <TAG>",
 	Short:   "Lists the files attached to the release of a tag; Forgejo and GitHub only",
 	Args:    cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -89,7 +89,7 @@ var releaseAssetsCmd = &cobra.Command{
 
 var releaseDeleteAssetsCmd = &cobra.Command{
 	Use:     "delete-assets <REPO> <TAG> <ASSET>...",
-	Aliases: []string{"rma"},
+	Aliases: []string{"rma", "dla"},
 	Example: "  gitclt release delete-assets [-c CONNECTION] [-o OWNER] [-y] <REPO> <TAG> <ASSET>...\n" +
 		"  gitclt rel rma myrepo v1.2.0 pkg-1.2.0.x86_64.rpm pkg_1.2.0_amd64.deb",
 	Short: "Deletes files attached to the release of a tag; Forgejo and GitHub only",
