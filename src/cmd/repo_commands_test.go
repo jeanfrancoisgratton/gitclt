@@ -32,6 +32,7 @@ func TestRepoCommands(t *testing.T) {
 		"GET /api/v1/user/repos": testutil.Reply(`[{"id":1,"owner":{"login":"me"},"name":"web","full_name":"me/web"}]`),
 		"GET /api/v1/repos/me/web": testutil.Reply(`{"id":1,"owner":{"login":"me"},"name":"web","full_name":"me/web",
 			"default_branch":"develop"}`),
+		"PATCH /api/v1/repos/me/web": testutil.Reply(`{"id":1,"owner":{"login":"me"},"name":"web","full_name":"me/web"}`),
 	})
 	for _, tc := range []struct {
 		args []string
@@ -42,6 +43,8 @@ func TestRepoCommands(t *testing.T) {
 		{[]string{"repo", "info", "-o", "me", "web"}, "Default branch:"},
 		{[]string{"repo", "info", "-o", "me", "nope"}, "Unable to fetch repo"},
 		{[]string{"repo", "rm", "-o", "me", "web"}, "Unable to delete the repository me/web"},
+		{[]string{"repo", "edit", "web"}, "Nothing to edit"},
+		{[]string{"repo", "edit", "-o", "me", "--public=false", "--default-branch", "main", "web"}, "Updated repository me/web"},
 	} {
 		if out, _ := execute(t, tc.args); !strings.Contains(out, tc.want) {
 			t.Errorf("%v: output = %q", tc.args, out)

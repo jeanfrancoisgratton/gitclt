@@ -85,8 +85,28 @@ Other values are using hardcoded values such as gitignore template (Go, not avai
 	},
 }
 
+var repoEditCmd = &cobra.Command{
+	Use:     "edit",
+	Aliases: []string{"modify", "update"},
+	Example: "  gitclt repo edit [-c CONNECTION] [-o OWNER] [flags] <REPO>\n" +
+		"  gitclt -c bitbucket repo edit --default-branch develop myrepo\n" +
+		"  gitclt repo edit --archived --description \"\" oldrepo",
+	Short: "Edits a repository; only the flags passed are changed",
+	Long: `Only the fields whose flag is passed are sent to the server; everything else is left unchanged.
+Boolean flags can be revoked with =false (e.g. --public=false makes the repository private),
+and an empty string clears a text field (e.g. --website "").
+--name renames the repository; the forge usually redirects the old URLs, but local clones should update their remotes.
+Bitbucket cannot archive a repository, nor make it a template.`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := repositories.EditRepo(args[0], cmd.Flags().Changed); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
 func init() {
-	repoCmd.AddCommand(repoDeleteCmd, repoInfoCmd, repoListCmd, repoCreateCmd)
+	repoCmd.AddCommand(repoDeleteCmd, repoInfoCmd, repoListCmd, repoCreateCmd, repoEditCmd)
 
 	repoCreateCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user, organization or workspace that will own the repository (default: the connection's owner, else your username)")
 	repoCreateCmd.Flags().BoolVar(&repositories.TemplateRepo, "template", false, "template repo")
@@ -101,6 +121,15 @@ func init() {
 	repoListCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "only show repositories owned by this user or organization (default: all accessible repositories)")
 	repoListCmd.Flags().StringVarP(&repositories.SortBy, "sort", "s", "", "sort on this column, in descending order")
 	repoListCmd.Flags().StringVarP(&repositories.SortByAsc, "sort-asc", "S", "", "sort on this column, in ascending order (default: ID)")
+
+	repoEditCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user, organization or workspace that owns the repository (default: the connection's owner, else your username)")
+	repoEditCmd.Flags().StringVar(&repositories.EditRepoName, "name", "", "new name of the repository")
+	repoEditCmd.Flags().StringVar(&repositories.EditRepoDescription, "description", "", "repository description")
+	repoEditCmd.Flags().StringVar(&repositories.EditRepoWebsite, "website", "", "repository web site")
+	repoEditCmd.Flags().StringVar(&repositories.EditRepoDefaultBranch, "default-branch", "", "default branch (it must exist)")
+	repoEditCmd.Flags().BoolVar(&repositories.EditRepoPublic, "public", false, "public repository (--public=false makes it private)")
+	repoEditCmd.Flags().BoolVar(&repositories.EditRepoArchived, "archived", false, "archive the repository (read-only); --archived=false unarchives it")
+	repoEditCmd.Flags().BoolVar(&repositories.EditRepoTemplate, "template", false, "template repository (--template=false reverts it)")
 
 	repoListCmd.MarkFlagsMutuallyExclusive("sort", "sort-asc")
 }
