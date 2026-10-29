@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `release upload [-o OWNER] [--create [--draft] [--prerelease]] [-r] <REPO> <TAG> <FILE>...` (aliases `rel up`): uploads files (ex: the RPM / DEB / APK packages a CI job builds) to the release of a tag, each under its base name. `--create` creates a missing release, titled after the tag; the tag must already be on the server. `-r`, `--replace` overwrites the assets that already have the same name; without it, a name already taken is an error. Everything is checked before the first upload, and a re-run of `--create --draft` finds the draft it created instead of creating another one. Forgejo and GitHub only
+
+<br><br>
 ## [0.20.0] - 2026-10-29
 
 ### Added

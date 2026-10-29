@@ -182,6 +182,13 @@ Every `branch` command takes the repository's owner with `-o`, `--owner OWNER`; 
 | `gitclt branch rename [-o OWNER] [-l \| -r \| -a] <REPO> <BRANCH> <NEW NAME>` (`mv`) | Renames a branch locally (the default), on the server, or both (local first), with the same `-l`, `-r`, `-a` as `delete`. On the server, open pull requests and protection rules follow the branch; with both sides, the local branch then tracks the server's new name. The local rename is done by the git client |
 | `gitclt branch compare [-o OWNER] [-j] <REPO> <BASE> <HEAD>` (`cmp`) | Counts, on the server, how far ahead of and behind `<BASE>` `<HEAD>` is (branches, tags or commits), and tells if `<HEAD>` can be merged into `<BASE>` as a fast-forward |
 
+### Releases: `gitclt release` (alias: `rel`)
+Forgejo and GitHub only: Bitbucket Cloud has no releases. Files (assets) are attached to a tag's **release**, never to the tag itself. Every `release` command takes the repository's owner with `-o`, `--owner OWNER`; without it, the connection's default owner is used.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt release upload [-o OWNER] [--create [--draft] [--prerelease]] [-r] <REPO> <TAG> <FILE>...` (`up`) | Uploads files to the release of `<TAG>`, each under its base name. Without `--create`, the release must already exist; with it, a missing release is created, titled after the tag (`--draft`, `--prerelease`). The tag must already be on the server: push it first. A name already taken by an asset is an error, unless `-r`, `--replace` is passed: the old asset is then deleted before the upload. Everything (files, release, names) is checked before the first upload; the run stops at the first failed upload, and the files uploaded before it stay. Meant for CI: `gitclt rel up --create -r myrepo v1.2.0 __redhat/*.rpm __debian/*.deb` |
+
 <a id="completion"></a>
 ## Shell completion
 ```bash
@@ -212,14 +219,14 @@ repo_mgmt/
   repositories/
   webhooks/       (scaffolded)
 branch_mgmt/
-  branches/       (scaffolded)
+  branches/
   protections/    (scaffolded)
 release_mgmt/
   tags/           (scaffolded)
   protections/    (scaffolded)
-  releases/       (scaffolded)
+  releases/
   │
-forge/          opens a gitoperationslib client on a connection; converts library errors
+forge/          opens a gitoperationslib client on a connection; converts library errors; decides the repositories' owner
   │
 connections/    the connections registry; resolves a connection name into an ActiveConnection
 shared/         global flag values (QuietOutput, ConnectionName), FetchAll(), PrintJSON(), VisibilityFlag
