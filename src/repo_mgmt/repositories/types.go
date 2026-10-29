@@ -21,3 +21,12 @@ var InitializeRepo = false
 var RepoDefaultBranch = "develop"
 var RepoDescription = ""
 var PublicRepo = true
+
+// repo edit: only the flags explicitly passed are sent (see EditRepo)
+var EditRepoName = ""
+var EditRepoDescription = ""
+var EditRepoWebsite = ""
+var EditRepoDefaultBranch = ""
+var EditRepoPublic = false
+var EditRepoArchived = false
+var EditRepoTemplate = false

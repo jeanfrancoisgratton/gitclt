@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `repo edit [-o OWNER] [flags] <REPO>` (aliases `modify`, `update`): edits a repository; only the flags passed are sent: `--name` (renames it), `--description`, `--website`, `--default-branch`, `--public`, `--archived`, `--template`. Booleans are revoked with `=false`, and an empty string clears a text field. Bitbucket refuses `--archived` and `--template`
 - Connections have an optional `owner`: the default owner (user, organization or Bitbucket workspace) of the repositories the `repo` and `branch` commands work on. `conn add` asks for it, `conn edit` changes it (`-` clears it), and `conn ls` / `conn info` show it
 
 ### Changed

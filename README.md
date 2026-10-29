@@ -122,6 +122,7 @@ These work on every command:
 | `gitclt repo info [-o OWNER] [-j] <REPO>` (`get`) | Shows the details of a repository |
 | `gitclt repo create [-o OWNER] [flags] <REPO>` (`add`) | Creates a repository. `--description`, `--default-branch` (default: `develop`), `--public=false` for a private repo, `--template`, `--initialize` (creates it with a `.gitignore` and a `README.md`) |
 | `gitclt repo delete [-o OWNER] <REPO>` (`rm`, `remove`) | Deletes a repository |
+| `gitclt repo edit [-o OWNER] [flags] <REPO>` (`modify`, `update`) | Edits a repository; **only the flags passed are sent**: `--name` (renames it), `--description`, `--website`, `--default-branch`, `--public` (`=false` makes it private), `--archived` (`=false` unarchives it), `--template`. Booleans are revoked with `=false`, and `""` clears a text field. Bitbucket cannot archive a repository, nor make it a template |
 
 ### Users: `gitclt user`
 Except `whoami`, these need admin rights, and only work on Forgejo.
