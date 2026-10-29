@@ -46,7 +46,7 @@ func renderReleaseTable(list []gol.Release) {
 		}
 		t.AppendRow(table.Row{r.TagName, r.Name, kind(r), published, r.Author, len(r.Assets)})
 	}
-	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
+	t.SetStyle(table.StyleColoredYellowWhiteOnBlack)
 	t.Style().Format.Header = text.FormatDefault
 	t.Render()
 }

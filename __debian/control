@@ -1,5 +1,5 @@
 Package: gitclt
-Version: 0.30.0-1
+Version: 0.30.0-2
 Architecture: amd64
 Maintainer: J.F. Gratton <jean-francois@famillegratton.net>
 Description: forgejo / github management tool
