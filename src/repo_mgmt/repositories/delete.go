@@ -24,14 +24,18 @@ func DeleteRepo(reponame string) *cerr.CustomError {
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
+	owner, ce := c.Owner(ctx, OwnerOrg)
+	if ce != nil {
+		return ce
+	}
 	repos := c.Repos()
-	if e := repos.Delete(ctx, OwnerOrg, reponame); e != nil {
-		return &cerr.CustomError{Title: fmt.Sprintf("Unable to delete the repository %s/%s", OwnerOrg, reponame),
+	if e := repos.Delete(ctx, owner, reponame); e != nil {
+		return &cerr.CustomError{Title: fmt.Sprintf("Unable to delete the repository %s/%s", owner, reponame),
 			Message: e.Error()}
 	}
 
 	if !shared.QuietOutput {
-		fmt.Println(hftx.EnabledSign(fmt.Sprintf("Deleted repository %s", hftx.Brown(OwnerOrg+"/"+reponame))))
+		fmt.Println(hftx.EnabledSign(fmt.Sprintf("Deleted repository %s", hftx.Brown(owner+"/"+reponame))))
 	}
 	return nil
 }

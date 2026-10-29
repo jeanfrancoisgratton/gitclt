@@ -14,10 +14,10 @@ import (
 )
 
 const editRegistry = `{"auths":{
-	"x":{"url":"https://x","token":"x-secret-tok","username":"me","password":"x-secret-pw","servertype":"forgejo"},
+	"x":{"url":"https://x","token":"x-secret-tok","username":"me","password":"x-secret-pw","owner":"acme","servertype":"forgejo"},
 	"y":{"url":"https://y","token":"tok","servertype":"forgejo"}},"default_connection":"x"}`
 
-// Answers the five conn edit prompts: server type, URL, token, username, password
+// Answers the six conn edit prompts: server type, URL, token, username, password, owner
 func editConnection(t *testing.T, name string, answers ...string) (string, *cerr.CustomError) {
 	t.Helper()
 	testutil.Set(t, &shared.DebugMode, true)
@@ -30,12 +30,12 @@ func TestEditConnection_EnterKeepsEverything(t *testing.T) {
 	testutil.WriteRegistry(t, editRegistry)
 	before, _ := LoadConnectionsFile()
 
-	out, err := editConnection(t, "x", "", "", "", "", "")
+	out, err := editConnection(t, "x", "", "", "", "", "", "")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	// The current values are offered, except for the secrets
-	if !strings.Contains(out, "[forgejo]") || !strings.Contains(out, "[https://x]") || strings.Contains(out, "secret") {
+	if !strings.Contains(out, "[forgejo]") || !strings.Contains(out, "[https://x]") || !strings.Contains(out, "[acme;") || strings.Contains(out, "secret") {
 		t.Fatalf("output = %q", out)
 	}
 	after, _ := LoadConnectionsFile()
@@ -47,7 +47,7 @@ func TestEditConnection_EnterKeepsEverything(t *testing.T) {
 func TestEditConnection_ChangeAndClear(t *testing.T) {
 	testutil.WriteRegistry(t, editRegistry)
 
-	if _, err := editConnection(t, "x", "github", "https://github.com", "newtok", "", "-"); err != nil {
+	if _, err := editConnection(t, "x", "github", "https://github.com", "newtok", "", "-", "-"); err != nil {
 		t.Fatal(err.Error())
 	}
 	cf, _ := LoadConnectionsFile()
@@ -67,7 +67,7 @@ func TestEditConnection_Errors(t *testing.T) {
 		t.Fatalf("server type: got %+v", err)
 	}
 	// Clearing the only credential: refused, and the file is untouched
-	if _, err := editConnection(t, "y", "", "", "-", "", ""); err == nil || err.Title != "Invalid connection" {
+	if _, err := editConnection(t, "y", "", "", "-", "", "", ""); err == nil || err.Title != "Invalid connection" {
 		t.Fatalf("validate: got %+v", err)
 	}
 	if cf, _ := LoadConnectionsFile(); cf.Auths["y"].Token != "tok" {

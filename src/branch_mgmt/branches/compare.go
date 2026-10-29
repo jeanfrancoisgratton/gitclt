@@ -15,24 +15,22 @@ import (
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
 )
 
-// CompareBranches counts, on the server, the commits between two refs of OwnerOrg/repo (branches, tags or commits):
+// CompareBranches counts, on the server, the commits between two refs of owner/repo (branches, tags or commits):
 // how many commits head has that base lacks (ahead), and the reverse (behind)
 func CompareBranches(repo, base, head string, displayoutput bool) (*gol.Comparison, *cerr.CustomError) {
 	var c *forge.Client
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
-	if OwnerOrg == "" {
-		return nil, &cerr.CustomError{Title: "Missing owner", Message: "comparing branches needs the owner (-o OWNER)"}
-	}
-	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
+	var owner string
+	if c, owner, ce = connect(ctx); ce != nil {
 		return nil, ce
 	}
 
-	cmp, e := c.Branches().Compare(ctx, OwnerOrg, repo, base, head)
+	cmp, e := c.Branches().Compare(ctx, owner, repo, base, head)
 	if gol.IsNotFound(e) {
 		return nil, &cerr.CustomError{Title: "Unknown branch", Code: 404,
-			Message: fmt.Sprintf("%s or %s is not in %s/%s", base, head, OwnerOrg, repo)}
+			Message: fmt.Sprintf("%s or %s is not in %s/%s", base, head, owner, repo)}
 	}
 	if e != nil {
 		return nil, forge.Error(fmt.Sprintf("Unable to compare %s with %s", head, base), e)

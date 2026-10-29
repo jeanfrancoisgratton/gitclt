@@ -46,7 +46,7 @@ All format/distro-specific packaging scripts live under their own directories: `
 
 <a id="connections"></a>
 ## The connections registry
-Before doing anything against a server, you need at least one connection. Connections live in `$HOME/.config/JFG/gitclt/connections.json` (see [docs/connections.json](docs/connections.json) for a sample).<br>
+Before doing anything against a server, you need at least one connection. Connections live in `$HOME/.config/JFG/gitclt/connections.json` (see [docs/samples/connections.json](docs/samples/connections.json) for a sample).<br>
 The file looks a lot like `$HOME/.docker/config.json`:
 
 ```json
@@ -57,6 +57,7 @@ The file looks a lot like `$HOME/.docker/config.json`:
 			"token": "...",
 			"username": "myuser",
 			"password": "...",
+			"owner": "myorg",
 			"servertype": "forgejo"
 		}
 	},
@@ -76,7 +77,8 @@ The file looks a lot like `$HOME/.docker/config.json`:
   - a workspace / project / repository access token (`ATCTT...`): sent as a bearer token, no username needed
   - an Atlassian API token with Bitbucket scopes (`ATATT...`): Bitbucket only accepts it with basic auth, so `username` **must** be your Atlassian account e-mail
   - without a token, `username` + `password` (an API token or an app password) are used as is
-- On Bitbucket, repository owners are **workspaces**. Bitbucket Cloud has no releases, no tag protection, and no issue tracker anymore: those commands will report that the feature is not supported
+- `owner` (optional) is the default owner of the repositories the `repo` and `branch` commands work on: a user, an organization, or a Bitbucket workspace. The owner is, in this order: the `-o`, `--owner` flag, the connection's `owner`, its `username` (unless it is an e-mail), and finally whom the server says the credentials belong to
+- On Bitbucket, repository owners are **workspaces**, and the `username` is an e-mail: set `owner` to your workspace, or pass `-o` every time. Bitbucket Cloud has no releases, no tag protection, and no issue tracker anymore: those commands will report that the feature is not supported
 - Tokens and passwords are encrypted when the tool writes the file. You can still hand-edit the file with cleartext secrets; they will get encrypted the next time the tool saves the registry
 - A hand-edited, invalid connection is not rejected on load: `gitclt conn list` flags it, and you can fix it with `gitclt conn edit`, or remove it with `gitclt conn rm`
 - The first connection you add becomes the default one
@@ -109,17 +111,17 @@ These work on every command:
 | `gitclt conn list` (`ls`)                 | Lists all connections in the registry                                       |
 | `gitclt conn info [<CONNECTION>...]` (`explain`) | Shows the details of the given connections; no argument means the default one |
 | `gitclt conn add <CONNECTION>` (`create`) | Adds a connection (interactive)                                             |
-| `gitclt conn edit <CONNECTION>` (`modify`, `update`) | Edits a connection in-place; ENTER keeps the current value, `-` clears a secret |
+| `gitclt conn edit <CONNECTION>` (`modify`, `update`) | Edits a connection in-place; ENTER keeps the current value, `-` clears a secret or the owner |
 | `gitclt conn delete <CONNECTION>` (`rm`, `remove`) | Removes a connection                                               |
 | `gitclt conn default [<CONNECTION>]`      | Shows the default connection, or sets it                                    |
 
 ### Repositories: `gitclt repo` (alias: `repository`)
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
-| `gitclt repo list [-o OWNER] [-s\|-S SORT] [-j]` (`ls`) | Lists all repositories visible to the connection's user. `-o` limits the list to a user / organization (a workspace on Bitbucket); `-s` sorts on a column in descending order, `-S` in ascending order (its first letter is enough: `i`d, `o`wner, `r`epository, `c`reated, `u`pdated; default: descending on ID, or on Repository on Bitbucket, which has no repository IDs); `-j`, `--json` outputs JSON; `-q` outputs only the `owner/name` of each repo. The sort order applies to all three outputs |
-| `gitclt repo info -o OWNER [-j] <REPO>` (`get`) | Shows the details of a repository |
-| `gitclt repo create -o OWNER [flags] <REPO>` (`add`) | Creates a repository. `--description`, `--default-branch` (default: `develop`), `--public=false` for a private repo, `--template`, `--initialize` (creates it with a `.gitignore` and a `README.md`) |
-| `gitclt repo delete -o OWNER <REPO>` (`rm`, `remove`) | Deletes a repository |
+| `gitclt repo list [-o OWNER] [-s\|-S SORT] [-j]` (`ls`) | Lists all repositories visible to the connection's user (the connection's default owner does not apply here). `-o` limits the list to a user / organization (a workspace on Bitbucket); `-s` sorts on a column in descending order, `-S` in ascending order (its first letter is enough: `i`d, `o`wner, `r`epository, `c`reated, `u`pdated; default: descending on ID, or on Repository on Bitbucket, which has no repository IDs); `-j`, `--json` outputs JSON; `-q` outputs only the `owner/name` of each repo. The sort order applies to all three outputs |
+| `gitclt repo info [-o OWNER] [-j] <REPO>` (`get`) | Shows the details of a repository |
+| `gitclt repo create [-o OWNER] [flags] <REPO>` (`add`) | Creates a repository. `--description`, `--default-branch` (default: `develop`), `--public=false` for a private repo, `--template`, `--initialize` (creates it with a `.gitignore` and a `README.md`) |
+| `gitclt repo delete [-o OWNER] <REPO>` (`rm`, `remove`) | Deletes a repository |
 
 ### Users: `gitclt user`
 Except `whoami`, these need admin rights, and only work on Forgejo.
@@ -170,11 +172,15 @@ A team's access is set either with `-p`, `--permission read|write|admin` (the sa
 | `gitclt team removerepo [-y] <ORG> <TEAM> <REPO>` (`rmrepo`) | Revokes the team's access to `<REPO>`, after confirmation (`-y`, `--yes` skips it); the repository itself is kept |
 
 ### Branches: `gitclt branch`
-Every `branch` command takes the repository's owner with `-o`, `--owner OWNER`. The local branches are those of the git working copy in the current directory (or one of its parents), read straight from its `.git` directory: the git client does not need to be installed.
+Every `branch` command takes the repository's owner with `-o`, `--owner OWNER`; without it, the connection's default owner is used (see [the connections registry](#connections)). The local branches are those of the git working copy in the current directory (or one of its parents), read straight from its `.git` directory: the git client does not need to be installed.
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
-| `gitclt branch list -o OWNER [-l \| -r \| -a] [-j] <REPO>` (`ls`) | Lists the branches: `-l`, `--local` the working copy's (a rough equivalent of `git branch`; `-o` and `<REPO>` are then optional, and when given, the working copy must be a clone of that repository), `-r`, `--remote` the server's, with their last commit (date and author; not reported by GitHub's branch list), default and protected flags, `-a`, `--all` (the default; it overrides `-l` and `-r`, and `-l -r` together means the same) both, merged by name, with a status seen from the local branch, like `git status`: `in sync`, `ahead N`, `behind N`, `ahead N, behind M` (counted by the server, for the branches that differ only), `unpushed commits` (the local head is unknown to the server, so it cannot count), `local only`, `server only`. If the current directory is not a working copy of `<REPO>`, `--all` shows the server's branches only. The checked out branch is marked with `*` |
+| `gitclt branch list [-o OWNER] [-l \| -r \| -a] [-j] <REPO>` (`ls`) | Lists the branches: `-l`, `--local` the working copy's (a rough equivalent of `git branch`; `<REPO>` is then optional, and when given, the working copy must be a clone of that repository), `-r`, `--remote` the server's, with their last commit (date and author; not reported by GitHub's branch list), default and protected flags, `-a`, `--all` (the default; it overrides `-l` and `-r`, and `-l -r` together means the same) both, merged by name, with a status seen from the local branch, like `git status`: `in sync`, `ahead N`, `behind N`, `ahead N, behind M` (counted by the server, for the branches that differ only), `unpushed commits` (the local head is unknown to the server, so it cannot count), `local only`, `server only`. If the current directory is not a working copy of `<REPO>`, `--all` shows the server's branches only. The checked out branch is marked with `*` |
+| `gitclt branch get [-o OWNER] [-j] <REPO> <BRANCH>` | Shows one branch, from both sides when it exists on both: local commit (and whether it is checked out), server commit, last commit (date, author and title), default and protected flags, and the same status as `branch list`. A branch on one side only is still shown; outside of a working copy of `<REPO>`, only the server's side is shown, with the reason |
+| `gitclt branch delete [-o OWNER] [-l \| -r \| -a] [-f] [-y] <REPO> <BRANCH>...` (`rm`, `del`) | Deletes branches locally (the default), on the server (`-r`, `--remote`), or both (`-a`, `--all`, or `-l -r`; local first). The working copy must be a clone of `<REPO>`, and the local deletion is done by the git client, which refuses the checked out branch and, unless `-f`, `--force`, an unmerged one. Everything is checked before the confirmation (`-y`, `--yes` skips it); the run stops at the first failure, and the branches deleted before it stay deleted |
+| `gitclt branch rename [-o OWNER] [-l \| -r \| -a] <REPO> <BRANCH> <NEW NAME>` (`mv`) | Renames a branch locally (the default), on the server, or both (local first), with the same `-l`, `-r`, `-a` as `delete`. On the server, open pull requests and protection rules follow the branch; with both sides, the local branch then tracks the server's new name. The local rename is done by the git client |
+| `gitclt branch compare [-o OWNER] [-j] <REPO> <BASE> <HEAD>` (`cmp`) | Counts, on the server, how far ahead of and behind `<BASE>` `<HEAD>` is (branches, tags or commits), and tells if `<HEAD>` can be merged into `<BASE>` as a fast-forward |
 
 <a id="completion"></a>
 ## Shell completion

@@ -16,7 +16,8 @@ var repoCmd = &cobra.Command{
 	Use:     "repo",
 	Aliases: []string{"repository"},
 	Short:   "Repository commands",
-	Long: `The -o flag will filter repos belonging to that organization.
+	Long: `The -o flag gives the user, organization or workspace that owns the repository; it defaults to the connection's owner,
+else your username. With repo list, -o instead filters the list (default: all the repositories you can see).
 The -s flag will sort the list in descending order according to the specified sort criteria; -S does the same in ascending order.
 Without -s or -S, the list is sorted by ID in ascending order.
 To select a column, just type in its first letter.`,
@@ -38,7 +39,7 @@ var repoListCmd = &cobra.Command{
 var repoInfoCmd = &cobra.Command{
 	Use:     "info",
 	Aliases: []string{"get"},
-	Example: "  gitclt repo info [-c CONNECTION] -o OWNER [--json] <REPO>",
+	Example: "  gitclt repo info [-c CONNECTION] [-o OWNER] [--json] <REPO>",
 	Short:   "Provides detailed information about a repository",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -51,7 +52,7 @@ var repoInfoCmd = &cobra.Command{
 var repoDeleteCmd = &cobra.Command{
 	Use:     "delete",
 	Aliases: []string{"rm", "remove"},
-	Example: "  gitclt repo delete [-c CONNECTION] -o OWNER <REPO>",
+	Example: "  gitclt repo delete [-c CONNECTION] [-o OWNER] <REPO>",
 	Short:   "Deletes a repository",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -64,7 +65,7 @@ var repoDeleteCmd = &cobra.Command{
 var repoCreateCmd = &cobra.Command{
 	Use:     "create",
 	Aliases: []string{"add"},
-	Example: "  gitclt repo create [-c CONNECTION] -o OWNER [flags] <REPO>",
+	Example: "  gitclt repo create [-c CONNECTION] [-o OWNER] [flags] <REPO>",
 	Short:   "Creates a repository",
 	Long: `
 Optional flags are below, with default values in parentheses:
@@ -87,22 +88,19 @@ Other values are using hardcoded values such as gitignore template (Go, not avai
 func init() {
 	repoCmd.AddCommand(repoDeleteCmd, repoInfoCmd, repoListCmd, repoCreateCmd)
 
-	repoCreateCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user or organization that will own the repository")
+	repoCreateCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user, organization or workspace that will own the repository (default: the connection's owner, else your username)")
 	repoCreateCmd.Flags().BoolVar(&repositories.TemplateRepo, "template", false, "template repo")
 	repoCreateCmd.Flags().BoolVar(&repositories.InitializeRepo, "initialize", false, "initialize the repo after creation")
 	repoCreateCmd.Flags().StringVar(&repositories.RepoDefaultBranch, "default-branch", "develop", "the default branch to use after creation")
 	repoCreateCmd.Flags().StringVar(&repositories.RepoDescription, "description", "", "repository description")
 	repoCreateCmd.Flags().BoolVar(&repositories.PublicRepo, "public", true, "public repository (use --public=false for a private one)")
-	repoDeleteCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user or organization that owns the repository")
+	repoDeleteCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user, organization or workspace that owns the repository (default: the connection's owner, else your username)")
 	repoInfoCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "output as JSON")
-	repoInfoCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user or organization that owns the repository")
+	repoInfoCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user, organization or workspace that owns the repository (default: the connection's owner, else your username)")
 	repoListCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "output as JSON")
 	repoListCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "only show repositories owned by this user or organization (default: all accessible repositories)")
 	repoListCmd.Flags().StringVarP(&repositories.SortBy, "sort", "s", "", "sort on this column, in descending order")
 	repoListCmd.Flags().StringVarP(&repositories.SortByAsc, "sort-asc", "S", "", "sort on this column, in ascending order (default: ID)")
 
 	repoListCmd.MarkFlagsMutuallyExclusive("sort", "sort-asc")
-	_ = repoCreateCmd.MarkFlagRequired("owner")
-	_ = repoDeleteCmd.MarkFlagRequired("owner")
-	_ = repoInfoCmd.MarkFlagRequired("owner")
 }

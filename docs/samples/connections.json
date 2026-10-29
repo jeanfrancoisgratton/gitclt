@@ -12,6 +12,7 @@
 			"token": "q1w2e3r4Q!W@E#R$==",
 			"username": "myuser2",
 			"password": "mypassword2",
+			"owner": "myorg",
 			"servertype": "forgejo"
 		},
 		"CONNECTION2": {
@@ -25,6 +26,7 @@
 			"url": "https://bitbucket.org",
 			"username": "me@example.com",
 			"password": "myAtlassianApiToken",
+			"owner": "myworkspace",
 			"servertype": "bitbucket"
 		}
 	},

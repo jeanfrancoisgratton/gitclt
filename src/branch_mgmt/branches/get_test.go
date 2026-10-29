@@ -104,9 +104,10 @@ func TestGetBranch_Errors(t *testing.T) {
 	if _, ce := GetBranch("web", "nope", false); ce == nil || ce.Title != "No such branch" {
 		t.Fatalf("nowhere: %+v", ce)
 	}
+	// Without -o, the connection's username is the owner
 	testutil.Set(t, &OwnerOrg, "")
-	if _, ce := GetBranch("web", "main", false); ce == nil || ce.Title != "Missing owner" {
-		t.Fatalf("no owner: %+v", ce)
+	if b, ce := GetBranch("web", "main", false); ce != nil || b.ServerSHA == "" {
+		t.Fatalf("no -o: %+v, %+v", ce, b)
 	}
 
 	// A server failure other than a 404 is an error, even when the branch is local

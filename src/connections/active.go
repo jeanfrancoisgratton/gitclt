@@ -29,7 +29,7 @@ func ResolveConnection(name string) (ActiveConnection, *cerr.CustomError) {
 		return ActiveConnection{}, err
 	}
 
-	ac := ActiveConnection{Name: name, ServerType: c.ServerType, URL: strings.TrimRight(c.URL, "/"), Username: c.Username}
+	ac := ActiveConnection{Name: name, ServerType: c.ServerType, URL: strings.TrimRight(c.URL, "/"), Username: c.Username, Owner: c.Owner}
 	if c.Token != "" {
 		ac.Auth = AuthToken
 		ac.Token = c.Token

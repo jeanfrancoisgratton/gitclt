@@ -88,9 +88,10 @@ func TestRenameBranch_Remote(t *testing.T) {
 		t.Fatalf("bodies %v\n%s", *bodies, out)
 	}
 
+	// Without -o, the connection's username is the owner
 	testutil.Set(t, &OwnerOrg, "")
-	if ce := RenameBranch("web", "dev", "develop"); ce == nil || ce.Title != "Missing owner" {
-		t.Fatalf("no owner: %+v", ce)
+	if ce := RenameBranch("web", "dev", "develop"); ce != nil || len(*bodies) != 2 {
+		t.Fatalf("no -o: %+v, bodies %v", ce, *bodies)
 	}
 }
 

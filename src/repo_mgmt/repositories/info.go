@@ -33,8 +33,12 @@ func RepositoryInfo(reponame string, displayoutput bool) (*gol.Repo, *cerr.Custo
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return nil, ce
 	}
+	owner, ce := c.Owner(ctx, OwnerOrg)
+	if ce != nil {
+		return nil, ce
+	}
 
-	if r, e = c.Repos().Get(ctx, OwnerOrg, reponame); e != nil {
+	if r, e = c.Repos().Get(ctx, owner, reponame); e != nil {
 		return nil, forge.Error("Unable to fetch repo", e)
 	}
 

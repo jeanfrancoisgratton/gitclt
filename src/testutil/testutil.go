@@ -62,7 +62,7 @@ func Forgejo(t *testing.T, routes map[string]http.HandlerFunc) *httptest.Server 
 	}
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
-	WriteRegistry(t, `{"auths":{"test":{"url":"`+srv.URL+`","token":"abc","servertype":"forgejo"}},"default_connection":"test"}`)
+	WriteRegistry(t, `{"auths":{"test":{"url":"`+srv.URL+`","token":"abc","username":"acme","servertype":"forgejo"}},"default_connection":"test"}`)
 	return srv
 }
 

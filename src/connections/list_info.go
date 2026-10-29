@@ -43,7 +43,7 @@ func ListConnections() *cerr.CustomError {
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Connection", "Type", "Server URL", "Username", "Default", "Userpass", "Token", "Status"})
+	t.AppendHeader(table.Row{"Connection", "Type", "Server URL", "Username", "Owner", "Default", "Userpass", "Token", "Status"})
 
 	for name, c := range cf.Auths {
 		dflt := ""
@@ -58,7 +58,7 @@ func ListConnections() *cerr.CustomError {
 		if c.Token == "" {
 			tkn = hftx.ThumbsDownSign("")
 		}
-		t.AppendRow([]any{hftx.Green(name), hftx.Green(c.ServerType.String()), hftx.Green(c.URL), hftx.Green(c.Username),
+		t.AppendRow([]any{hftx.Green(name), hftx.Green(c.ServerType.String()), hftx.Green(c.URL), hftx.Green(c.Username), hftx.Green(c.Owner),
 			dflt, up, tkn, validityMarker(c)})
 	}
 	t.SortBy([]table.SortBy{
@@ -87,7 +87,7 @@ func ExplainConnections(names []string) *cerr.CustomError {
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Connection", "Type", "Server URL", "Username", "Password", "Token", "Default", "Status"})
+	t.AppendHeader(table.Row{"Connection", "Type", "Server URL", "Username", "Owner", "Password", "Token", "Default", "Status"})
 
 	for _, name := range names {
 		c, ok := cf.Auths[name]
@@ -98,7 +98,7 @@ func ExplainConnections(names []string) *cerr.CustomError {
 		if name == cf.DefaultConnection {
 			dflt = hftx.Green("*")
 		}
-		t.AppendRow([]any{hftx.Green(name), hftx.Green(c.ServerType.String()), hftx.Green(c.URL), hftx.Green(c.Username),
+		t.AppendRow([]any{hftx.Green(name), hftx.Green(c.ServerType.String()), hftx.Green(c.URL), hftx.Green(c.Username), hftx.Green(c.Owner),
 			secretMarker(c.Password), secretMarker(c.Token), dflt, validityMarker(c)})
 	}
 	t.SortBy([]table.SortBy{

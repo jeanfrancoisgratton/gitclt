@@ -26,7 +26,7 @@ func TestConnCommands(t *testing.T) {
 		{[]string{"conn", "add", "x"}, nil, "Connection x already exists"},
 		{[]string{"conn", "edit", "nosuch"}, nil, "Connection nosuch does not exist"},
 		// -D must reach the secret prompts: without it, GetPassword needs a terminal and panics
-		{[]string{"conn", "edit", "-D", "x"}, []string{"", "", "", "", ""}, "Connection x updated"},
+		{[]string{"conn", "edit", "-D", "x"}, []string{"", "", "", "", "", ""}, "Connection x updated"},
 		{[]string{"conn", "rm", "nosuch"}, nil, "Connection nosuch does not exist"},
 		{[]string{"conn", "rm", "x"}, nil, "Connection x removed"},
 	} {

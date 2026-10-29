@@ -21,12 +21,12 @@ var branchCmd = &cobra.Command{
 var branchListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Example: "  gitclt branch list [-c CONNECTION] -o OWNER [-l | -r | -a] [--json] <REPO>\n" +
+	Example: "  gitclt branch list [-c CONNECTION] [-o OWNER] [-l | -r | -a] [--json] <REPO>\n" +
 		"  gitclt branch ls -l",
 	Short: "Lists a repository's branches: local, on the server, or both (the default)",
 	Long: `The local branches are those of the git working copy in the current directory (or one of its parents);
 when a repository is given, that working copy must be a clone of it.
---remote and --all need the owner (-o) and the repository; --local alone needs neither.
+--remote and --all need the repository; --local alone does not. The owner defaults to the connection's owner, else your username.
 --all (or -l and -r together, or neither) lists both sides; it overrides -l and -r.
 The branches are then merged by name, and their status tells if both sides point to the same commit.
 If the current directory is not a working copy of the repository, --all shows the server's branches only.`,
@@ -45,13 +45,13 @@ If the current directory is not a working copy of the repository, --all shows th
 var branchDeleteCmd = &cobra.Command{
 	Use:     "delete",
 	Aliases: []string{"rm", "del"},
-	Example: "  gitclt branch delete [-c CONNECTION] -o OWNER [-l | -r | -a] [-f] [-y] <REPO> <BRANCH>...\n" +
-		"  gitclt branch rm -a -o OWNER myrepo feature/x feature/y",
+	Example: "  gitclt branch delete [-c CONNECTION] [-o OWNER] [-l | -r | -a] [-f] [-y] <REPO> <BRANCH>...\n" +
+		"  gitclt branch rm -a myrepo feature/x feature/y",
 	Short: "Deletes repository branches: local (the default), on the server, or both",
 	Long: `The local branches are those of the git working copy in the current directory (or one of its parents),
 which must be a clone of the repository; the git client does the deletion, so it must be installed.
 git refuses to delete the checked out branch, or a branch that is not merged (unless --force is passed).
---remote and --all need the owner (-o); --all (or -l and -r together) deletes on both sides, local first.
+--all (or -l and -r together) deletes on both sides, local first.
 The run stops at the first failure; the branches deleted before it stay deleted.`,
 	Args: cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -63,8 +63,8 @@ The run stops at the first failure; the branches deleted before it stay deleted.
 
 var branchGetCmd = &cobra.Command{
 	Use: "get",
-	Example: "  gitclt branch get [-c CONNECTION] -o OWNER [--json] <REPO> <BRANCH>\n" +
-		"  gitclt branch get -o OWNER myrepo feature/x",
+	Example: "  gitclt branch get [-c CONNECTION] [-o OWNER] [--json] <REPO> <BRANCH>\n" +
+		"  gitclt branch get myrepo feature/x",
 	Short: "Shows extended information about a repository branch",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -78,12 +78,12 @@ var branchRenameCmd = &cobra.Command{
 	Use:     "rename",
 	Aliases: []string{"mv"},
 	Example: "  gitclt branch rename [-c CONNECTION] [-o OWNER] [-l | -r | -a] <REPO> <BRANCH> <NEW NAME>\n" +
-		"  gitclt branch mv -a -o OWNER myrepo dev develop",
+		"  gitclt branch mv -a myrepo dev develop",
 	Short: "Renames a repository branch: local (the default), on the server, or both",
 	Long: `The local branches are those of the git working copy in the current directory (or one of its parents),
 which must be a clone of the repository; the git client does the renaming, so it must be installed.
 On the server, the open pull requests and the protection rules follow the branch.
---remote and --all need the owner (-o); --all (or -l and -r together) renames on both sides, local first,
+--all (or -l and -r together) renames on both sides, local first,
 and the local branch then tracks the server's new name.`,
 	Args: cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -96,8 +96,8 @@ and the local branch then tracks the server's new name.`,
 var branchCompareCmd = &cobra.Command{
 	Use:     "compare",
 	Aliases: []string{"cmp"},
-	Example: "  gitclt branch compare [-c CONNECTION] -o OWNER [--json] <REPO> <BASE> <HEAD>\n" +
-		"  gitclt branch cmp -o OWNER myrepo develop feature/x",
+	Example: "  gitclt branch compare [-c CONNECTION] [-o OWNER] [--json] <REPO> <BASE> <HEAD>\n" +
+		"  gitclt branch cmp -o myorg myrepo develop feature/x",
 	Short: "Compares two branches on the server: how far ahead of, and behind, the base the head is",
 	Long: `Base and head can be branches, tags or commits; the comparison is the server's.
 Ahead counts the commits of head that base lacks, behind the reverse.
@@ -113,7 +113,7 @@ When head is only ahead, it can be merged into base as a fast-forward.`,
 func init() {
 	branchCmd.AddCommand(branchListCmd, branchDeleteCmd, branchGetCmd, branchRenameCmd, branchCompareCmd)
 
-	branchCmd.PersistentFlags().StringVarP(&branches.OwnerOrg, "owner", "o", "", "user or organization that owns the repository")
+	branchCmd.PersistentFlags().StringVarP(&branches.OwnerOrg, "owner", "o", "", "user, organization or workspace that owns the repository (default: the connection's owner, else your username)")
 	branchListCmd.Flags().BoolVarP(&branches.JSONoutput, "json", "j", false, "output as JSON")
 	branchListCmd.Flags().BoolVarP(&branches.LocalOnly, "local", "l", false, "only list the local branches")
 	branchListCmd.Flags().BoolVarP(&branches.RemoteOnly, "remote", "r", false, "only list the branches on the server")

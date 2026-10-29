@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2026-10-29
+
+### Added
+
+- Connections have an optional `owner`: the default owner (user, organization or Bitbucket workspace) of the repositories the `repo` and `branch` commands work on. `conn add` asks for it, `conn edit` changes it (`-` clears it), and `conn ls` / `conn info` show it
+
+### Changed
+
+- `-o`, `--owner` is no longer required by any command. Without it, the owner is the connection's `owner`, else its `username` (unless it is an e-mail), else the account the credentials belong to, as reported by the server. On Bitbucket, where the username is an e-mail and the account name is not necessarily a workspace, the connection needs an `owner` or the command needs `-o`
+- `repo list` is unchanged: without `-o`, it still lists all the repositories the user can see
+- `branch rm` and `branch mv` on the server now connect before checking the local working copy, which must then be a clone of the owner's repository
+- The sample connections file moved to `docs/samples/connections.json`
+
+### Fixed
+
+- Two tests (`TestBranchCommands`, `TestListBranches_Errors`) used the real connections file, and could reach the real server; they now use a throw-away registry
+
+<br><br>
 ## [0.11.0] - 2026-10-28
 
 ### Added

@@ -154,9 +154,10 @@ func TestDeleteBranch_Remote(t *testing.T) {
 		t.Fatalf("deleted %v:\n%s", *deleted, out)
 	}
 
+	// Without -o, the connection's username is the owner
 	testutil.Set(t, &OwnerOrg, "")
-	if ce := DeleteBranch("web", []string{"old"}); ce == nil || ce.Title != "Missing owner" {
-		t.Fatalf("no owner: %+v", ce)
+	if ce := DeleteBranch("web", []string{"old"}); ce != nil || len(*deleted) != 3 {
+		t.Fatalf("no -o: %+v, deleted %v", ce, *deleted)
 	}
 }
 

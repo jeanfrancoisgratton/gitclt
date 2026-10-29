@@ -18,7 +18,7 @@ import (
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 )
 
-// DeleteBranch deletes branches of OwnerOrg/repo: in the local working copy (the default), on the server, or both
+// DeleteBranch deletes branches of owner/repo: in the local working copy (the default), on the server, or both
 // The first failure stops the run; the branches before it stay deleted
 func DeleteBranch(repo string, branches []string) *cerr.CustomError {
 	var c *forge.Client
@@ -32,13 +32,18 @@ func DeleteBranch(repo string, branches []string) *cerr.CustomError {
 		withLocal, withServer = true, true
 	}
 
-	if withServer && OwnerOrg == "" {
-		return &cerr.CustomError{Title: "Missing owner", Message: "deleting on the server needs the owner (-o OWNER)"}
+	// The owner is only known once connected (see forge.Client.Owner), and the local side is checked against it;
+	// on the local side alone, only an explicit -o is checked
+	owner := OwnerOrg
+	if withServer {
+		if c, owner, ce = connect(ctx); ce != nil {
+			return ce
+		}
 	}
 
 	// Check everything before asking: the working copy must be a clone of the repo, and git must be there to write to it
 	if withLocal {
-		if lr, ce = localBranches(repo); ce != nil {
+		if lr, ce = localBranches(owner, repo); ce != nil {
 			return ce
 		}
 		if _, e := exec.LookPath("git"); e != nil {
@@ -67,12 +72,6 @@ func DeleteBranch(repo string, branches []string) *cerr.CustomError {
 		}
 	}
 
-	if withServer {
-		if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
-			return ce
-		}
-	}
-
 	for _, branch := range branches {
 		// Local first: git refuses an unmerged or checked out branch, and the server's copy is then left alone
 		if withLocal {
@@ -84,7 +83,7 @@ func DeleteBranch(repo string, branches []string) *cerr.CustomError {
 			}
 		}
 		if withServer {
-			if e := c.Branches().Delete(ctx, OwnerOrg, repo, branch); e != nil {
+			if e := c.Branches().Delete(ctx, owner, repo, branch); e != nil {
 				return forge.Error("Unable to delete the branch "+branch+" on the server", e)
 			}
 			if !shared.QuietOutput {

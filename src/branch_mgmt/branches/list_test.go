@@ -189,11 +189,7 @@ func TestListBranches_AllWithoutWorkingCopy(t *testing.T) {
 
 func TestListBranches_Errors(t *testing.T) {
 	defaults(t)
-	testutil.Set(t, &OwnerOrg, "")
-	if _, err := ListBranches("web", false); err == nil || err.Title != "Missing repository" {
-		t.Fatalf("no owner: %+v", err)
-	}
-	testutil.Set(t, &OwnerOrg, "acme")
+	testutil.WriteRegistry(t, "")
 	if _, err := ListBranches("", false); err == nil || err.Title != "Missing repository" {
 		t.Fatalf("no repo: %+v", err)
 	}

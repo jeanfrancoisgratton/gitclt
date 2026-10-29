@@ -23,6 +23,18 @@ func promptKeep(prompt, current string) string {
 	return current
 }
 
+// Same, for optional values: "-" clears it
+func promptClearableKeep(prompt, current string) string {
+	switch v := hf.GetStringValFromPrompt(fmt.Sprintf("%s [%s; ENTER keeps, '-' clears]: ", prompt, current)); v {
+	case "":
+		return current
+	case "-":
+		return ""
+	default:
+		return v
+	}
+}
+
 // Same, for secrets: the current value is never shown, and "-" clears it
 func promptSecretKeep(prompt, current string) string {
 	hint := "empty"
@@ -59,6 +71,7 @@ func EditConnection(name string) *cerr.CustomError {
 	c.Token = promptSecretKeep("API token", c.Token)
 	c.Username = promptKeep("Username", c.Username)
 	c.Password = promptSecretKeep("Password", c.Password)
+	c.Owner = promptClearableKeep("Default repository owner", c.Owner)
 
 	if err = c.Validate(); err != nil {
 		return err

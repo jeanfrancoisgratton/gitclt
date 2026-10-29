@@ -35,6 +35,7 @@ type ConnectionStruct struct {
 	Token      string     `json:"token,omitempty"`
 	Username   string     `json:"username,omitempty"`
 	Password   string     `json:"password,omitempty"`
+	Owner      string     `json:"owner,omitempty"` // default repository owner (user, org or Bitbucket workspace); empty: the username
 	ServerType ServerType `json:"servertype"`
 }
 
@@ -61,4 +62,5 @@ type ActiveConnection struct {
 	Token      string // set only when Auth == AuthToken
 	Username   string // always kept when configured (it's useful for /users/{username}/... endpoints)
 	Password   string // set only when Auth == AuthBasic
+	Owner      string // the configured default owner, if any; forge.Client.Owner() decides the effective one
 }

@@ -22,7 +22,6 @@ func CreateRepo(reponame string) *cerr.CustomError {
 	var ce *cerr.CustomError
 	ctx := context.Background()
 	cro := gitoperationslib.CreateRepoOptions{
-		Owner:         OwnerOrg,
 		Name:          reponame,
 		Description:   RepoDescription,
 		DefaultBranch: RepoDefaultBranch,
@@ -35,6 +34,9 @@ func CreateRepo(reponame string) *cerr.CustomError {
 	}
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
+		return ce
+	}
+	if cro.Owner, ce = c.Owner(ctx, OwnerOrg); ce != nil {
 		return ce
 	}
 

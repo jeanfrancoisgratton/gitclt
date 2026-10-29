@@ -80,8 +80,9 @@ func TestCompareBranches_Errors(t *testing.T) {
 		t.Fatalf("500: %+v", ce)
 	}
 
+	// Without -o, the connection's username is the owner: same server, same answer
 	testutil.Set(t, &OwnerOrg, "")
-	if _, ce := CompareBranches("web", "main", "develop", false); ce == nil || ce.Title != "Missing owner" {
-		t.Fatalf("no owner: %+v", ce)
+	if _, ce := CompareBranches("web", "main", "develop", false); ce == nil || ce.Code != http.StatusInternalServerError {
+		t.Fatalf("no -o: %+v", ce)
 	}
 }

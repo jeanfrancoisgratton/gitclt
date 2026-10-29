@@ -17,7 +17,7 @@ import (
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 )
 
-// RenameBranch renames a branch of OwnerOrg/repo: in the local working copy (the default), on the server, or both
+// RenameBranch renames a branch of owner/repo: in the local working copy (the default), on the server, or both
 // On the server, the open pull requests and the protection rules follow the branch
 func RenameBranch(repo, branch, newName string) *cerr.CustomError {
 	var c *forge.Client
@@ -31,13 +31,18 @@ func RenameBranch(repo, branch, newName string) *cerr.CustomError {
 		withLocal, withServer = true, true
 	}
 
-	if withServer && OwnerOrg == "" {
-		return &cerr.CustomError{Title: "Missing owner", Message: "renaming on the server needs the owner (-o OWNER)"}
+	// The owner is only known once connected (see forge.Client.Owner), and the local side is checked against it;
+	// on the local side alone, only an explicit -o is checked
+	owner := OwnerOrg
+	if withServer {
+		if c, owner, ce = connect(ctx); ce != nil {
+			return ce
+		}
 	}
 
 	// Check the local side before touching anything: the working copy must be a clone of the repo, with git to write to it
 	if withLocal {
-		if lr, ce = localBranches(repo); ce != nil {
+		if lr, ce = localBranches(owner, repo); ce != nil {
 			return ce
 		}
 		if _, e := exec.LookPath("git"); e != nil {
@@ -51,12 +56,6 @@ func RenameBranch(repo, branch, newName string) *cerr.CustomError {
 		}
 	}
 
-	if withServer {
-		if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
-			return ce
-		}
-	}
-
 	// Local first: if git refuses, the server's branch is left alone
 	if withLocal {
 		if out, e := exec.Command("git", "branch", "-m", branch, newName).CombinedOutput(); e != nil {
@@ -67,7 +66,7 @@ func RenameBranch(repo, branch, newName string) *cerr.CustomError {
 		}
 	}
 	if withServer {
-		if _, e := c.Branches().Rename(ctx, OwnerOrg, repo, branch, newName); e != nil {
+		if _, e := c.Branches().Rename(ctx, owner, repo, branch, newName); e != nil {
 			return forge.Error("Unable to rename the branch "+branch+" on the server", e)
 		}
 		if !shared.QuietOutput {

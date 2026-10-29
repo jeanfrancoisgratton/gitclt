@@ -17,9 +17,6 @@ func TestRepoCommands_FlagRules(t *testing.T) {
 		args []string
 		want string
 	}{
-		{[]string{"repo", "info", "web"}, `required flag(s) "owner" not set`},
-		{[]string{"repo", "rm", "web"}, `required flag(s) "owner" not set`},
-		{[]string{"repo", "create", "web"}, `required flag(s) "owner" not set`},
 		{[]string{"repo", "info", "-o", "acme"}, "accepts 1 arg(s)"},
 		{[]string{"repo", "ls", "-s", "c", "-S", "c"}, "none of the others can be"},
 		{[]string{"repo", "create", "-o", "me", "--defaultbranch", "main", "web"}, "unknown flag: --defaultbranch"},

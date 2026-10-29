@@ -32,7 +32,7 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-// Answers the five conn add prompts: server type, URL, token, username, password
+// Answers the six conn add prompts: server type, URL, token, username, password, owner
 func addConnection(t *testing.T, name string, answers ...string) (string, *cerr.CustomError) {
 	t.Helper()
 	testutil.Set(t, &shared.DebugMode, true) // GetPassword needs a terminal otherwise
@@ -45,7 +45,7 @@ func TestAddConnection(t *testing.T) {
 	testutil.WriteRegistry(t, "")
 
 	// An empty server type means the first supported one; the first connection becomes the default
-	out, err := addConnection(t, "first", "", "https://first", "tok", "", "")
+	out, err := addConnection(t, "first", "", "https://first", "tok", "", "", "")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -53,7 +53,7 @@ func TestAddConnection(t *testing.T) {
 		t.Fatalf("output = %q", out)
 	}
 
-	if _, err = addConnection(t, "second", "github", "https://github.com", "ghp_x", "me", ""); err != nil {
+	if _, err = addConnection(t, "second", "github", "https://github.com", "ghp_x", "me", "", "myorg"); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -64,7 +64,7 @@ func TestAddConnection(t *testing.T) {
 	if c := cf.Auths["first"]; c.ServerType != ServerTypeForgejo || c.URL != "https://first" || c.Token != "tok" {
 		t.Fatalf("first = %+v", c)
 	}
-	if c := cf.Auths["second"]; c.ServerType != ServerTypeGithub || c.Username != "me" {
+	if c := cf.Auths["second"]; c.ServerType != ServerTypeGithub || c.Username != "me" || c.Owner != "myorg" {
 		t.Fatalf("second = %+v", c)
 	}
 }
@@ -81,7 +81,7 @@ func TestAddConnection_Errors(t *testing.T) {
 		t.Fatalf("server type: got %+v", err)
 	}
 	// No way to authenticate
-	if _, err := addConnection(t, "y", "forgejo", "https://y", "", "me", ""); err == nil || err.Title != "Invalid connection" {
+	if _, err := addConnection(t, "y", "forgejo", "https://y", "", "me", "", ""); err == nil || err.Title != "Invalid connection" {
 		t.Fatalf("validate: got %+v", err)
 	}
 

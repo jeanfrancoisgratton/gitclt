@@ -53,6 +53,7 @@ func AddConnection(name string) *cerr.CustomError {
 	c.Token = hf.GetPassword("Enter your API token (leave empty if none): ", shared.DebugMode)
 	c.Username = hf.GetStringValFromPrompt("Enter your username: ")
 	c.Password = hf.GetPassword("Enter your password: ", shared.DebugMode)
+	c.Owner = hf.GetStringValFromPrompt("Enter the default repository owner (user, org or workspace; leave empty for your username): ")
 
 	if err = c.Validate(); err != nil {
 		return err
