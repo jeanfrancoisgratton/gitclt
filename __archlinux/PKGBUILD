@@ -2,8 +2,8 @@
 # Packager: Package builder <builder@famillegratton.net>
 
 pkgname=gitclt
-pkgver=0.30.0
-pkgrel=2
+pkgver=0.50.0
+pkgrel=1
 pkgdesc="forgejo / github management tool"
 arch=('x86_64')
 url="https://git.famillegratton.net:3000/devops/gitclt.git"
