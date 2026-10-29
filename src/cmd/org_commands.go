@@ -21,7 +21,7 @@ In other words: you must have the appropriate access or auth token to perform so
 }
 
 var orgListCmd = &cobra.Command{
-	Use:     "list",
+	Use:     "list [<USER>]",
 	Aliases: []string{"ls"},
 	Example: "  gitclt org list [-c CONNECTION] [--json] [<USER>]",
 	Short:   "Lists the organizations <USER> belongs to (default: yourself)",
@@ -50,7 +50,7 @@ var orgListAllCmd = &cobra.Command{
 }
 
 var orgGetCmd = &cobra.Command{
-	Use:     "get",
+	Use:     "get <ORG>",
 	Aliases: []string{"info"},
 	Example: "  gitclt org get [-c CONNECTION] [--json] <ORG>",
 	Short:   "Gives information about an organization",
@@ -63,7 +63,7 @@ var orgGetCmd = &cobra.Command{
 }
 
 var orgDeleteCmd = &cobra.Command{
-	Use:     "delete",
+	Use:     "delete <ORG>",
 	Aliases: []string{"rm", "remove"},
 	Example: "  gitclt org delete [-c CONNECTION] [--yes] <ORG>",
 	Short:   "Deletes an organization",
@@ -76,7 +76,7 @@ var orgDeleteCmd = &cobra.Command{
 }
 
 var orgRenameCmd = &cobra.Command{
-	Use:     "rename",
+	Use:     "rename <ORG> <NEW-NAME>",
 	Aliases: []string{"mv"},
 	Example: "  gitclt org rename [-c CONNECTION] <ORG> <NEW-NAME>",
 	Short:   "Renames an organization",
@@ -89,7 +89,7 @@ var orgRenameCmd = &cobra.Command{
 }
 
 var orgCreateCmd = &cobra.Command{
-	Use:     "create",
+	Use:     "create <ORG>",
 	Aliases: []string{"add"},
 	Example: "  gitclt org create [-c CONNECTION] [flags] <ORG>\n" +
 		"  gitclt org create --owner jfg --visibility private acme",
@@ -103,7 +103,7 @@ var orgCreateCmd = &cobra.Command{
 }
 
 var orgEditCmd = &cobra.Command{
-	Use:     "edit",
+	Use:     "edit <ORG>",
 	Aliases: []string{"modify", "update"},
 	Example: "  gitclt org edit [-c CONNECTION] [flags] <ORG>\n" +
 		"  gitclt org edit --repo-admin-team-access=false --location Montreal acme",
@@ -119,7 +119,7 @@ Boolean flags can be revoked with =false (e.g. --repo-admin-team-access=false), 
 }
 
 var orgMembersCmd = &cobra.Command{
-	Use:     "members",
+	Use:     "members <ORG>",
 	Example: "  gitclt org members [-c CONNECTION] [--json] <ORG>",
 	Short:   "Lists the members of an organization",
 	Args:    cobra.ExactArgs(1),
@@ -131,7 +131,7 @@ var orgMembersCmd = &cobra.Command{
 }
 
 var orgIsMemberCmd = &cobra.Command{
-	Use:     "ismember",
+	Use:     "ismember <ORG> <USER>",
 	Example: "  gitclt org ismember [-c CONNECTION] <ORG> <USER>",
 	Short:   "Checks whether <USER> is a member of <ORG>",
 	Args:    cobra.ExactArgs(2),
@@ -143,7 +143,7 @@ var orgIsMemberCmd = &cobra.Command{
 }
 
 var orgRemoveMemberCmd = &cobra.Command{
-	Use:     "removemember",
+	Use:     "removemember <ORG> <USER>",
 	Aliases: []string{"rmmember"},
 	Example: "  gitclt org removemember [-c CONNECTION] [--yes] <ORG> <USER>",
 	Short:   "Removes <USER> from the organization <ORG>",

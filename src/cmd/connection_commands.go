@@ -39,7 +39,7 @@ var connectionListCmd = &cobra.Command{
 }
 
 var connectionInfoCmd = &cobra.Command{
-	Use:     "info",
+	Use:     "info [<CONNECTION>...]",
 	Aliases: []string{"explain"},
 	Example: "  gitclt conn info [<CONNECTION>...]",
 	Short:   "Shows the details of the given connections",
@@ -52,7 +52,7 @@ var connectionInfoCmd = &cobra.Command{
 }
 
 var connectionAddCmd = &cobra.Command{
-	Use:     "add",
+	Use:     "add <CONNECTION>",
 	Aliases: []string{"create"},
 	Example: "  gitclt conn add <CONNECTION>",
 	Short:   "Adds <CONNECTION> to the registry",
@@ -66,7 +66,7 @@ var connectionAddCmd = &cobra.Command{
 }
 
 var connectionRmCmd = &cobra.Command{
-	Use:     "delete",
+	Use:     "delete <CONNECTION>",
 	Aliases: []string{"rm", "remove"},
 	Example: "  gitclt conn delete <CONNECTION>",
 	Short:   "Removes <CONNECTION> from the registry",
@@ -79,7 +79,7 @@ var connectionRmCmd = &cobra.Command{
 }
 
 var connectionEditCmd = &cobra.Command{
-	Use:     "edit",
+	Use:     "edit <CONNECTION>",
 	Aliases: []string{"modify", "update"},
 	Example: "  gitclt conn edit <CONNECTION>",
 	Short:   "Edits <CONNECTION> in-place",
@@ -93,7 +93,7 @@ var connectionEditCmd = &cobra.Command{
 }
 
 var connectionDefaultCmd = &cobra.Command{
-	Use:     "default",
+	Use:     "default [<CONNECTION>]",
 	Example: "  gitclt conn default [<CONNECTION>]",
 	Short:   "Shows or sets the default connection",
 	Long:    `Without argument, shows the default connection; otherwise, sets it to <CONNECTION>`,

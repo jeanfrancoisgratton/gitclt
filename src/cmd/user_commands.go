@@ -33,7 +33,7 @@ var userWhoAmICmd = &cobra.Command{
 }
 
 var userGetCmd = &cobra.Command{
-	Use:     "get",
+	Use:     "get <USER>",
 	Aliases: []string{"info"},
 	Example: "  gitclt user get [-c CONNECTION] [--extended] [--json] <USER>",
 	Short:   "Gives information about a user (needs admin rights, Forgejo only)",
@@ -59,7 +59,7 @@ var userListCmd = &cobra.Command{
 }
 
 var userDeleteCmd = &cobra.Command{
-	Use:     "delete",
+	Use:     "delete <USER>",
 	Aliases: []string{"rm", "remove"},
 	Example: "  gitclt user delete [-c CONNECTION] [--purge] [--yes] <USER>",
 	Short:   "Deletes a user (needs admin rights, Forgejo only)",
@@ -72,7 +72,7 @@ var userDeleteCmd = &cobra.Command{
 }
 
 var userWipeCmd = &cobra.Command{
-	Use:     "wipe",
+	Use:     "wipe <USER>",
 	Example: "  gitclt user wipe [-c CONNECTION] [--purge] [--dry-run] [--yes] <USER>",
 	Short:   "Removes a user from all of their organizations and teams, then deletes them (needs admin rights, Forgejo only)",
 	Long: `Everything is checked before anything is changed; the wipe stops, and changes nothing, if:
@@ -90,7 +90,7 @@ The plan is shown, then confirmed once (--yes skips the confirmation, --dry-run 
 }
 
 var userCreateCmd = &cobra.Command{
-	Use:     "create",
+	Use:     "create <USER>",
 	Aliases: []string{"add"},
 	Example: "  gitclt user create [-c CONNECTION] -e EMAIL [flags] <USER>",
 	Short:   "Creates a user (needs admin rights, Forgejo only)",
@@ -108,7 +108,7 @@ var userCreateCmd = &cobra.Command{
 }
 
 var userEditCmd = &cobra.Command{
-	Use:     "edit",
+	Use:     "edit <USER>",
 	Aliases: []string{"modify", "update"},
 	Example: "  gitclt user edit [-c CONNECTION] [flags] <USER>\n" +
 		"  gitclt user edit --admin=false --location Montreal jfg2",

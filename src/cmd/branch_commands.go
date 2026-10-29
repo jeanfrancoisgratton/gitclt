@@ -19,7 +19,7 @@ var branchCmd = &cobra.Command{
 }
 
 var branchListCmd = &cobra.Command{
-	Use:     "list",
+	Use:     "list [<REPO>]",
 	Aliases: []string{"ls"},
 	Example: "  gitclt branch list [-c CONNECTION] [-o OWNER] [-l | -r | -a] [--json] <REPO>\n" +
 		"  gitclt branch ls -l",
@@ -43,7 +43,7 @@ If the current directory is not a working copy of the repository, --all shows th
 }
 
 var branchDeleteCmd = &cobra.Command{
-	Use:     "delete",
+	Use:     "delete <REPO> <BRANCH>...",
 	Aliases: []string{"rm", "del"},
 	Example: "  gitclt branch delete [-c CONNECTION] [-o OWNER] [-l | -r | -a] [-f] [-y] <REPO> <BRANCH>...\n" +
 		"  gitclt branch rm -a myrepo feature/x feature/y",
@@ -62,7 +62,7 @@ The run stops at the first failure; the branches deleted before it stay deleted.
 }
 
 var branchGetCmd = &cobra.Command{
-	Use: "get",
+	Use: "get <REPO> <BRANCH>",
 	Example: "  gitclt branch get [-c CONNECTION] [-o OWNER] [--json] <REPO> <BRANCH>\n" +
 		"  gitclt branch get myrepo feature/x",
 	Short: "Shows extended information about a repository branch",
@@ -75,9 +75,9 @@ var branchGetCmd = &cobra.Command{
 }
 
 var branchRenameCmd = &cobra.Command{
-	Use:     "rename",
+	Use:     "rename <REPO> <BRANCH> <NEW-NAME>",
 	Aliases: []string{"mv"},
-	Example: "  gitclt branch rename [-c CONNECTION] [-o OWNER] [-l | -r | -a] <REPO> <BRANCH> <NEW NAME>\n" +
+	Example: "  gitclt branch rename [-c CONNECTION] [-o OWNER] [-l | -r | -a] <REPO> <BRANCH> <NEW-NAME>\n" +
 		"  gitclt branch mv -a myrepo dev develop",
 	Short: "Renames a repository branch: local (the default), on the server, or both",
 	Long: `The local branches are those of the git working copy in the current directory (or one of its parents),
@@ -94,7 +94,7 @@ and the local branch then tracks the server's new name.`,
 }
 
 var branchCompareCmd = &cobra.Command{
-	Use:     "compare",
+	Use:     "compare <REPO> <BASE> <HEAD>",
 	Aliases: []string{"cmp"},
 	Example: "  gitclt branch compare [-c CONNECTION] [-o OWNER] [--json] <REPO> <BASE> <HEAD>\n" +
 		"  gitclt branch cmp -o myorg myrepo develop feature/x",

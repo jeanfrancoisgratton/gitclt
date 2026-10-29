@@ -80,6 +80,7 @@ func releaseServer(t *testing.T, s *forgeState) {
 	s.nextID = 100
 	const base = "/api/v1/repos/acme/web"
 	testutil.Forgejo(t, map[string]http.HandlerFunc{
+		"GET " + base: testutil.Reply(`{"id":1,"owner":{"login":"acme"},"name":"web","full_name":"acme/web"}`),
 		"GET " + base + "/tags/{tag}": func(w http.ResponseWriter, r *http.Request) {
 			if !slices.Contains(s.tags, r.PathValue("tag")) {
 				testutil.Status(http.StatusNotFound)(w, r)
@@ -347,6 +348,17 @@ func TestUpload_Bitbucket(t *testing.T) {
 	defaults(t)
 	testutil.WriteRegistry(t, `{"auths":{"bb":{"url":"https://bitbucket.org","token":"t","owner":"ws","servertype":"bitbucket"}},"default_connection":"bb"}`)
 	if _, err := upload(t, "v1", writeFiles(t, "a.rpm", "a")); err == nil || err.Title != "Unsupported operation" {
+		t.Fatalf("got %+v", err)
+	}
+}
+
+// The files took the place of a missing <REPO> (or <TAG>): the repository is reported missing, not the release
+func TestUpload_NoSuchRepo(t *testing.T) {
+	defaults(t)
+	releaseServer(t, &forgeState{tags: []string{"v1.0.0"}})
+	var err *cerr.CustomError
+	testutil.Run(t, func() { err = UploadAssets("pkg_1.0.0.deb", "pkg-1.0.0.rpm", writeFiles(t, "a.apk", "a")) })
+	if err == nil || err.Title != "No such repository" || !strings.Contains(err.Message, "acme/pkg_1.0.0.deb does not exist") {
 		t.Fatalf("got %+v", err)
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"gitclt/forge"
 	"gitclt/shared"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,6 +53,15 @@ func UploadAssets(repo, tag string, paths []string) *cerr.CustomError {
 	owner, ce := c.Owner(ctx, OwnerOrg)
 	if ce != nil {
 		return ce
+	}
+	// Checked first: a missing <REPO> or <TAG> shifts the files into their place, and the 404 would otherwise
+	// look like a release lookup failure
+	if _, e := c.Repos().Get(ctx, owner, repo); e != nil {
+		if gol.IsNotFound(e) {
+			return &cerr.CustomError{Title: "No such repository", Code: http.StatusNotFound,
+				Message: fmt.Sprintf("%s/%s does not exist (usage: gitclt release upload <REPO> <TAG> <FILE>...)", owner, repo)}
+		}
+		return forge.Error(fmt.Sprintf("Unable to get the repository %s/%s", owner, repo), e)
 	}
 	rels := c.Releases()
 

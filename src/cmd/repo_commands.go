@@ -37,7 +37,7 @@ var repoListCmd = &cobra.Command{
 }
 
 var repoInfoCmd = &cobra.Command{
-	Use:     "info",
+	Use:     "info <REPO>",
 	Aliases: []string{"get"},
 	Example: "  gitclt repo info [-c CONNECTION] [-o OWNER] [--json] <REPO>",
 	Short:   "Provides detailed information about a repository",
@@ -50,7 +50,7 @@ var repoInfoCmd = &cobra.Command{
 }
 
 var repoDeleteCmd = &cobra.Command{
-	Use:     "delete",
+	Use:     "delete <REPO>",
 	Aliases: []string{"rm", "remove"},
 	Example: "  gitclt repo delete [-c CONNECTION] [-o OWNER] <REPO>",
 	Short:   "Deletes a repository",
@@ -63,7 +63,7 @@ var repoDeleteCmd = &cobra.Command{
 }
 
 var repoCreateCmd = &cobra.Command{
-	Use:     "create",
+	Use:     "create <REPO>",
 	Aliases: []string{"add"},
 	Example: "  gitclt repo create [-c CONNECTION] [-o OWNER] [flags] <REPO>",
 	Short:   "Creates a repository",

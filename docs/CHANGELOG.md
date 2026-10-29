@@ -5,11 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.21.0] - 2026-10-29
 
 ### Added
 
 - `release upload [-o OWNER] [--create [--draft] [--prerelease]] [-r] <REPO> <TAG> <FILE>...` (aliases `rel up`): uploads files (ex: the RPM / DEB / APK packages a CI job builds) to the release of a tag, each under its base name. `--create` creates a missing release, titled after the tag; the tag must already be on the server. `-r`, `--replace` overwrites the assets that already have the same name; without it, a name already taken is an error. Everything is checked before the first upload, and a re-run of `--create --draft` finds the draft it created instead of creating another one. Forgejo and GitHub only
+
+### Changed
+
+- `release upload` checks first that the repository exists: when `<REPO>` or `<TAG>` is left out, the files shift into their place, and this is now reported as `No such repository`, with the expected usage, instead of a 404 on the release list
+- `release upload --help` explains its arguments, has more examples, and its flags are described in more detail
+- Every command's usage line now shows its arguments (ex: `gitclt release upload <REPO> <TAG> <FILE>... [flags]`, `gitclt branch list [<REPO>] [flags]`); they used to show `[flags]` only. In `branch rename`, `<NEW NAME>` is now spelled `<NEW-NAME>`, like in `org rename`
 
 <br><br>
 ## [0.20.0] - 2026-10-29

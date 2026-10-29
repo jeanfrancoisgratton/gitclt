@@ -22,7 +22,7 @@ Teams are addressed by their organization and their name (case-insensitive): <OR
 }
 
 var teamListCmd = &cobra.Command{
-	Use:     "list",
+	Use:     "list <ORG>",
 	Aliases: []string{"ls"},
 	Example: "  gitclt team list [-c CONNECTION] [--json] <ORG>",
 	Short:   "Lists the teams of an organization",
@@ -35,7 +35,7 @@ var teamListCmd = &cobra.Command{
 }
 
 var teamGetCmd = &cobra.Command{
-	Use:     "get",
+	Use:     "get <ORG> <TEAM> | <TEAM-ID>",
 	Aliases: []string{"info"},
 	Example: "  gitclt team get [-c CONNECTION] [--json] <ORG> <TEAM>\n" +
 		"  gitclt team get [-c CONNECTION] [--json] <TEAM-ID>",
@@ -59,7 +59,7 @@ var teamGetCmd = &cobra.Command{
 }
 
 var teamCreateCmd = &cobra.Command{
-	Use:     "create",
+	Use:     "create <ORG> <TEAM>",
 	Aliases: []string{"add"},
 	Example: "  gitclt team create [-c CONNECTION] [flags] <ORG> <TEAM>\n" +
 		"  gitclt team create -p write --all-repos acme devs\n" +
@@ -76,7 +76,7 @@ or with --units (a level per unit: none, read or write), but not both. Neither m
 }
 
 var teamEditCmd = &cobra.Command{
-	Use:     "edit",
+	Use:     "edit <ORG> <TEAM>",
 	Aliases: []string{"modify", "update"},
 	Example: "  gitclt team edit [-c CONNECTION] [flags] <ORG> <TEAM>\n" +
 		"  gitclt team edit --all-repos=false -u code=read acme devs",
@@ -94,7 +94,7 @@ The owner team cannot be renamed, nor have its access changed.`,
 }
 
 var teamDeleteCmd = &cobra.Command{
-	Use:     "delete",
+	Use:     "delete <ORG> <TEAM>",
 	Aliases: []string{"rm", "remove"},
 	Example: "  gitclt team delete [-c CONNECTION] [--yes] <ORG> <TEAM>",
 	Short:   "Deletes a team (the owner team cannot be deleted)",
@@ -107,7 +107,7 @@ var teamDeleteCmd = &cobra.Command{
 }
 
 var teamMembersCmd = &cobra.Command{
-	Use:     "members",
+	Use:     "members <ORG> <TEAM>",
 	Example: "  gitclt team members [-c CONNECTION] [--json] <ORG> <TEAM>",
 	Short:   "Lists the members of a team",
 	Args:    cobra.ExactArgs(2),
@@ -119,7 +119,7 @@ var teamMembersCmd = &cobra.Command{
 }
 
 var teamIsMemberCmd = &cobra.Command{
-	Use:     "ismember",
+	Use:     "ismember <ORG> <TEAM> <USER>",
 	Example: "  gitclt team ismember [-c CONNECTION] <ORG> <TEAM> <USER>",
 	Short:   "Checks whether <USER> is a member of a team",
 	Args:    cobra.ExactArgs(3),
@@ -131,7 +131,7 @@ var teamIsMemberCmd = &cobra.Command{
 }
 
 var teamAddMemberCmd = &cobra.Command{
-	Use:     "addmember",
+	Use:     "addmember <ORG> <TEAM> <USER>",
 	Example: "  gitclt team addmember [-c CONNECTION] <ORG> <TEAM> <USER>",
 	Short:   "Adds <USER> to a team, which also makes them a member of the organization",
 	Args:    cobra.ExactArgs(3),
@@ -143,7 +143,7 @@ var teamAddMemberCmd = &cobra.Command{
 }
 
 var teamRemoveMemberCmd = &cobra.Command{
-	Use:     "removemember",
+	Use:     "removemember <ORG> <TEAM> <USER>",
 	Aliases: []string{"rmmember"},
 	Example: "  gitclt team removemember [-c CONNECTION] [--yes] <ORG> <TEAM> <USER>",
 	Short:   "Removes <USER> from a team",
@@ -156,7 +156,7 @@ var teamRemoveMemberCmd = &cobra.Command{
 }
 
 var teamReposCmd = &cobra.Command{
-	Use:     "repos",
+	Use:     "repos <ORG> <TEAM>",
 	Example: "  gitclt team repos [-c CONNECTION] [--json] <ORG> <TEAM>",
 	Short:   "Lists the repositories a team has access to",
 	Args:    cobra.ExactArgs(2),
@@ -168,7 +168,7 @@ var teamReposCmd = &cobra.Command{
 }
 
 var teamAddRepoCmd = &cobra.Command{
-	Use:     "addrepo",
+	Use:     "addrepo <ORG> <TEAM> <REPO>",
 	Example: "  gitclt team addrepo [-c CONNECTION] <ORG> <TEAM> <REPO>",
 	Short:   "Gives a team access to <REPO>, a repository of the organization",
 	Args:    cobra.ExactArgs(3),
@@ -180,7 +180,7 @@ var teamAddRepoCmd = &cobra.Command{
 }
 
 var teamRemoveRepoCmd = &cobra.Command{
-	Use:     "removerepo",
+	Use:     "removerepo <ORG> <TEAM> <REPO>",
 	Aliases: []string{"rmrepo"},
 	Example: "  gitclt team removerepo [-c CONNECTION] [--yes] <ORG> <TEAM> <REPO>",
 	Short:   "Revokes a team's access to <REPO>; the repository itself is kept",
