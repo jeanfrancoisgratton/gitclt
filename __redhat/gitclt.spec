@@ -55,6 +55,10 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Thu Oct 29 2026 Binary package builder <builder@famillegratton.net> 0.30.0-2
+- housekeeping: release bump
+- chore: update changelog for 0.30.0-1
+
 * Thu Oct 29 2026 Binary package builder <builder@famillegratton.net> 0.30.0-1
 - version bump
 - feature: release delete, list, deleteassets, delete
