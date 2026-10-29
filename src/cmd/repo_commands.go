@@ -86,7 +86,7 @@ Other values are using hardcoded values such as gitignore template (Go, not avai
 }
 
 var repoEditCmd = &cobra.Command{
-	Use:     "edit",
+	Use:     "edit <REPO>",
 	Aliases: []string{"modify", "update"},
 	Example: "  gitclt repo edit [-c CONNECTION] [-o OWNER] [flags] <REPO>\n" +
 		"  gitclt -c bitbucket repo edit --default-branch develop myrepo\n" +
