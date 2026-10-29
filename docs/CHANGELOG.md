@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.0] - 2026-10-29
+
+### Added
+
+- `release list [-o OWNER] [-j] <REPO>` (alias `rel ls`): lists the releases of a repository, drafts included, with their title, type (release, prerelease, draft), publication date, author and number of assets
+- `release assets [-o OWNER] [-j] <REPO> <TAG>` (alias `rel lsa`): lists the files attached to the release of a tag, with their size, download count and upload date; a draft's release is found too
+- `release delete [-o OWNER] [-y] <REPO> <TAG>...` (alias `rel rm`): deletes the releases of one or more tags, drafts included, with their assets; the tags themselves stay on the server
+- `release delete-assets [-o OWNER] [-y] <REPO> <TAG> <ASSET>...` (alias `rel rma`): deletes one or more files from the release of a tag
+- Both deletions check every tag (or asset name) before asking for confirmation (`-y`, `--yes` skips it), and report all the missing ones at once; the run stops at the first failed deletion, and what was deleted before it stays deleted. All four commands are Forgejo and GitHub only
+
+<br><br>
 ## [0.21.0] - 2026-10-29
 
 ### Added

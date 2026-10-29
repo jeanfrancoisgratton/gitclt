@@ -44,12 +44,75 @@ and the files uploaded before it stay.`,
 	},
 }
 
+var releaseListCmd = &cobra.Command{
+	Use:     "list <REPO>",
+	Aliases: []string{"ls"},
+	Example: "  gitclt release list [-c CONNECTION] [-o OWNER] [-j] <REPO>",
+	Short:   "Lists the releases of a repository, drafts included; Forgejo and GitHub only",
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, e := releases.ListReleases(args[0], true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var releaseDeleteCmd = &cobra.Command{
+	Use:     "delete <REPO> <TAG>...",
+	Aliases: []string{"rm"},
+	Example: "  gitclt release delete [-c CONNECTION] [-o OWNER] [-y] <REPO> <TAG>...\n" +
+		"  gitclt rel rm -y myrepo v1.2.0-rc1 v1.2.0-rc2",
+	Short: "Deletes the releases of tags, with their assets; Forgejo and GitHub only",
+	Long: `<REPO> is the repository, and <TAG>... the tags whose releases are deleted, drafts included.
+The release's assets go with it; the tags themselves stay on the server.
+Every tag is checked before asking; the run stops at the first failed deletion, and the releases deleted before it stay deleted.`,
+	Args: cobra.MinimumNArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := releases.DeleteReleases(args[0], args[1:]); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var releaseAssetsCmd = &cobra.Command{
+	Use:     "assets <REPO> <TAG>",
+	Aliases: []string{"lsa"},
+	Example: "  gitclt release assets [-c CONNECTION] [-o OWNER] [-j] <REPO> <TAG>",
+	Short:   "Lists the files attached to the release of a tag; Forgejo and GitHub only",
+	Args:    cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, e := releases.ListAssets(args[0], args[1], true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var releaseDeleteAssetsCmd = &cobra.Command{
+	Use:     "delete-assets <REPO> <TAG> <ASSET>...",
+	Aliases: []string{"rma"},
+	Example: "  gitclt release delete-assets [-c CONNECTION] [-o OWNER] [-y] <REPO> <TAG> <ASSET>...\n" +
+		"  gitclt rel rma myrepo v1.2.0 pkg-1.2.0.x86_64.rpm pkg_1.2.0_amd64.deb",
+	Short: "Deletes files attached to the release of a tag; Forgejo and GitHub only",
+	Long: `<REPO> is the repository, <TAG> the tag whose release has the files, and <ASSET>... the asset names (see release assets).
+Every name is checked before asking; the run stops at the first failed deletion, and the assets deleted before it stay deleted.`,
+	Args: cobra.MinimumNArgs(3),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := releases.DeleteAssets(args[0], args[1], args[2:]); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
 func init() {
-	releaseCmd.AddCommand(releaseUploadCmd)
+	releaseCmd.AddCommand(releaseUploadCmd, releaseListCmd, releaseDeleteCmd, releaseAssetsCmd, releaseDeleteAssetsCmd)
 
 	releaseCmd.PersistentFlags().StringVarP(&releases.OwnerOrg, "owner", "o", "", "user, organization or workspace that owns the repository (default: the connection's owner, else your username)")
 	releaseUploadCmd.Flags().BoolVar(&releases.CreateRelease, "create", false, "create the release if the tag has none (the tag must already be on the server)")
 	releaseUploadCmd.Flags().BoolVar(&releases.DraftRelease, "draft", false, "with --create: create the release as a draft (not visible to the public until published)")
 	releaseUploadCmd.Flags().BoolVar(&releases.Prerelease, "prerelease", false, "with --create: mark the release as a prerelease")
 	releaseUploadCmd.Flags().BoolVarP(&releases.ReplaceAssets, "replace", "r", false, "replace the assets that already have the same name (default: refuse to upload)")
+	releaseListCmd.Flags().BoolVarP(&releases.JSONoutput, "json", "j", false, "output as JSON")
+	releaseAssetsCmd.Flags().BoolVarP(&releases.JSONoutput, "json", "j", false, "output as JSON")
+	releaseDeleteCmd.Flags().BoolVarP(&releases.AssumeYes, "yes", "y", false, "confirm deletion")
+	releaseDeleteAssetsCmd.Flags().BoolVarP(&releases.AssumeYes, "yes", "y", false, "confirm deletion")
 }

@@ -8,8 +8,17 @@ package releases
 // Owner / organization / workspace; empty means the connection's default (see forge.Client.Owner)
 var OwnerOrg = ""
 
+var JSONoutput = false
+var AssumeYes = false
+
 // release upload
 var CreateRelease = false
 var DraftRelease = false
 var Prerelease = false
 var ReplaceAssets = false
+
+// A local file to upload, already checked; name is what the asset will be called
+type localFile struct {
+	path, name string
+	size       int64
+}

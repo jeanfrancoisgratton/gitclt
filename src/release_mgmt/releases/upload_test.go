@@ -22,7 +22,7 @@ import (
 func defaults(t *testing.T) {
 	t.Helper()
 	testutil.Set(t, &OwnerOrg, "")
-	for _, b := range []*bool{&CreateRelease, &DraftRelease, &Prerelease, &ReplaceAssets, &shared.QuietOutput} {
+	for _, b := range []*bool{&CreateRelease, &DraftRelease, &Prerelease, &ReplaceAssets, &JSONoutput, &AssumeYes, &shared.QuietOutput} {
 		testutil.Set(t, b, false)
 	}
 }
@@ -129,6 +129,18 @@ func releaseServer(t *testing.T, s *forgeState) {
 			s.releases = append(s.releases, rel)
 			w.WriteHeader(http.StatusCreated)
 			testutil.Reply(releaseJSON(rel))(w, r)
+		},
+		"DELETE " + base + "/releases/{id}": func(w http.ResponseWriter, r *http.Request) {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			rel := s.release(r.PathValue("id"))
+			if rel == nil || rel.tag == "FAIL" {
+				testutil.Status(http.StatusForbidden)(w, r)
+				return
+			}
+			s.deletes = append(s.deletes, rel.tag)
+			s.releases = slices.DeleteFunc(s.releases, func(x *fakeRelease) bool { return x == rel })
+			w.WriteHeader(http.StatusNoContent)
 		},
 		"DELETE " + base + "/releases/{id}/assets/{aid}": func(w http.ResponseWriter, r *http.Request) {
 			s.mu.Lock()

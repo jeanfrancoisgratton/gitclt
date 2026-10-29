@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"gitclt/forge"
 	"gitclt/shared"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,19 +19,11 @@ import (
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 )
 
-// A local file to upload, already checked; name is what the asset will be called
-type localFile struct {
-	path, name string
-	size       int64
-}
-
 // UploadAssets attaches files to the release of owner/repo's tag (assets belong to releases, never to tags)
 // Everything that can be checked is checked before the first upload: the files, the release (created with
 // --create, from a tag that must already be on the server), and the asset names already taken (--replace)
 // The run stops at the first failed upload; the files uploaded before it stay
 func UploadAssets(repo, tag string, paths []string) *cerr.CustomError {
-	var c *forge.Client
-	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if (DraftRelease || Prerelease) && !CreateRelease {
@@ -43,25 +34,17 @@ func UploadAssets(repo, tag string, paths []string) *cerr.CustomError {
 		return ce
 	}
 
-	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
-		return ce
-	}
-	if c.Backend() == gol.BackendBitbucket {
-		return &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: Bitbucket Cloud has no releases", c.Connection.Name)}
-	}
-	owner, ce := c.Owner(ctx, OwnerOrg)
+	c, owner, ce := connect(ctx)
 	if ce != nil {
 		return ce
 	}
 	// Checked first: a missing <REPO> or <TAG> shifts the files into their place, and the 404 would otherwise
 	// look like a release lookup failure
-	if _, e := c.Repos().Get(ctx, owner, repo); e != nil {
-		if gol.IsNotFound(e) {
-			return &cerr.CustomError{Title: "No such repository", Code: http.StatusNotFound,
-				Message: fmt.Sprintf("%s/%s does not exist (usage: gitclt release upload <REPO> <TAG> <FILE>...)", owner, repo)}
+	if ce = checkRepo(ctx, c, owner, repo); ce != nil {
+		if ce.Title == "No such repository" {
+			ce.Message += " (usage: gitclt release upload <REPO> <TAG> <FILE>...)"
 		}
-		return forge.Error(fmt.Sprintf("Unable to get the repository %s/%s", owner, repo), e)
+		return ce
 	}
 	rels := c.Releases()
 
