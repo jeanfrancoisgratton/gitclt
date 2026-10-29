@@ -5,17 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.50.0] - 2026-10-29
+
+### Added
+
+- `release edit [-o OWNER] [flags] <REPO> <TAG>` (aliases `modify`, `update`): edits the release of a tag, drafts included; only the flags passed are sent: `--title`, `--notes` or `--notes-file FILE`, `--draft`, `--prerelease`. Booleans are revoked with `=false`, and an empty string clears a text field
+- `release publish [-o OWNER] <REPO> <TAG>...` (alias `rel pub`): publishes the draft releases of one or more tags, skipping those already published. Every tag is checked first (it must have a release, and be on the server); the run stops at the first failure. `release edit --draft=false` publishes too, with the same tag check. Both are Forgejo and GitHub only
+- `tag` commands, remote-only: they work on the server's tags (Forgejo, GitHub and Bitbucket), never on the local ones, which are left to git:
+  - `tag list [-o OWNER] [-j] <REPO>` (alias `ls`): lists the tags, newest version first, with their commit, release (Forgejo, GitHub) and annotation (not in GitHub's tag list)
+  - `tag get [-o OWNER] [-j] <REPO> <TAG>` (alias `info`): shows a tag's commit, type (annotated or lightweight), annotation, release and source archive URLs
+  - `tag create [-o OWNER] [-t TARGET] [-m MESSAGE] <REPO> <TAG>` (alias `add`): creates a tag on a branch, tag or commit (default: the default branch); `-m` makes it annotated. An existing tag is refused
+  - `tag delete [-o OWNER] [--with-release] [-y] <REPO> <TAG>...` (aliases `rm`, `del`): deletes tags; every tag is checked before the confirmation, and a tag that still has a release is refused, unless `--with-release` deletes the release (and its assets) too. The run stops at the first failure
+
+### Changed
+
+- `release assets` is renamed `release list-assets` (alias `rel lsa` unchanged), and `release delete-assets` gets a second alias, `rel dla`
+
+<br><br>
 ## [0.30.0] - 2026-10-29
 
 ### Added
 
 - `release list [-o OWNER] [-j] <REPO>` (alias `rel ls`): lists the releases of a repository, drafts included, with their title, type (release, prerelease, draft), publication date, author and number of assets
-- `release list-assets [-o OWNER] [-j] <REPO> <TAG>` (alias `rel lsa`): lists the files attached to the release of a tag, with their size, download count and upload date; a draft's release is found too
+- `release assets [-o OWNER] [-j] <REPO> <TAG>` (alias `rel lsa`): lists the files attached to the release of a tag, with their size, download count and upload date; a draft's release is found too
 - `release delete [-o OWNER] [-y] <REPO> <TAG>...` (alias `rel rm`): deletes the releases of one or more tags, drafts included, with their assets; the tags themselves stay on the server
-- `release delete-assets [-o OWNER] [-y] <REPO> <TAG> <ASSET>...` (aliases `rel rma`, `rel dla`): deletes one or more files from the release of a tag
+- `release delete-assets [-o OWNER] [-y] <REPO> <TAG> <ASSET>...` (alias `rel rma`): deletes one or more files from the release of a tag
 - Both deletions check every tag (or asset name) before asking for confirmation (`-y`, `--yes` skips it), and report all the missing ones at once; the run stops at the first failed deletion, and what was deleted before it stays deleted. All four commands are Forgejo and GitHub only
-- `release edit [-o OWNER] [flags] <REPO> <TAG>` (aliases `modify`, `update`): edits the release of a tag, drafts included; only the flags passed are sent: `--title`, `--notes` or `--notes-file FILE`, `--draft`, `--prerelease`. Booleans are revoked with `=false`, and an empty string clears a text field
-- `release publish [-o OWNER] <REPO> <TAG>...` (alias `rel pub`): publishes the draft releases of one or more tags, skipping those already published. Every tag is checked first (it must have a release, and be on the server); the run stops at the first failure. `release edit --draft=false` publishes too, with the same tag check. Both are Forgejo and GitHub only
 
 <br><br>
 ## [0.21.0] - 2026-10-29

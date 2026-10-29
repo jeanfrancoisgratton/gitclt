@@ -196,6 +196,16 @@ Forgejo and GitHub only: Bitbucket Cloud has no releases. Files (assets) are att
 | `gitclt release edit [-o OWNER] [flags] <REPO> <TAG>` (`modify`, `update`) | Edits the release of `<TAG>`, drafts included; only the flags passed are sent: `--title`, `--notes` or `--notes-file FILE` (the release notes, Markdown), `--draft`, `--prerelease`. Booleans are revoked with `=false` (`--draft=false` publishes a draft, provided its tag is on the server), and an empty string clears a text field |
 | `gitclt release publish [-o OWNER] <REPO> <TAG>...` (`pub`) | Publishes the draft releases of one or more tags; the releases already published are skipped. Every tag is checked first: it must have a release, and be on the server (push it first: publishing would otherwise create it from the release's target); the run stops at the first failure, and the releases published before it stay published |
 
+### Tags: `gitclt tag`
+**Remote-only**: these commands work on the server's tags (Forgejo, GitHub and Bitbucket), never on the local working copy's, which are left to git (`git tag`, `git push`, `git fetch`). Every `tag` command takes the repository's owner with `-o`, `--owner OWNER`; without it, the connection's default owner is used. A tag's release, files included, is managed with `gitclt release`.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt tag list [-o OWNER] [-j] <REPO>` (`ls`) | Lists the server's tags, newest version first (`v0.10.0` before `v0.9.0`): commit, release (Forgejo and GitHub: `release`, `prerelease`, `draft release`...; empty when there is none) and the annotation's first line (not reported by GitHub's tag list: see `tag get`) |
+| `gitclt tag get [-o OWNER] [-j] <REPO> <TAG>` (`info`) | Shows one tag of the server: full commit SHA, type (`annotated` or `lightweight`) and annotation, release (with its URL) and source archive URLs |
+| `gitclt tag create [-o OWNER] [-t TARGET] [-m MESSAGE] <REPO> <TAG>` (`add`) | Creates a tag on the server, on `-t`, `--target` (a branch, tag or commit the server knows; the default branch's head when left out). `-m`, `--message` makes an annotated tag, otherwise it is lightweight; Bitbucket always annotates, with its own message. An existing tag is refused. `git fetch` brings the new tag into the local working copy |
+| `gitclt tag delete [-o OWNER] [--with-release] [-y] <REPO> <TAG>...` (`rm`, `del`) | Deletes tags on the server; the local ones stay. Every tag is checked before the confirmation (`-y`, `--yes` skips it): it must exist, and a tag with a release is refused, unless `--with-release` is passed: the release, with its assets, is then deleted before the tag (Forgejo refuses to delete a tag that has a release, GitHub would leave the release without its tag). The run stops at the first failure, and the tags deleted before it stay deleted. Ex: `gitclt tag rm --with-release -y myrepo v1.2.0-rc1 v1.2.0-rc2` |
+
 <a id="completion"></a>
 ## Shell completion
 ```bash
@@ -229,7 +239,7 @@ branch_mgmt/
   branches/
   protections/    (scaffolded)
 release_mgmt/
-  tags/           (scaffolded)
+  tags/
   protections/    (scaffolded)
   releases/
   │
