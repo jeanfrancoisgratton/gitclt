@@ -55,6 +55,10 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Thu Oct 29 2026 Binary package builder <builder@famillegratton.net> 0.21.0-1
+- feature: release upload
+- feature: release upload
+
 * Thu Oct 29 2026 Binary package builder <builder@famillegratton.net> 0.20.0-1
 - Merge remote-tracking branch 'refs/remotes/origin/develop' into develop
 - enhancement: the -o flag is no longer mandatory
