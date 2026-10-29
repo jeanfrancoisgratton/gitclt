@@ -17,6 +17,13 @@ var DraftRelease = false
 var Prerelease = false
 var ReplaceAssets = false
 
+// release edit: only the flags explicitly passed are sent
+var EditTitle = ""
+var EditNotes = ""
+var EditNotesFile = ""
+var EditDraft = false
+var EditPrerelease = false
+
 // A local file to upload, already checked; name is what the asset will be called
 type localFile struct {
 	path, name string

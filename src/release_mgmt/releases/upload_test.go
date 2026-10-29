@@ -4,6 +4,8 @@
 package releases
 
 import (
+	"cmp"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,8 +23,10 @@ import (
 
 func defaults(t *testing.T) {
 	t.Helper()
-	testutil.Set(t, &OwnerOrg, "")
-	for _, b := range []*bool{&CreateRelease, &DraftRelease, &Prerelease, &ReplaceAssets, &JSONoutput, &AssumeYes, &shared.QuietOutput} {
+	for _, s := range []*string{&OwnerOrg, &EditTitle, &EditNotes, &EditNotesFile} {
+		testutil.Set(t, s, "")
+	}
+	for _, b := range []*bool{&CreateRelease, &DraftRelease, &Prerelease, &ReplaceAssets, &JSONoutput, &AssumeYes, &EditDraft, &EditPrerelease, &shared.QuietOutput} {
 		testutil.Set(t, b, false)
 	}
 }
@@ -37,6 +41,8 @@ type fakeRelease struct {
 	id         int64
 	tag        string
 	draft, pre bool
+	title      string // empty: the tag stands in
+	notes      string
 	assets     []fakeAsset
 }
 
@@ -48,6 +54,7 @@ type forgeState struct {
 	nextID   int64
 	creates  int
 	deletes  []string
+	edits    []string // "tag:field,field" per edit request
 }
 
 func (s *forgeState) release(id string) *fakeRelease {
@@ -70,8 +77,9 @@ func (s *forgeState) listAssets(w http.ResponseWriter, r *http.Request) {
 }
 
 func releaseJSON(r *fakeRelease) string {
-	return fmt.Sprintf(`{"id":%d,"tag_name":%q,"name":%q,"draft":%t,"prerelease":%t,"html_url":"https://forge/acme/web/releases/tag/%s"}`,
-		r.id, r.tag, r.tag, r.draft, r.pre, r.tag)
+	title := cmp.Or(r.title, r.tag)
+	return fmt.Sprintf(`{"id":%d,"tag_name":%q,"name":%q,"body":%q,"draft":%t,"prerelease":%t,"html_url":"https://forge/acme/web/releases/tag/%s"}`,
+		r.id, r.tag, title, r.notes, r.draft, r.pre, r.tag)
 }
 
 // Like the real servers, GetByTag does not see drafts; the list does
@@ -128,6 +136,37 @@ func releaseServer(t *testing.T, s *forgeState) {
 			s.creates++
 			s.releases = append(s.releases, rel)
 			w.WriteHeader(http.StatusCreated)
+			testutil.Reply(releaseJSON(rel))(w, r)
+		},
+		// Only the fields sent are changed; edits records which ones, by tag
+		"PATCH " + base + "/releases/{id}": func(w http.ResponseWriter, r *http.Request) {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			rel := s.release(r.PathValue("id"))
+			var body struct {
+				Name       *string `json:"name"`
+				Body       *string `json:"body"`
+				Draft      *bool   `json:"draft"`
+				Prerelease *bool   `json:"prerelease"`
+			}
+			if err := json.UnmarshalRead(r.Body, &body); err != nil || rel == nil || rel.tag == "FAIL" {
+				testutil.Status(http.StatusForbidden)(w, r)
+				return
+			}
+			var sent []string
+			if body.Name != nil {
+				rel.title, sent = *body.Name, append(sent, "name")
+			}
+			if body.Body != nil {
+				rel.notes, sent = *body.Body, append(sent, "body")
+			}
+			if body.Draft != nil {
+				rel.draft, sent = *body.Draft, append(sent, "draft")
+			}
+			if body.Prerelease != nil {
+				rel.pre, sent = *body.Prerelease, append(sent, "prerelease")
+			}
+			s.edits = append(s.edits, rel.tag+":"+strings.Join(sent, ","))
 			testutil.Reply(releaseJSON(rel))(w, r)
 		},
 		"DELETE " + base + "/releases/{id}": func(w http.ResponseWriter, r *http.Request) {

@@ -103,8 +103,46 @@ Every name is checked before asking; the run stops at the first failed deletion,
 	},
 }
 
+var releaseEditCmd = &cobra.Command{
+	Use:     "edit <REPO> <TAG>",
+	Aliases: []string{"modify", "update"},
+	Example: "  gitclt release edit [-c CONNECTION] [-o OWNER] [flags] <REPO> <TAG>\n" +
+		"  gitclt rel edit --title \"Version 1.2.0\" --notes-file docs/notes-1.2.0.md myrepo v1.2.0\n" +
+		"  gitclt rel edit --prerelease=false --draft=false myrepo v2.0.0",
+	Short: "Edits the release of a tag; only the flags passed are changed; Forgejo and GitHub only",
+	Long: `<REPO> is the repository, and <TAG> the tag whose release is edited, drafts included.
+Only the fields whose flag is passed are sent to the server; everything else is left unchanged.
+Boolean flags can be revoked with =false: --draft=false publishes a draft (see release publish), and --draft turns
+a published release back into a draft. An empty string clears a text field (ex: --notes "").
+--notes and --notes-file both set the release notes (Markdown); pass one or the other.`,
+	Args: cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := releases.EditRelease(args[0], args[1], cmd.Flags().Changed); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var releasePublishCmd = &cobra.Command{
+	Use:     "publish <REPO> <TAG>...",
+	Aliases: []string{"pub"},
+	Example: "  gitclt release publish [-c CONNECTION] [-o OWNER] <REPO> <TAG>...\n" +
+		"  gitclt rel pub myrepo v1.2.0",
+	Short: "Publishes the draft releases of tags; Forgejo and GitHub only",
+	Long: `<REPO> is the repository, and <TAG>... the tags whose draft releases are published; releases already published are skipped.
+Every tag is checked before the first publication: it must have a release, and be on the server (push it first).
+The run stops at the first failure; the releases published before it stay published.`,
+	Args: cobra.MinimumNArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := releases.PublishReleases(args[0], args[1:]); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
 func init() {
-	releaseCmd.AddCommand(releaseUploadCmd, releaseListCmd, releaseDeleteCmd, releaseAssetsCmd, releaseDeleteAssetsCmd)
+	releaseCmd.AddCommand(releaseUploadCmd, releaseListCmd, releaseDeleteCmd, releaseAssetsCmd, releaseDeleteAssetsCmd,
+		releaseEditCmd, releasePublishCmd)
 
 	releaseCmd.PersistentFlags().StringVarP(&releases.OwnerOrg, "owner", "o", "", "user, organization or workspace that owns the repository (default: the connection's owner, else your username)")
 	releaseUploadCmd.Flags().BoolVar(&releases.CreateRelease, "create", false, "create the release if the tag has none (the tag must already be on the server)")
@@ -115,4 +153,11 @@ func init() {
 	releaseAssetsCmd.Flags().BoolVarP(&releases.JSONoutput, "json", "j", false, "output as JSON")
 	releaseDeleteCmd.Flags().BoolVarP(&releases.AssumeYes, "yes", "y", false, "confirm deletion")
 	releaseDeleteAssetsCmd.Flags().BoolVarP(&releases.AssumeYes, "yes", "y", false, "confirm deletion")
+
+	releaseEditCmd.Flags().StringVar(&releases.EditTitle, "title", "", "title of the release")
+	releaseEditCmd.Flags().StringVar(&releases.EditNotes, "notes", "", "release notes (Markdown)")
+	releaseEditCmd.Flags().StringVar(&releases.EditNotesFile, "notes-file", "", "read the release notes from this file")
+	releaseEditCmd.Flags().BoolVar(&releases.EditDraft, "draft", false, "make the release a draft (--draft=false publishes it)")
+	releaseEditCmd.Flags().BoolVar(&releases.EditPrerelease, "prerelease", false, "mark the release as a prerelease (--prerelease=false reverts it)")
+	releaseEditCmd.MarkFlagsMutuallyExclusive("notes", "notes-file")
 }
