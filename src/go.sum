@@ -32,6 +32,8 @@ github.com/jeanfrancoisgratton/customError/v3 v3.1.1 h1:EyKS/iFu7gdPgmNxibvZcVFS
 github.com/jeanfrancoisgratton/customError/v3 v3.1.1/go.mod h1:3EEwWepKbVvYVQ0x+py3FM8QTzheS/svMwhfiZR/y24=
 github.com/jeanfrancoisgratton/gitoperationslib v0.4.0 h1:LV6VWx63qS2dt7AAxbQJruk4UhttY7g22kVNbpBHlWQ=
 github.com/jeanfrancoisgratton/gitoperationslib v0.4.0/go.mod h1:0GatYXkLd2KooiIvEg2N3o/PxOhd7R/sMgpKQ8QSmUg=
+github.com/jeanfrancoisgratton/gitoperationslib v1.0.0 h1:VF/eIbBUKz0QEU9Dd3daCvwRkRRGy3pex9KHq0FMwLo=
+github.com/jeanfrancoisgratton/gitoperationslib v1.0.0/go.mod h1:0GatYXkLd2KooiIvEg2N3o/PxOhd7R/sMgpKQ8QSmUg=
 github.com/jeanfrancoisgratton/helperFunctions/v5 v5.8.1 h1:kCvWnIlwSGAYa8KocyLcJvDeNwLRAr5X//Ijgq7nmUA=
 github.com/jeanfrancoisgratton/helperFunctions/v5 v5.8.1/go.mod h1:jfTi3d6FhMUR2rmdl3HrVgBL/Yl4B9VC8zdVVOxOFpA=
 github.com/jedib0t/go-pretty/v6 v6.8.3 h1:yVSk5aemoYHCvcrtqyXklwqcgHQIQzmy/oUzFlmffSQ=

@@ -16,9 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `tag get [-o OWNER] [-j] <REPO> <TAG>` (alias `info`): shows a tag's commit, type (annotated or lightweight), annotation, release and source archive URLs
   - `tag create [-o OWNER] [-t TARGET] [-m MESSAGE] <REPO> <TAG>` (alias `add`): creates a tag on a branch, tag or commit (default: the default branch); `-m` makes it annotated. An existing tag is refused
   - `tag delete [-o OWNER] [--with-release] [-y] <REPO> <TAG>...` (aliases `rm`, `del`): deletes tags; every tag is checked before the confirmation, and a tag that still has a release is refused, unless `--with-release` deletes the release (and its assets) too. The run stops at the first failure
+- `pr` commands (aliases `pull`, `pullrequest`), on Forgejo, GitHub and Bitbucket:
+  - `pr list [-o OWNER] [-s open|closed|all] [-j] <REPO>` (alias `ls`): lists the pull requests, open ones by default, with their branches, author and status (open, draft, closed, merged)
+  - `pr get [-o OWNER] [-j] <REPO> <NUMBER>` (alias `info`): shows a pull request, with its mergeability, reviews and description
+  - `pr create [-o OWNER] [-t TITLE] [-b BODY | -F FILE] [-d] [-r USER,...] <REPO> <HEAD> [<BASE>]` (aliases `add`, `open`): opens a pull request into `<BASE>` (default: the default branch), as a draft with `-d`, and requests reviews with `-r`; both branches are checked first
+  - `pr edit [-o OWNER] [flags] <REPO> <NUMBER>`: only the flags passed are sent (`--title`, `--body`/`--body-file`, `--base`, `--draft`)
+  - `pr merge [-o OWNER] [-m METHOD] [-d] [--auto | --cancel-auto] <REPO> <NUMBER>`: merges with a method (merge, squash, rebase...), deleting the head branch with `-d`; refuses drafts, closed and conflicting pull requests, and a head that moved since it was checked. `--auto` merges once the checks pass
+  - `pr close` / `pr reopen [-o OWNER] <REPO> <NUMBER>...`: every number is checked first; those already in the wanted state are skipped, and a merged pull request cannot be reopened (Bitbucket cannot reopen at all)
+  - `pr review [-o OWNER] (-a | -x | -n) [-m TEXT] <REPO> <NUMBER>`: approves, requests changes or comments, as the connection's user
+  - `pr reviewers [-o OWNER] [--remove] <REPO> <NUMBER> <USER>...`: requests (or withdraws) reviews
 
 ### Changed
 
+- Built on gitoperationslib 1.0.0 (its first stable release): a merged pull request whose head branch was deleted now shows that branch's name, not `refs/pull/N/head`
 - `release assets` is renamed `release list-assets` (alias `rel lsa` unchanged), and `release delete-assets` gets a second alias, `rel dla`
 
 <br><br>

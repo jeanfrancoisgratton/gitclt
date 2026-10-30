@@ -206,6 +206,21 @@ Forgejo and GitHub only: Bitbucket Cloud has no releases. Files (assets) are att
 | `gitclt tag create [-o OWNER] [-t TARGET] [-m MESSAGE] <REPO> <TAG>` (`add`) | Creates a tag on the server, on `-t`, `--target` (a branch, tag or commit the server knows; the default branch's head when left out). `-m`, `--message` makes an annotated tag, otherwise it is lightweight; Bitbucket always annotates, with its own message. An existing tag is refused. `git fetch` brings the new tag into the local working copy |
 | `gitclt tag delete [-o OWNER] [--with-release] [-y] <REPO> <TAG>...` (`rm`, `del`) | Deletes tags on the server; the local ones stay. Every tag is checked before the confirmation (`-y`, `--yes` skips it): it must exist, and a tag with a release is refused, unless `--with-release` is passed: the release, with its assets, is then deleted before the tag (Forgejo refuses to delete a tag that has a release, GitHub would leave the release without its tag). The run stops at the first failure, and the tags deleted before it stay deleted. Ex: `gitclt tag rm --with-release -y myrepo v1.2.0-rc1 v1.2.0-rc2` |
 
+### Pull requests: `gitclt pr` (aliases: `pull`, `pullrequest`)
+Pull requests on the server; their branches must already be pushed. Every `pr` command takes the repository's owner with `-o`, `--owner OWNER`; without it, the connection's default owner is used. `<NUMBER>` is the pull request's number, with or without a leading `#` (`12` or `#12`).
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt pr list [-o OWNER] [-s open\|closed\|all] [-j] <REPO>` (`ls`) | Lists the pull requests, open ones by default (`closed` includes the merged ones), newest first: number, title, branches (head → base), author, status (`open`, `draft`, `closed`, `merged`) and last update |
+| `gitclt pr get [-o OWNER] [-j] <REPO> <NUMBER>` (`info`) | Shows one pull request: branches, head commit, author, status, mergeability (`unknown` while GitHub computes it; never reported by Bitbucket), dates, URL, reviews (requested ones included on Forgejo) and description |
+| `gitclt pr create [-o OWNER] [-t TITLE] [-b BODY \| -F FILE] [-d] [-r USER,...] <REPO> <HEAD> [<BASE>]` (`add`, `open`) | Opens a pull request from `<HEAD>` into `<BASE>` (default: the default branch); both must be on the server. The title defaults to the head branch's name; `-d`, `--draft` opens a draft (on Forgejo, a `WIP: ` title prefix); `-r`, `--reviewers` requests reviews once it is open |
+| `gitclt pr edit [-o OWNER] [flags] <REPO> <NUMBER>` (`modify`, `update`) | Edits a pull request; only the flags passed are sent: `-t`, `--title`, `-b`, `--body` or `-F`, `--body-file`, `--base`, `-d`, `--draft` (`--draft=false` marks a draft ready for review) |
+| `gitclt pr merge [-o OWNER] [-m METHOD] [-d] [--title T] [--message M] [--auto \| --cancel-auto] <REPO> <NUMBER>` | Merges a pull request with `-m`, `--method`: `merge` (default), `squash`, `rebase`, `rebase-merge`, `fast-forward-only`, `manually-merged` (GitHub: the first three only). `-d`, `--delete-branch` deletes the head branch once merged. The merge fails if the head moved since gitclt checked it; drafts, closed and conflicting pull requests are refused. `--auto` schedules the merge for when the checks pass (not on Bitbucket), `--cancel-auto` cancels it |
+| `gitclt pr close [-o OWNER] <REPO> <NUMBER>...` | Closes pull requests without merging them; those already closed or merged are skipped. On Bitbucket, a closed (declined) pull request is final |
+| `gitclt pr reopen [-o OWNER] <REPO> <NUMBER>...` | Reopens closed pull requests (not on Bitbucket); those already open are skipped, a merged one is refused. Every number is checked before the first change, for `close` too |
+| `gitclt pr review [-o OWNER] (-a \| -x \| -n) [-m TEXT] <REPO> <NUMBER>` | Reviews a pull request as the connection's user: `-a`, `--approve`, `-x`, `--request-changes` or `-n`, `--comment` (the last two need `-m`). Authors cannot approve, nor request changes on, their own pull requests (Forgejo, GitHub): use another user's connection (`-c`) |
+| `gitclt pr reviewers [-o OWNER] [--remove] <REPO> <NUMBER> <USER>...` | Requests the review of users on a pull request; `--remove` withdraws the requests |
+
 <a id="completion"></a>
 ## Shell completion
 ```bash
@@ -238,10 +253,12 @@ repo_mgmt/
 branch_mgmt/
   branches/
   protections/    (scaffolded)
+pr_mgmt/
+  pullrequests/
 release_mgmt/
-  tags/
-  protections/    (scaffolded)
   releases/
+tag_mgmt/
+  tags/
   │
 forge/          opens a gitoperationslib client on a connection; converts library errors; decides the repositories' owner
   │
@@ -250,7 +267,6 @@ shared/         global flag values (QuietOutput, ConnectionName), FetchAll(), Pr
 testutil/       test helpers only (fake Forgejo, throw-away registry, prompt answering); never in the binary
 ```
 
-The two `protections` packages share a name: a file importing both needs an alias for at least one of them.<br>
 A feature package never reads `connections.json`, never decides how to authenticate, and never sends HTTP requests by itself.
 If the library lacks something a command needs, the fix belongs in gitoperationslib, not in `gitclt`.
 

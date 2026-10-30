@@ -7,7 +7,7 @@ package cmd
 
 import (
 	"fmt"
-	"gitclt/release_mgmt/tags"
+	"gitclt/tag_mgmt/tags"
 
 	"github.com/spf13/cobra"
 )
