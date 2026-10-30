@@ -55,6 +55,10 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Fri Oct 30 2026 Binary package builder <builder@famillegratton.net> 1.1.0-1
+- feature: added the history command, releasing 1.1.0
+- chore: update changelog for 1.0.0-1
+
 * Thu Oct 29 2026 Binary package builder <builder@famillegratton.net> 1.0.0-1
 - housekeeping: completed a prod-ready version of the tool
 - feature: pr management
