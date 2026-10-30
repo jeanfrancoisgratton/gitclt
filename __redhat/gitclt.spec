@@ -55,6 +55,11 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Thu Oct 29 2026 Binary package builder <builder@famillegratton.net> 1.0.0-1
+- housekeeping: completed a prod-ready version of the tool
+- feature: pr management
+- chore: update changelog for 0.50.0-1
+
 * Thu Oct 29 2026 Binary package builder <builder@famillegratton.net> 0.50.0-1
 - housekeeping: version bump
 - feature: tag commands (remote-only), changelog for 0.50.0
