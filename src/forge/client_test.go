@@ -278,3 +278,34 @@ func TestAdmin(t *testing.T) {
 		t.Fatalf("github: got %+v", aerr)
 	}
 }
+
+// The commit history is not part of gol.Client: History() finds it with a type assertion
+func TestHistory(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"version":"15.0.2"}`)
+	}))
+	defer srv.Close()
+	for _, conn := range []string{
+		`{"url":"` + srv.URL + `","token":"abc","servertype":"forgejo"}`,
+		`{"url":"https://github.com","token":"abc","servertype":"github"}`,
+	} {
+		writeRegistry(t, conn)
+		c, err := Connect(context.Background(), "")
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if h, herr := c.History(); herr != nil || h == nil {
+			t.Fatalf("%s: got %v, %v", conn, h, herr)
+		}
+	}
+
+	// A client without it (none of the library's, today) is refused cleanly
+	c := &Client{Client: noHistory{}}
+	c.Connection.Name = "x"
+	if _, herr := c.History(); herr == nil || herr.Title != "Unsupported operation" {
+		t.Fatalf("got %+v", herr)
+	}
+}
+
+// noHistory is a gol.Client that lacks gol.History; its methods are never called
+type noHistory struct{ gol.Client }

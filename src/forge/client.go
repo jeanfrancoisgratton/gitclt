@@ -96,6 +96,16 @@ func (c *Client) Admin() (gol.Admin, *cerr.CustomError) {
 	return adm, nil
 }
 
+// Returns the commit history interface; the three forges implement it, but it is not part of gol.Client either
+func (c *Client) History() (gol.History, *cerr.CustomError) {
+	h, ok := c.Client.(gol.History)
+	if !ok {
+		return nil, &cerr.CustomError{Title: "Unsupported operation",
+			Message: fmt.Sprintf("Connection %s: the commit history is not available on this forge", c.Connection.Name)}
+	}
+	return h, nil
+}
+
 // github.com has its API on a separate host (api.github.com), which the library uses by default
 func isGithubDotCom(serverURL string) bool {
 	u, err := url.Parse(serverURL)

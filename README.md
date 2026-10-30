@@ -221,6 +221,14 @@ Pull requests on the server; their branches must already be pushed. Every `pr` c
 | `gitclt pr review [-o OWNER] (-a \| -x \| -n) [-m TEXT] <REPO> <NUMBER>` | Reviews a pull request as the connection's user: `-a`, `--approve`, `-x`, `--request-changes` or `-n`, `--comment` (the last two need `-m`). Authors cannot approve, nor request changes on, their own pull requests (Forgejo, GitHub): use another user's connection (`-c`) |
 | `gitclt pr reviewers [-o OWNER] [--remove] <REPO> <NUMBER> <USER>...` | Requests the review of users on a pull request; `--remove` withdraws the requests |
 
+### Commit history: `gitclt history` (aliases: `log`, `commits`)
+The commits of a repository, read from the server like `git log` would: no local clone is needed, and only the commits that were pushed are seen (Forgejo, GitHub and Bitbucket). Every `history` command takes the repository's owner with `-o`, `--owner OWNER`; without it, the connection's default owner is used.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt history list [-o OWNER] [-r REF] [-p PATH] [-n COUNT] [--since DATE] [--until DATE] [-j] <REPO>` (`ls`) | Lists the commits reachable from `-r`, `--ref` (a branch, tag or commit; default: the default branch), newest first: commit (merge commits marked with `M`), date, author and title. `-p`, `--path` keeps the commits that touched a file or directory; `-n`, `--limit` caps the count (default 30, `0`: the whole history). `--since` and `--until` take a day (`YYYY-MM-DD`, local time; `--until` includes the whole day) or an RFC 3339 timestamp, and are GitHub only. Ex: `gitclt log ls -r develop -p src/history -n 10 myrepo` |
+| `gitclt history get [-o OWNER] [-j] <REPO> <REF>` (`show`, `info`) | Shows one commit, like `git show --stat`: full SHA, author, committer (when it differs; never reported by Bitbucket), parents, line totals, URL, full message and changed files. `<REF>` is a commit SHA (full or abbreviated), a branch or a tag (their head commit). Forgejo reports no per-file line counts, and does not detect renames |
+
 <a id="completion"></a>
 ## Shell completion
 ```bash
@@ -255,6 +263,7 @@ branch_mgmt/
   protections/    (scaffolded)
 pr_mgmt/
   pullrequests/
+history/        (a feature package directly: commit history)
 release_mgmt/
   releases/
 tag_mgmt/

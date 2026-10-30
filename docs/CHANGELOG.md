@@ -5,17 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.50.0] - 2026-10-29
+## [1.1.0] - 2026-10-30
 
 ### Added
 
-- `release edit [-o OWNER] [flags] <REPO> <TAG>` (aliases `modify`, `update`): edits the release of a tag, drafts included; only the flags passed are sent: `--title`, `--notes` or `--notes-file FILE`, `--draft`, `--prerelease`. Booleans are revoked with `=false`, and an empty string clears a text field
-- `release publish [-o OWNER] <REPO> <TAG>...` (alias `rel pub`): publishes the draft releases of one or more tags, skipping those already published. Every tag is checked first (it must have a release, and be on the server); the run stops at the first failure. `release edit --draft=false` publishes too, with the same tag check. Both are Forgejo and GitHub only
-- `tag` commands, remote-only: they work on the server's tags (Forgejo, GitHub and Bitbucket), never on the local ones, which are left to git:
-  - `tag list [-o OWNER] [-j] <REPO>` (alias `ls`): lists the tags, newest version first, with their commit, release (Forgejo, GitHub) and annotation (not in GitHub's tag list)
-  - `tag get [-o OWNER] [-j] <REPO> <TAG>` (alias `info`): shows a tag's commit, type (annotated or lightweight), annotation, release and source archive URLs
-  - `tag create [-o OWNER] [-t TARGET] [-m MESSAGE] <REPO> <TAG>` (alias `add`): creates a tag on a branch, tag or commit (default: the default branch); `-m` makes it annotated. An existing tag is refused
-  - `tag delete [-o OWNER] [--with-release] [-y] <REPO> <TAG>...` (aliases `rm`, `del`): deletes tags; every tag is checked before the confirmation, and a tag that still has a release is refused, unless `--with-release` deletes the release (and its assets) too. The run stops at the first failure
+- `history` commands (aliases `log`, `commits`): a repository's commits, read from the server like `git log` (no local clone needed; only pushed commits are seen), on Forgejo, GitHub and Bitbucket:
+  - `history list [-o OWNER] [-r REF] [-p PATH] [-n COUNT] [--since DATE] [--until DATE] [-j] <REPO>` (alias `ls`): lists the commits reachable from a branch, tag or commit (default: the default branch), newest first, with their date, author and title; merge commits are marked with `M`. `-p` keeps the commits that touched a file or directory, `-n` caps the count (default 30, `0`: the whole history). `--since` / `--until` (a day or an RFC 3339 timestamp) are GitHub only
+  - `history get [-o OWNER] [-j] <REPO> <REF>` (aliases `show`, `info`): shows a commit (SHA, branch or tag), like `git show --stat`: author, committer, parents, line totals, full message and changed files (no per-file line counts nor rename detection on Forgejo)
+
+### Changed
+
+- Built on gitoperationslib 1.1.0, for its commit history API
+
+<br><br>
+## [1.0.0] - 2026-10-29
+
+First production-ready release.
+
+### Added
+
 - `pr` commands (aliases `pull`, `pullrequest`), on Forgejo, GitHub and Bitbucket:
   - `pr list [-o OWNER] [-s open|closed|all] [-j] <REPO>` (alias `ls`): lists the pull requests, open ones by default, with their branches, author and status (open, draft, closed, merged)
   - `pr get [-o OWNER] [-j] <REPO> <NUMBER>` (alias `info`): shows a pull request, with its mergeability, reviews and description
@@ -29,6 +37,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Built on gitoperationslib 1.0.0 (its first stable release): a merged pull request whose head branch was deleted now shows that branch's name, not `refs/pull/N/head`
+
+<br><br>
+## [0.50.0] - 2026-10-29
+
+### Added
+
+- `release edit [-o OWNER] [flags] <REPO> <TAG>` (aliases `modify`, `update`): edits the release of a tag, drafts included; only the flags passed are sent: `--title`, `--notes` or `--notes-file FILE`, `--draft`, `--prerelease`. Booleans are revoked with `=false`, and an empty string clears a text field
+- `release publish [-o OWNER] <REPO> <TAG>...` (alias `rel pub`): publishes the draft releases of one or more tags, skipping those already published. Every tag is checked first (it must have a release, and be on the server); the run stops at the first failure. `release edit --draft=false` publishes too, with the same tag check. Both are Forgejo and GitHub only
+- `tag` commands, remote-only: they work on the server's tags (Forgejo, GitHub and Bitbucket), never on the local ones, which are left to git:
+  - `tag list [-o OWNER] [-j] <REPO>` (alias `ls`): lists the tags, newest version first, with their commit, release (Forgejo, GitHub) and annotation (not in GitHub's tag list)
+  - `tag get [-o OWNER] [-j] <REPO> <TAG>` (alias `info`): shows a tag's commit, type (annotated or lightweight), annotation, release and source archive URLs
+  - `tag create [-o OWNER] [-t TARGET] [-m MESSAGE] <REPO> <TAG>` (alias `add`): creates a tag on a branch, tag or commit (default: the default branch); `-m` makes it annotated. An existing tag is refused
+  - `tag delete [-o OWNER] [--with-release] [-y] <REPO> <TAG>...` (aliases `rm`, `del`): deletes tags; every tag is checked before the confirmation, and a tag that still has a release is refused, unless `--with-release` deletes the release (and its assets) too. The run stops at the first failure
+
+### Changed
+
 - `release assets` is renamed `release list-assets` (alias `rel lsa` unchanged), and `release delete-assets` gets a second alias, `rel dla`
 
 <br><br>
