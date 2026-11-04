@@ -101,7 +101,18 @@ func Error(title string, err error) *cerr.CustomError {
 	if err == nil {
 		return nil
 	}
-	return &cerr.CustomError{Title: title, Message: err.Error(), Code: gol.StatusCode(err)}
+	msg := err.Error()
+	if isUnknownBitbucketUser(err) {
+		msg += "; Bitbucket knows its users by display name, nickname, account ID or {UUID}, not by workspace nor e-mail: gitclt user whoami -x shows yours"
+	}
+	return &cerr.CustomError{Title: title, Message: msg, Code: gol.StatusCode(err)}
+}
+
+// The library has no sentinel for a name it could not resolve among a workspace's members: it is a 404 with this message
+func isUnknownBitbucketUser(err error) bool {
+	var ae *gol.APIError
+	return errors.As(err, &ae) && ae.Backend == gol.BackendBitbucket && ae.StatusCode == http.StatusNotFound &&
+		strings.HasPrefix(ae.Message, "no member ")
 }
 
 // Returns the account-management interface (users, orgs, teams); only Forgejo implements it

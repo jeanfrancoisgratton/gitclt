@@ -257,6 +257,23 @@ func TestError(t *testing.T) {
 	}
 }
 
+// A name Bitbucket's workspace members do not match is explained; other 404s are left alone
+func TestError_UnknownBitbucketUser(t *testing.T) {
+	hint := "gitclt user whoami -x"
+	unknown := &gol.APIError{Backend: gol.BackendBitbucket, StatusCode: http.StatusNotFound, Message: `no member "x" in workspace acme`}
+	if e := Error("title", fmt.Errorf("wrapped: %w", unknown)); !strings.Contains(e.Message, hint) || e.Code != http.StatusNotFound {
+		t.Errorf("got %+v", e)
+	}
+	for _, other := range []error{
+		&gol.APIError{Backend: gol.BackendBitbucket, StatusCode: http.StatusNotFound, Message: "no such repository"},
+		&gol.APIError{Backend: gol.BackendForgejo, StatusCode: http.StatusNotFound, Message: `no member "x"`},
+	} {
+		if e := Error("title", other); strings.Contains(e.Message, hint) {
+			t.Errorf("%v: got %+v", other, e)
+		}
+	}
+}
+
 // Account administration is Forgejo-only: GitHub and Bitbucket clients refuse it
 func TestAdmin(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

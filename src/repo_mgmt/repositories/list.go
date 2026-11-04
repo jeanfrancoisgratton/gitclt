@@ -62,6 +62,12 @@ func ListRepositories(displayoutput bool) ([]gol.Repo, *cerr.CustomError) {
 	if !displayoutput {
 		return repos, nil
 	}
+	if shared.QuietOutput {
+		for _, r := range repos {
+			fmt.Println(r.FullName)
+		}
+		return nil, nil
+	}
 	fmt.Printf("Number of repositories on %s: %s\n", hftx.Green(c.Connection.Name), hftx.Green(fmt.Sprintf("%d", len(repos))))
 	if len(repos) == 0 {
 		return nil, nil

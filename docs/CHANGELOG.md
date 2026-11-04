@@ -16,6 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `branch protection edit [-o OWNER] [flags] <REPO> <PATTERN>` (alias `update`): only changes the settings whose flag is passed. On GitHub, the whole ruleset is written back: its name, its enforcement status and any setting gitclt does not know of are overwritten
   - `branch protection delete [-o OWNER] [-y] <REPO> <PATTERN>...` (aliases `rm`, `del`): deletes rules, after confirmation
 
+### Changed
+
+- `repo delete` now asks for confirmation, and checks that the repository exists first; `-y`, `--yes` skips the question. **Scripts must now pass `-y`**: without a terminal to ask on, nothing is deleted
+
+### Fixed
+
+- `repo create` failed on GitHub and Bitbucket unless `--default-branch ''` was passed, as its default of `develop` was refused there: `develop` is now only asked for where the forge can set it
+- `repo list -q` printed the whole table, instead of the `owner/name` of each repository
+- A user that Bitbucket cannot find among a workspace's members (`branch protection`, `pr` reviewers) now gets told which names it accepts, and that `user whoami -x` shows them
+
 ## [1.2.0] - 2026-11-04
 
 ### Added

@@ -52,9 +52,11 @@ var repoInfoCmd = &cobra.Command{
 var repoDeleteCmd = &cobra.Command{
 	Use:     "delete <REPO>",
 	Aliases: []string{"rm", "remove"},
-	Example: "  gitclt repo delete [-c CONNECTION] [-o OWNER] <REPO>",
-	Short:   "Deletes a repository",
-	Args:    cobra.ExactArgs(1),
+	Example: "  gitclt repo delete [-c CONNECTION] [-o OWNER] [-y] <REPO>",
+	Short:   "Deletes a repository, after confirmation",
+	Long: `This cannot be undone: the repository goes with everything in it. --yes skips the confirmation;
+without a terminal to ask on, the repository is not deleted unless --yes is passed.`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if e := repositories.DeleteRepo(args[0]); e != nil {
 			fmt.Println(e.Error())
@@ -71,7 +73,8 @@ var repoCreateCmd = &cobra.Command{
 Optional flags are below, with default values in parentheses:
 
 --description () -> repo description
---default-branch (develop)
+--default-branch (develop, where the forge can set it) -> GitHub cannot set it at creation, and uses your account's or organization's setting;
+  Bitbucket can only set it with --initialize, as an empty repository has no branch yet. Passing the flag anyway is refused there
 --public (true) -> repo visibility: true = public repo, private otherwise (--public=false)
 --template (false) -> is this repo a template repo ?
 --initialize (false) --> the repo will be created with basic .gitignore and README.md files
@@ -111,10 +114,11 @@ func init() {
 	repoCreateCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user, organization or workspace that will own the repository (default: the connection's owner, else your username)")
 	repoCreateCmd.Flags().BoolVar(&repositories.TemplateRepo, "template", false, "template repo")
 	repoCreateCmd.Flags().BoolVar(&repositories.InitializeRepo, "initialize", false, "initialize the repo after creation")
-	repoCreateCmd.Flags().StringVar(&repositories.RepoDefaultBranch, "default-branch", "develop", "the default branch to use after creation")
+	repoCreateCmd.Flags().StringVar(&repositories.RepoDefaultBranch, "default-branch", "", "the default branch to use after creation (default: develop, where the forge can set it)")
 	repoCreateCmd.Flags().StringVar(&repositories.RepoDescription, "description", "", "repository description")
 	repoCreateCmd.Flags().BoolVar(&repositories.PublicRepo, "public", true, "public repository (use --public=false for a private one)")
 	repoDeleteCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user, organization or workspace that owns the repository (default: the connection's owner, else your username)")
+	repoDeleteCmd.Flags().BoolVarP(&repositories.AssumeYes, "yes", "y", false, "confirm deletion")
 	repoInfoCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "output as JSON")
 	repoInfoCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user, organization or workspace that owns the repository (default: the connection's owner, else your username)")
 	repoListCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "output as JSON")

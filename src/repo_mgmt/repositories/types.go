@@ -6,6 +6,7 @@
 package repositories
 
 var JSONoutput = false
+var AssumeYes = false
 
 // Owner / organization, uses the current user if left empty
 var OwnerOrg = ""
@@ -18,7 +19,7 @@ var SortByAsc = ""
 // Various variables used at repo creation, with their default values
 var TemplateRepo = false
 var InitializeRepo = false
-var RepoDefaultBranch = "develop"
+var RepoDefaultBranch = "" // empty: see createBranch
 var RepoDescription = ""
 var PublicRepo = true
 

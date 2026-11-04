@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"gitclt/shared"
 	"gitclt/testutil"
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
@@ -85,6 +86,29 @@ func TestListRepositories_JSON(t *testing.T) {
 	}
 	if !strings.Contains(out, `"fullName"`) || strings.Index(out, "me/alpha") > strings.Index(out, "me/zeta") {
 		t.Fatalf("output = %s", out)
+	}
+}
+
+// -q only outputs owner/name, in the sort order; an empty list outputs nothing
+func TestListRepositories_Quiet(t *testing.T) {
+	defaults(t)
+	testutil.Set(t, &shared.QuietOutput, true)
+	testutil.Forgejo(t, map[string]http.HandlerFunc{"GET /api/v1/user/repos": testutil.Reply(myRepos)})
+
+	var err *cerr.CustomError
+	out := testutil.Run(t, func() { _, err = ListRepositories(true) })
+	if err != nil || out != "me/alpha\nme/zeta\n" {
+		t.Fatalf("%v, output = %q", err, out)
+	}
+
+	testutil.Set(t, &SortBy, "r")
+	if out = testutil.Run(t, func() { _, err = ListRepositories(true) }); err != nil || out != "me/zeta\nme/alpha\n" {
+		t.Fatalf("-s r: %v, output = %q", err, out)
+	}
+
+	testutil.Forgejo(t, map[string]http.HandlerFunc{"GET /api/v1/user/repos": testutil.Reply(`[]`)})
+	if out = testutil.Run(t, func() { _, err = ListRepositories(true) }); err != nil || out != "" {
+		t.Fatalf("empty: %v, output = %q", err, out)
 	}
 }
 

@@ -21,6 +21,7 @@ Some settings only exist on some forges; the others refuse them:
   Forgejo:            --approver-users, --approver-teams, --block-rejected, --block-review-requests, --protected-files, --unprotected-files
 Bitbucket has no status checks, up-to-date nor signed commits requirement, and always applies its rules to admins: --apply-to-admins is ignored there.
 GitHub cannot exempt individual users from a rule, only teams: --push-teams, and not --push-users.
+Bitbucket knows its users by display name, nickname, account ID or {UUID}, not by workspace nor e-mail: gitclt user whoami -x shows yours.
 On GitHub, --approvals, --dismiss-stale and --conversation-resolution also block direct pushes, whatever the push allowlist says;
 and administrators can still push despite --no-push, unless --apply-to-admins is passed.`
 

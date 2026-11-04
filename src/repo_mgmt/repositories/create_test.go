@@ -13,6 +13,7 @@ import (
 	"gitclt/shared"
 	"gitclt/testutil"
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
+	gol "github.com/jeanfrancoisgratton/gitoperationslib"
 )
 
 type createBody struct {
@@ -52,7 +53,7 @@ func createDefaults(t *testing.T) {
 	testutil.Set(t, &OwnerOrg, "acme")
 	testutil.Set(t, &TemplateRepo, false)
 	testutil.Set(t, &InitializeRepo, false)
-	testutil.Set(t, &RepoDefaultBranch, "develop")
+	testutil.Set(t, &RepoDefaultBranch, "")
 	testutil.Set(t, &RepoDescription, "")
 	testutil.Set(t, &PublicRepo, true)
 	testutil.Set(t, &shared.QuietOutput, false)
@@ -101,6 +102,33 @@ func TestCreateRepo_AllFlags(t *testing.T) {
 	}
 	if out != "" {
 		t.Fatalf("-q should print nothing, got %q", out)
+	}
+}
+
+// develop is only asked for where the forge can set it; an explicit branch is always passed on, for the forge to refuse
+func TestCreateBranch(t *testing.T) {
+	for _, tc := range []struct {
+		backend    gol.Backend
+		flag       string
+		initialize bool
+		want       string
+	}{
+		{gol.BackendForgejo, "", false, "develop"},
+		{gol.BackendForgejo, "", true, "develop"},
+		{gol.BackendForgejo, "main", false, "main"},
+		{gol.BackendGitHub, "", false, ""},
+		{gol.BackendGitHub, "", true, ""},
+		{gol.BackendGitHub, "main", false, "main"},
+		{gol.BackendBitbucket, "", false, ""},
+		{gol.BackendBitbucket, "", true, "develop"},
+		{gol.BackendBitbucket, "main", false, "main"},
+	} {
+		createDefaults(t)
+		testutil.Set(t, &RepoDefaultBranch, tc.flag)
+		testutil.Set(t, &InitializeRepo, tc.initialize)
+		if got := createBranch(tc.backend); got != tc.want {
+			t.Errorf("%+v: got %q", tc, got)
+		}
 	}
 }
 
