@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-11-04
+
+### Added
+
+- `branch protection` commands (aliases `protections`, `protect`, `prot`): a repository's branch protection rules, addressed by their pattern, on Forgejo, GitHub (branch rulesets) and Bitbucket (branch restrictions):
+  - `branch protection list [-o OWNER] [-j] <REPO>` (alias `ls`): lists the rules; `-q` outputs only their patterns
+  - `branch protection get [-o OWNER] [-j] <REPO> <PATTERN>` (alias `info`): shows a rule, with the settings this forge has
+  - `branch protection create [-o OWNER] [flags] <REPO> <PATTERN>` (alias `add`): creates a rule; without any flag, it still blocks deleting the matching branches and force-pushing to them
+  - `branch protection edit [-o OWNER] [flags] <REPO> <PATTERN>` (alias `update`): only changes the settings whose flag is passed. On GitHub, the whole ruleset is written back: its name, its enforcement status and any setting gitclt does not know of are overwritten
+  - `branch protection delete [-o OWNER] [-y] <REPO> <PATTERN>...` (aliases `rm`, `del`): deletes rules, after confirmation
+
 ## [1.2.0] - 2026-11-04
 
 ### Added

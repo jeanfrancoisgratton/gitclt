@@ -193,6 +193,36 @@ Every `branch` command takes the repository's owner with `-o`, `--owner OWNER`; 
 | `gitclt branch rename [-o OWNER] [-l \| -r \| -a] <REPO> <BRANCH> <NEW NAME>` (`mv`) | Renames a branch locally (the default), on the server, or both (local first), with the same `-l`, `-r`, `-a` as `delete`. On the server, open pull requests and protection rules follow the branch; with both sides, the local branch then tracks the server's new name. The local rename is done by the git client |
 | `gitclt branch compare [-o OWNER] [-j] <REPO> <BASE> <HEAD>` (`cmp`) | Counts, on the server, how far ahead of and behind `<BASE>` `<HEAD>` is (branches, tags or commits), and tells if `<HEAD>` can be merged into `<BASE>` as a fast-forward |
 
+#### Branch protection rules: `gitclt branch protection` (aliases: `protections`, `protect`, `prot`)
+A rule protects the branches matching its pattern, a branch name or a glob (`main`, `release/*`); rules are addressed by it. On GitHub, a rule is a branch ruleset: one targeting several patterns is listed, but cannot be addressed.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt branch protection list [-o OWNER] [-j] <REPO>` (`ls`) | Lists the rules: pattern, required approvals, status checks, signed commits, whether admins are concerned, who may push directly, and whether deletion and force pushes are allowed; `-q` outputs only the patterns |
+| `gitclt branch protection get [-o OWNER] [-j] <REPO> <PATTERN>` (`info`) | Shows a rule, with the settings this forge has |
+| `gitclt branch protection create [-o OWNER] [flags] <REPO> <PATTERN>` (`add`) | Creates a rule. Without any flag, it still blocks deleting the matching branches and force-pushing to them; direct pushes stay open to anyone with write access |
+| `gitclt branch protection edit [-o OWNER] [flags] <REPO> <PATTERN>` (`update`) | Changes only the settings whose flag is passed. Yes/no settings are turned off with `=false`, lists are replaced (`--push-users ''` empties one, `--status-check ''` removes all checks), and `--any-push`, `--any-merge`, `--any-approver` remove an allowlist. A pattern cannot be changed: delete the rule, and create a new one. **On GitHub, the whole ruleset is written back**: its name, its enforcement status (a disabled ruleset becomes active) and any setting gitclt does not know of are overwritten |
+| `gitclt branch protection delete [-o OWNER] [-y] <REPO> <PATTERN>...` (`rm`, `del`) | Deletes rules, after confirmation (`-y`, `--yes` skips it). Every rule is checked first; the run stops at the first failure, and the rules deleted before it stay deleted |
+
+The flags of `create` and `edit`; a forge refuses the settings it does not have:
+
+| Flag                                           | Setting                                                             | Forges |
+|------------------------------------------------|---------------------------------------------------------------------|--------|
+| `--approvals N`                                | Approvals required to merge a pull request                          | All |
+| `--dismiss-stale`                              | A new push dismisses the earlier approvals (Bitbucket: Premium plans) | All |
+| `--status-check NAME` (repeatable)             | A status check that must pass                                       | Forgejo, GitHub |
+| `--up-to-date`                                 | The branch must be up to date with the base before merging (GitHub: needs status checks) | Forgejo, GitHub |
+| `--signed`                                     | Commits must be signed                                              | Forgejo, GitHub |
+| `--apply-to-admins`                            | The rule also applies to administrators (Bitbucket always does: ignored there) | Forgejo, GitHub |
+| `--no-push`                                    | Blocks direct pushes: changes go through pull requests. On GitHub, administrators can still push unless `--apply-to-admins` is passed, and `--approvals`, `--dismiss-stale` and `--conversation-resolution` block direct pushes too, whatever the push allowlist says | All |
+| `--push-users`, `--push-teams`                 | Only these may push directly (repeatable, or comma-separated). GitHub only exempts teams | All |
+| `--merge-users`, `--merge-teams`               | Only these may merge pull requests                                  | Forgejo, Bitbucket |
+| `--approver-users`, `--approver-teams`         | Only the approvals of these count                                   | Forgejo |
+| `--allow-deletion`, `--allow-force-push`       | Allows deleting the branches, force pushes                          | GitHub, Bitbucket |
+| `--linear-history`, `--conversation-resolution` | Forbids merge commits; review conversations must be resolved before merging | GitHub |
+| `--block-rejected`, `--block-review-requests`  | A rejected review, a pending official review request blocks the merge | Forgejo |
+| `--protected-files`, `--unprotected-files`     | Semicolon-separated globs of files that cannot be changed, that do not need approvals | Forgejo |
+
 ### Releases: `gitclt release` (alias: `rel`)
 Forgejo and GitHub only: Bitbucket Cloud has no releases. Files (assets) are attached to a tag's **release**, never to the tag itself. Every `release` command takes the repository's owner with `-o`, `--owner OWNER`; without it, the connection's default owner is used.
 
@@ -271,7 +301,7 @@ repo_mgmt/
   webhooks/       (scaffolded)
 branch_mgmt/
   branches/
-  protections/    (scaffolded)
+  protections/
 pr_mgmt/
   pullrequests/
 history/        (a feature package directly: commit history)
