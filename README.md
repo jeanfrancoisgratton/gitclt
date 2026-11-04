@@ -172,6 +172,16 @@ A team's access is set either with `-p`, `--permission read|write|admin` (the sa
 | `gitclt team addrepo <ORG> <TEAM> <REPO>`       | Gives the team access to `<REPO>`, which must belong to `<ORG>` |
 | `gitclt team removerepo [-y] <ORG> <TEAM> <REPO>` (`rmrepo`) | Revokes the team's access to `<REPO>`, after confirmation (`-y`, `--yes` skips it); the repository itself is kept |
 
+### Access tokens: `gitclt token` (alias: `tokens`)
+The access tokens of the connection's user; Forgejo only, as GitHub and Bitbucket have no API for this. Forgejo refuses token authentication when creating or deleting a token: `create` and `delete` use the connection's password, and ask for it if the connection does not store one (accounts with two-factor authentication also pass the current code with `--otp CODE`). Forgejo cannot change an existing token: to change its permissions, create a new one, and delete the old one.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt token list [-j]` (`ls`)                | Lists the tokens: ID, name, scopes, repositories and last eight characters; `-q` outputs only their names |
+| `gitclt token info [-j] <NAME>` or `--id ID` (`get`) | Shows a token. Forgejo only reports the fields of `list`: no dates, and never the secret |
+| `gitclt token create -s SCOPE [-r OWNER/REPO] [--otp CODE] [-j] <NAME>` (`add`) | Creates a token, and shows its secret: **this is the only time it can be seen**. `-s`, `--scope` (at least one, passed to the server unchecked; ex: `all`, `read:user`, `write:repository`) and `-r`, `--repo` (limits the token to these repositories) are repeatable, or comma-separated. `-q` outputs only the secret, as long as no prompt is needed: for a script, the connection must store the password |
+| `gitclt token delete [--otp CODE] [-y] <NAME>` or `--id ID` (`rm`, `remove`) | Deletes a token, after confirmation (`-y`, `--yes` skips it); you are warned if it looks like the one the connection authenticates with |
+
 ### Branches: `gitclt branch`
 Every `branch` command takes the repository's owner with `-o`, `--owner OWNER`; without it, the connection's default owner is used (see [the connections registry](#connections)). The local branches are those of the git working copy in the current directory (or one of its parents), read straight from its `.git` directory: the git client does not need to be installed.
 
@@ -255,6 +265,7 @@ access_mgmt/    feature packages, one per resource, grouped by area (these folde
   users/          they call the library, and format the output (table / JSON / quiet)
   organizations/
   teams/
+  tokens/
 repo_mgmt/
   repositories/
   webhooks/       (scaffolded)

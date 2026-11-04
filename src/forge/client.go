@@ -7,6 +7,7 @@ package forge
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"gitclt/connections"
 	"net"
@@ -77,6 +78,24 @@ func Connect(ctx context.Context, connName string) (*Client, *cerr.CustomError) 
 	return &Client{Client: gc, Connection: ac}, nil
 }
 
+// Opens a Forgejo client on an already resolved connection, with this username and password, whatever the connection's credentials are
+// Forgejo refuses token authentication on a few endpoints (ex: creating or deleting access tokens); otp is the current 2FA code, if any
+func ConnectWithPassword(ctx context.Context, ac connections.ActiveConnection, username, password, otp string) (*Client, *cerr.CustomError) {
+	creds := forgejo.BasicAuth(username, password)
+	if otp != "" {
+		creds = forgejo.BasicAuthOTP(username, password, otp)
+	}
+	gc, gerr := forgejo.New(ctx, ac.URL, creds, forgejo.WithHTTPClient(httpClient()), forgejo.WithUserAgent(userAgent))
+	if gerr != nil {
+		ce := Error(fmt.Sprintf("Unable to connect to %s", ac.Name), gerr)
+		if otp == "" && errors.Is(gerr, gol.ErrInvalidOTP) {
+			ce.Message += "; pass the current code with --otp"
+		}
+		return nil, ce
+	}
+	return &Client{Client: gc, Connection: ac}, nil
+}
+
 // Converts a gitoperationslib error into our own error type; the HTTP status, if any, ends up in Code
 func Error(title string, err error) *cerr.CustomError {
 	if err == nil {
@@ -104,6 +123,16 @@ func (c *Client) History() (gol.History, *cerr.CustomError) {
 			Message: fmt.Sprintf("Connection %s: the commit history is not available on this forge", c.Connection.Name)}
 	}
 	return h, nil
+}
+
+// Returns the interface managing the authenticated user's own account; it is not part of gol.Client either
+func (c *Client) Account() (gol.Account, *cerr.CustomError) {
+	a, ok := c.Client.(gol.Account)
+	if !ok {
+		return nil, &cerr.CustomError{Title: "Unsupported operation",
+			Message: fmt.Sprintf("Connection %s: account management is not available on this forge", c.Connection.Name)}
+	}
+	return a, nil
 }
 
 // github.com has its API on a separate host (api.github.com), which the library uses by default

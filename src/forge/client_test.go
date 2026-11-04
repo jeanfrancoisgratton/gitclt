@@ -7,10 +7,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"gitclt/connections"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
@@ -304,6 +306,55 @@ func TestHistory(t *testing.T) {
 	c.Connection.Name = "x"
 	if _, herr := c.History(); herr == nil || herr.Title != "Unsupported operation" {
 		t.Fatalf("got %+v", herr)
+	}
+}
+
+// The account interface is not part of gol.Client: Account() finds it with a type assertion
+func TestAccount(t *testing.T) {
+	writeRegistry(t, `{"url":"https://github.com","token":"abc","servertype":"github"}`)
+	c, err := Connect(context.Background(), "")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if a, aerr := c.Account(); aerr != nil || a == nil {
+		t.Fatalf("github: got %v, %v", a, aerr)
+	}
+
+	c = &Client{Client: noHistory{}}
+	c.Connection.Name = "x"
+	if _, aerr := c.Account(); aerr == nil || aerr.Title != "Unsupported operation" {
+		t.Fatalf("got %+v", aerr)
+	}
+}
+
+// The password wins over the connection's token; the OTP goes along when there is one, and its absence is explained
+func TestConnectWithPassword(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if u, p, ok := r.BasicAuth(); !ok || u != "me" || p != "pw" {
+			t.Errorf("%s: basic auth = %q, %q, %v", r.URL.Path, u, p, ok)
+		}
+		if r.Header.Get("X-FORGEJO-OTP") != "123456" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, `{"message":"invalid provided OTP"}`)
+			return
+		}
+		fmt.Fprint(w, `{"version":"15.0.2"}`)
+	}))
+	defer srv.Close()
+	ac := connections.ActiveConnection{Name: "test", URL: srv.URL, Token: "abc"}
+
+	c, err := ConnectWithPassword(context.Background(), ac, "me", "pw", "123456")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if c.Connection.Token != "abc" {
+		t.Fatalf("the connection should be kept as is, got %+v", c.Connection)
+	}
+
+	_, err = ConnectWithPassword(context.Background(), ac, "me", "pw", "")
+	if err == nil || err.Code != http.StatusUnauthorized || !strings.Contains(err.Message, "--otp") {
+		t.Fatalf("no OTP: got %+v", err)
 	}
 }
 
