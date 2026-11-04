@@ -55,6 +55,11 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Wed Nov 04 2026 Binary package builder <builder@famillegratton.net> 1.2.0-1
+- updated builddeps
+- feature: added token management
+- chore: update changelog for 1.1.0-1
+
 * Fri Oct 30 2026 Binary package builder <builder@famillegratton.net> 1.1.0-1
 - feature: added the history command, releasing 1.1.0
 - chore: update changelog for 1.0.0-1
