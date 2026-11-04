@@ -14,6 +14,7 @@ import (
 	"gitclt/access_mgmt/teams"
 	"gitclt/access_mgmt/tokens"
 	"gitclt/access_mgmt/users"
+	"gitclt/branch_mgmt/protections"
 	"gitclt/testutil"
 
 	"github.com/spf13/cobra"
@@ -33,6 +34,8 @@ func execute(t *testing.T, args []string, answers ...string) (string, string) {
 		teams.CreateTeamPermission, teams.EditTeamPermission = "", ""
 		// A string slice takes its own "[]" default for a value
 		tokens.CreateTokenScopes, tokens.CreateTokenRepos = nil, nil
+		protections.StatusChecks, protections.PushUsers, protections.PushTeams = nil, nil, nil
+		protections.MergeUsers, protections.MergeTeams, protections.ApproverUsers, protections.ApproverTeams = nil, nil, nil, nil
 	}()
 	var stderr bytes.Buffer
 	rootCmd.SetArgs(args)
