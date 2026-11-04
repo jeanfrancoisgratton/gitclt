@@ -12,6 +12,7 @@ import (
 
 	"gitclt/access_mgmt/organizations"
 	"gitclt/access_mgmt/teams"
+	"gitclt/access_mgmt/tokens"
 	"gitclt/access_mgmt/users"
 	"gitclt/testutil"
 
@@ -30,6 +31,8 @@ func execute(t *testing.T, args []string, answers ...string) (string, string) {
 		users.CreateUserVisibility, users.EditUserVisibility = "", ""
 		organizations.CreateOrgVisibility, organizations.EditOrgVisibility = "", ""
 		teams.CreateTeamPermission, teams.EditTeamPermission = "", ""
+		// A string slice takes its own "[]" default for a value
+		tokens.CreateTokenScopes, tokens.CreateTokenRepos = nil, nil
 	}()
 	var stderr bytes.Buffer
 	rootCmd.SetArgs(args)
@@ -66,6 +69,8 @@ func TestCommandTree(t *testing.T) {
 		"team ls", "team list", "team get", "team info", "team create", "team add", "team edit", "team modify",
 		"team update", "team rm", "team delete", "team remove", "team members", "team ismember", "team addmember",
 		"team removemember", "team rmmember", "team repos", "team addrepo", "team removerepo", "team rmrepo",
+		"token ls", "tokens list", "token info", "token get", "token create", "token add",
+		"token rm", "token delete", "token remove",
 	} {
 		c, rest, err := rootCmd.Find(strings.Fields(line))
 		if err != nil || len(rest) != 0 || !c.Runnable() {
@@ -135,6 +140,25 @@ func TestCompleteVisibility(t *testing.T) {
 		}
 		if got, _ := f(c, nil, ""); !slices.Equal(got, []string{"public", "limited", "private"}) {
 			t.Errorf("%s: got %v", c.CommandPath(), got)
+		}
+	}
+}
+
+// A token is designated by its name or by --id, not both; create cannot go without a scope
+func TestTokenArgs(t *testing.T) {
+	for _, tc := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"token", "info"}, "accepts 1 arg"},
+		{[]string{"token", "rm", "a", "b"}, "accepts 1 arg"},
+		{[]string{"token", "info", "--id", "4", "name"}, "either the token's name, or --id"},
+		{[]string{"token", "rm", "--id", "4", "name"}, "either the token's name, or --id"},
+		{[]string{"token", "rm", "--id", "0"}, "--id must be a positive number"},
+		{[]string{"token", "create", "name"}, `required flag(s) "scope" not set`},
+	} {
+		if _, stderr := execute(t, tc.args); !strings.Contains(stderr, tc.want) {
+			t.Errorf("%v: stderr = %q, want %q", tc.args, stderr, tc.want)
 		}
 	}
 }

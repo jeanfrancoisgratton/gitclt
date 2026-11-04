@@ -14,7 +14,7 @@ import (
 
 var orgCmd = &cobra.Command{
 	Use:     "org",
-	Aliases: []string{"organization"},
+	Aliases: []string{"organization", "orgs"},
 	Short:   "Organization management commands",
 	Long: `Some of the commands are self-service, but most of the commands here need administrative rights.
 In other words: you must have the appropriate access or auth token to perform some of the tasks.`,
