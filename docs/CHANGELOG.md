@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `branch protection create [-o OWNER] [flags] <REPO> <PATTERN>` (alias `add`): creates a rule; without any flag, it still blocks deleting the matching branches and force-pushing to them
   - `branch protection edit [-o OWNER] [flags] <REPO> <PATTERN>` (alias `update`): only changes the settings whose flag is passed. On GitHub, the whole ruleset is written back: its name, its enforcement status and any setting gitclt does not know of are overwritten
   - `branch protection delete [-o OWNER] [-y] <REPO> <PATTERN>...` (aliases `rm`, `del`): deletes rules, after confirmation
+- Two-factor authentication on Forgejo password logins, for every command: a password-only connection on such an account used to fail outright (tokens need no code):
+  - `--otp CODE` is now a global flag; it was only on `token create` and `token delete`
+  - without it, the code is asked for when the server needs one and there is a terminal (three attempts)
+  - a new code is asked for when a long run outlasts the current one
 
 ### Changed
 

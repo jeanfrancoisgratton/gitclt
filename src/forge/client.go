@@ -35,11 +35,15 @@ func Connect(ctx context.Context, connName string) (*Client, *cerr.CustomError) 
 	var gerr error
 	switch ac.ServerType {
 	case connections.ServerTypeForgejo:
-		creds := forgejo.Token(ac.Token)
+		// A token needs no two-factor code, whether the account has two-factor authentication or not
 		if ac.Auth == connections.AuthBasic {
-			creds = forgejo.BasicAuth(ac.Username, ac.Password)
+			var ce *cerr.CustomError
+			if gc, ce = connectForgejoPassword(ctx, ac, ac.Username, ac.Password); ce != nil {
+				return nil, ce
+			}
+			break
 		}
-		gc, gerr = forgejo.New(ctx, ac.URL, creds, forgejo.WithHTTPClient(httpClient()), forgejo.WithUserAgent(userAgent))
+		gc, gerr = forgejo.New(ctx, ac.URL, forgejo.Token(ac.Token), forgejo.WithHTTPClient(httpClient()), forgejo.WithUserAgent(userAgent))
 	case connections.ServerTypeGithub:
 		// ResolveConnection() already refused GitHub connections without a token
 		opts := []github.Option{github.WithHTTPClient(httpClient()), github.WithUserAgent(userAgent)}
@@ -79,18 +83,10 @@ func Connect(ctx context.Context, connName string) (*Client, *cerr.CustomError) 
 }
 
 // Opens a Forgejo client on an already resolved connection, with this username and password, whatever the connection's credentials are
-// Forgejo refuses token authentication on a few endpoints (ex: creating or deleting access tokens); otp is the current 2FA code, if any
-func ConnectWithPassword(ctx context.Context, ac connections.ActiveConnection, username, password, otp string) (*Client, *cerr.CustomError) {
-	creds := forgejo.BasicAuth(username, password)
-	if otp != "" {
-		creds = forgejo.BasicAuthOTP(username, password, otp)
-	}
-	gc, gerr := forgejo.New(ctx, ac.URL, creds, forgejo.WithHTTPClient(httpClient()), forgejo.WithUserAgent(userAgent))
-	if gerr != nil {
-		ce := Error(fmt.Sprintf("Unable to connect to %s", ac.Name), gerr)
-		if otp == "" && errors.Is(gerr, gol.ErrInvalidOTP) {
-			ce.Message += "; pass the current code with --otp"
-		}
+// Forgejo refuses token authentication on a few endpoints (ex: creating or deleting access tokens)
+func ConnectWithPassword(ctx context.Context, ac connections.ActiveConnection, username, password string) (*Client, *cerr.CustomError) {
+	gc, ce := connectForgejoPassword(ctx, ac, username, password)
+	if ce != nil {
 		return nil, ce
 	}
 	return &Client{Client: gc, Connection: ac}, nil

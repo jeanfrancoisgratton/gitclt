@@ -110,11 +110,9 @@ func init() {
 
 	tokenCreateCmd.Flags().StringSliceVarP(&tokens.CreateTokenScopes, "scope", "s", nil, "scope of the token (repeatable, or comma-separated)")
 	tokenCreateCmd.Flags().StringSliceVarP(&tokens.CreateTokenRepos, "repo", "r", nil, "limit the token to this OWNER/REPO (repeatable, or comma-separated)")
-	tokenCreateCmd.Flags().StringVar(&tokens.OTP, "otp", "", "current two-factor authentication code")
 	tokenCreateCmd.Flags().BoolVarP(&tokens.JSONoutput, "json", "j", false, "output as JSON")
 	_ = tokenCreateCmd.MarkFlagRequired("scope")
 
 	tokenDeleteCmd.Flags().Int64Var(&tokens.TokenID, "id", 0, "designate the token by its ID instead of its name")
-	tokenDeleteCmd.Flags().StringVar(&tokens.OTP, "otp", "", "current two-factor authentication code")
 	tokenDeleteCmd.Flags().BoolVarP(&tokens.AssumeYes, "yes", "y", false, "do not ask for confirmation before deleting")
 }

@@ -80,6 +80,7 @@ The file looks a lot like `$HOME/.docker/config.json`:
 - `owner` (optional) is the default owner of the repositories the `repo` and `branch` commands work on: a user, an organization, or a Bitbucket workspace. The owner is, in this order: the `-o`, `--owner` flag, the connection's `owner`, its `username` (unless it is an e-mail), and finally whom the server says the credentials belong to
 - On Bitbucket, repository owners are **workspaces**, and the `username` is an e-mail: set `owner` to your workspace, or pass `-o` every time. Bitbucket Cloud has no releases, no tag protection, and no issue tracker anymore: those commands will report that the feature is not supported
 - On Bitbucket, users are known by display name, nickname, account ID or `{UUID}`, not by workspace nor e-mail: this applies wherever a command takes a user (`--push-users`, `--merge-users`, `pr` reviewers). `gitclt user whoami -x` shows yours; quote a name with spaces
+- Two-factor authentication only concerns password logins on Forgejo, as a token needs no code; so a connection storing a token only meets it on `token create` and `token delete`, which Forgejo refuses with a token. The code is passed with `--otp CODE`, or asked for if the server needs one and there is a terminal; without a terminal, the command fails, and tells you to pass `--otp`. A code lasts 30 to 60 seconds: if a long run outlasts it, a new one is asked for, or without a terminal, the run stops when the server refuses the old one. Forgejo's API does not tell which accounts have two-factor authentication, nor lets it be managed
 - Tokens and passwords are encrypted when the tool writes the file. You can still hand-edit the file with cleartext secrets; they will get encrypted the next time the tool saves the registry
 - A hand-edited, invalid connection is not rejected on load: `gitclt conn list` flags it, and you can fix it with `gitclt conn edit`, or remove it with `gitclt conn rm`
 - The first connection you add becomes the default one
@@ -97,7 +98,8 @@ These work on every command:
 |---------------------------------|--------------------------------------------------------------|
 | `-c`, `--connection CONNECTION` | Use this connection instead of the default one               |
 | `-q`, `--quiet`                 | Output will be as quiet as possible                          |
-| `-D`, `--debug`                 | Debug mode (also lets the password prompts read from a pipe) |
+| `-D`, `--debug`                 | Debug mode (also lets the password and two-factor prompts read from a pipe) |
+| `--otp CODE`                    | The current two-factor authentication code, for a password login on Forgejo (see [the connections registry](#connections)) |
 
 ### Other commands
 | Command                       | Description                                       |
@@ -174,7 +176,7 @@ A team's access is set either with `-p`, `--permission read|write|admin` (the sa
 | `gitclt team removerepo [-y] <ORG> <TEAM> <REPO>` (`rmrepo`) | Revokes the team's access to `<REPO>`, after confirmation (`-y`, `--yes` skips it); the repository itself is kept |
 
 ### Access tokens: `gitclt token` (alias: `tokens`)
-The access tokens of the connection's user; Forgejo only, as GitHub and Bitbucket have no API for this. Forgejo refuses token authentication when creating or deleting a token: `create` and `delete` use the connection's password, and ask for it if the connection does not store one (accounts with two-factor authentication also pass the current code with `--otp CODE`). Forgejo cannot change an existing token: to change its permissions, create a new one, and delete the old one.
+The access tokens of the connection's user; Forgejo only, as GitHub and Bitbucket have no API for this. Forgejo refuses token authentication when creating or deleting a token: `create` and `delete` use the connection's password, and ask for it if the connection does not store one (on an account with two-factor authentication, the current code is asked for too, or passed with `--otp CODE`). Forgejo cannot change an existing token: to change its permissions, create a new one, and delete the old one.
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|

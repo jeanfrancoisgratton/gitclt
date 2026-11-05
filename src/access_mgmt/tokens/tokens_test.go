@@ -26,7 +26,7 @@ func defaults(t *testing.T) {
 	testutil.Set(t, &JSONoutput, false)
 	testutil.Set(t, &AssumeYes, false)
 	testutil.Set(t, &TokenID, 0)
-	testutil.Set(t, &OTP, "")
+	testutil.Set(t, &shared.OTP, "")
 	testutil.Set(t, &CreateTokenScopes, nil)
 	testutil.Set(t, &CreateTokenRepos, nil)
 	testutil.Set(t, &shared.QuietOutput, false)
@@ -243,7 +243,7 @@ func TestCreateToken_NoTerminal(t *testing.T) {
 
 func TestCreateToken_OTP(t *testing.T) {
 	defaults(t)
-	testutil.Set(t, &OTP, "123456")
+	testutil.Set(t, &shared.OTP, "123456")
 	s := tokenServer(t, bothAuth)
 	var err *cerr.CustomError
 	testutil.Run(t, func() { err = CreateToken("new") })

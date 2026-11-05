@@ -51,4 +51,5 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&shared.ConnectionName, "connection", "c", "", "connection to use (default: the default connection)")
 	rootCmd.PersistentFlags().BoolVarP(&shared.QuietOutput, "quiet", "q", false, "output will be as quiet as possible")
 	rootCmd.PersistentFlags().BoolVarP(&shared.DebugMode, "debug", "D", false, "debug mode")
+	rootCmd.PersistentFlags().StringVar(&shared.OTP, "otp", "", "current two-factor authentication code, for a password login on Forgejo (asked for if needed; tokens need none)")
 }

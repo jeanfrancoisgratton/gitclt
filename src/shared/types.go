@@ -17,6 +17,9 @@ var QuietOutput = false
 // The connection to use, from -c/--connection; empty means the default connection
 var ConnectionName = ""
 
+// The current two-factor authentication code, from --otp; only a password connection on Forgejo needs one
+var OTP = ""
+
 // DebugMode is set to true when running the app through the IDE step-by-step
 var DebugMode = false
 

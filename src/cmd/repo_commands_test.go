@@ -27,6 +27,21 @@ func TestRepoCommands_FlagRules(t *testing.T) {
 	}
 }
 
+// --otp is a global flag: any command of a password connection sends it
+func TestGlobalOTPFlag(t *testing.T) {
+	var codes []string
+	srv := testutil.Forgejo(t, map[string]http.HandlerFunc{
+		"GET /api/v1/user/repos": func(w http.ResponseWriter, r *http.Request) {
+			codes = append(codes, r.Header.Get("X-FORGEJO-OTP"))
+			testutil.Reply(`[{"id":1,"owner":{"login":"me"},"name":"web","full_name":"me/web"}]`)(w, r)
+		},
+	})
+	testutil.WriteRegistry(t, `{"auths":{"test":{"url":"`+srv.URL+`","username":"me","password":"pw","servertype":"forgejo"}},"default_connection":"test"}`)
+	if out, _ := execute(t, []string{"repo", "ls", "-q", "--otp", "123456"}); out != "me/web\n" || len(codes) != 1 || codes[0] != "123456" {
+		t.Errorf("output = %q, codes = %q", out, codes)
+	}
+}
+
 // Without --yes, nothing is deleted unless the answer is yes
 func TestRepoCommands_DeleteAsks(t *testing.T) {
 	deletes := 0

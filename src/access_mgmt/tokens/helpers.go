@@ -59,7 +59,7 @@ func connectWithPassword(ctx context.Context) (*forge.Client, *cerr.CustomError)
 			return nil, &cerr.CustomError{Title: "Unable to authenticate", Message: "A password is needed to manage tokens"}
 		}
 	}
-	return forge.ConnectWithPassword(ctx, ac, username, password, OTP)
+	return forge.ConnectWithPassword(ctx, ac, username, password)
 }
 
 // Returns the access token interface; GitHub and Bitbucket have none

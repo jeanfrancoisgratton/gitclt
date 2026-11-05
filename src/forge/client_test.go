@@ -8,6 +8,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"gitclt/connections"
+	"gitclt/shared"
+	"gitclt/testutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -361,7 +363,9 @@ func TestConnectWithPassword(t *testing.T) {
 	defer srv.Close()
 	ac := connections.ActiveConnection{Name: "test", URL: srv.URL, Token: "abc"}
 
-	c, err := ConnectWithPassword(context.Background(), ac, "me", "pw", "123456")
+	otpDefaults(t)
+	testutil.Set(t, &shared.OTP, "123456")
+	c, err := ConnectWithPassword(context.Background(), ac, "me", "pw")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -369,7 +373,8 @@ func TestConnectWithPassword(t *testing.T) {
 		t.Fatalf("the connection should be kept as is, got %+v", c.Connection)
 	}
 
-	_, err = ConnectWithPassword(context.Background(), ac, "me", "pw", "")
+	testutil.Set(t, &shared.OTP, "")
+	_, err = ConnectWithPassword(context.Background(), ac, "me", "pw")
 	if err == nil || err.Code != http.StatusUnauthorized || !strings.Contains(err.Message, "--otp") {
 		t.Fatalf("no OTP: got %+v", err)
 	}
