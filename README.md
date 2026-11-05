@@ -10,8 +10,8 @@ It is a front-end to [gitoperationslib](https://github.com/jeanfrancoisgratton/g
 What is currently implemented:
 - a connections registry (multiple servers, multiple accounts, one default connection)
 - repositories: list, info, create, delete
-- users: whoami, get, list, create, edit, delete
-- organizations: list, get, create, edit, rename, delete, membership (list, check, remove)
+- users: whoami, get, list, create, edit, delete; your own e-mail addresses, SSH keys and avatar
+- organizations: list, get, create, edit, rename, delete, membership (list, check, remove), avatar
 - teams: list, get, create, edit, delete, membership (list, check, add, remove), repository access (list, add, remove)
 
 **TABLE OF CONTENTS**<br>
@@ -128,17 +128,26 @@ These work on every command:
 | `gitclt repo edit [-o OWNER] [flags] <REPO>` (`modify`, `update`) | Edits a repository; **only the flags passed are sent**: `--name` (renames it), `--description`, `--website`, `--default-branch`, `--public` (`=false` makes it private), `--archived` (`=false` unarchives it), `--template`. Booleans are revoked with `=false`, and `""` clears a text field. Bitbucket cannot archive a repository, nor make it a template |
 
 ### Users: `gitclt user`
-Except `whoami`, these need admin rights, and only work on Forgejo.
+`whoami` and the `email`, `sshkey` and `avatar` commands act on the connection's user, and need no admin rights. All the others need admin rights, and only work on Forgejo.
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
-| `gitclt user whoami [-x] [-j]` (`who`)          | Shows the connection's user; `-x`, `--extended` adds the forge-specific fields |
+| `gitclt user whoami [-x] [-j]` (`who`)          | Shows the connection's user, with their 2FA status (`not reported` when the forge does not tell: always on Forgejo, and on Bitbucket depending on the credentials); `-x`, `--extended` adds the forge-specific fields |
 | `gitclt user get [-x] [-j] <USER>` (`info`)     | Shows a user |
 | `gitclt user list [-j]` (`ls`)                  | Lists all users on the forge |
 | `gitclt user create -e EMAIL [flags] <USER>` (`add`) | Creates a user; the password is prompted for, or read from `-p`, `--password-file FILE`. Also: `-f`, `--fullname`, `-d`, `--description`, `-w`, `--website`, `-l`, `--location`, `-v`, `--visibility public\|limited\|private`, `-a`, `--admin`, `-r`, `--restricted`, `-m`, `--must-change-passwd` (server default when omitted), `-s`, `--send-notification` |
 | `gitclt user edit [flags] <USER>` (`modify`, `update`) | Edits a user; **only the flags passed are sent**. Same text flags as `create`, plus `-P`, `--passwd` (prompt) or `-p`, `--password-file`, `--active`, `--prohibit-login`, `--allow-create-org`, `--max-repos N`. Booleans are revoked with `=false` (ex: `--admin=false`), and `""` clears a text field |
 | `gitclt user delete [-p] [-y] <USER>` (`rm`, `remove`) | Deletes a user, after confirmation (`-y`, `--yes` skips it); `-p`, `--purge` also deletes everything the user owns |
 | `gitclt user wipe [-p] [-n] [-y] <USER>` | Removes a user from all of their organizations and teams, then deletes them. An organization where the user is the only member, and which owns no repositories, is deleted too. Nothing changes if the user is the last owner of an organization that still has other members or repositories, or owns repositories without `-p`, `--purge`. The plan is confirmed once (`-y`, `--yes` skips it); `-n`, `--dry-run` only shows it |
+| `gitclt user email list [-j]` (`ls`)            | Lists your e-mail addresses; `-q` outputs only the addresses. The parent command has the alias `emails` |
+| `gitclt user email add [-j] <ADDRESS>...` (`create`) | Adds e-mail addresses to your account; GitHub sends each a verification e-mail, and Forgejo does if the server requires it. Not on Bitbucket |
+| `gitclt user email delete [-y] <ADDRESS>...` (`rm`, `remove`) | Removes e-mail addresses, after confirmation (`-y`, `--yes` skips it). Nothing changes if one is unknown, or is the primary address. Not on Bitbucket |
+| `gitclt user sshkey list [-j]` (`ls`)           | Lists your public SSH keys; `-q` outputs only their titles. The parent command has the aliases `sshkeys`, `ssh` |
+| `gitclt user sshkey get [-j] <TITLE>` or `--id ID` (`info`) | Shows one of your public SSH keys, with the key itself |
+| `gitclt user sshkey add [-j] <TITLE> <PUBLIC-KEY-FILE>` (`create`) | Adds a public SSH key; the file must hold one public key, and anything else (ex: the private key) is refused before contacting the server |
+| `gitclt user sshkey delete [-y] <TITLE>` or `--id ID` (`rm`, `remove`) | Removes a public SSH key, after confirmation (`-y`, `--yes` skips it). GitHub lets several keys share a title: these need `--id` |
+| `gitclt user avatar set <IMAGE-FILE>` (`upload`) | Uploads an image (at most 10 MiB and 4096x4096) as your avatar. Forgejo only |
+| `gitclt user avatar delete [-y]` (`rm`, `remove`) | Restores the default avatar, after confirmation (`-y`, `--yes` skips it). Forgejo only |
 
 ### Organizations: `gitclt org` (alias: `organization`)
 Forgejo only. Some commands are self-service; the others need admin rights, or to be an owner of the organization.
@@ -155,6 +164,8 @@ Forgejo only. Some commands are self-service; the others need admin rights, or t
 | `gitclt org members [-j] <ORG>`                 | Lists the members of an organization |
 | `gitclt org ismember <ORG> <USER>`              | Tells whether `<USER>` is a member of `<ORG>`; a missing `<ORG>` is an error, not a "no" |
 | `gitclt org removemember [-y] <ORG> <USER>` (`rmmember`) | Removes `<USER>` from `<ORG>`, after confirmation (`-y`, `--yes` skips it) |
+| `gitclt org avatar set <ORG> <IMAGE-FILE>` (`upload`) | Uploads an image (at most 10 MiB and 4096x4096) as the organization's avatar; a token needs the `write:organization` scope |
+| `gitclt org avatar delete [-y] <ORG>` (`rm`, `remove`) | Restores the organization's default avatar, after confirmation (`-y`, `--yes` skips it); a token needs the `write:organization` scope |
 
 ### Teams: `gitclt team`
 Forgejo only. Teams are addressed by their organization and their name (case-insensitive): `<ORG> <TEAM>`. Forgejo only shows an organization's teams to its members; managing them needs admin rights, or to be an owner of the organization.<br>

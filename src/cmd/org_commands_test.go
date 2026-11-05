@@ -25,6 +25,7 @@ func TestOrgCommands(t *testing.T) {
 		"GET /api/v1/orgs/acme/members":        testutil.Reply(`[` + jfg + `]`),
 		"GET /api/v1/orgs/acme/members/jfg":    testutil.Status(http.StatusNoContent),
 		"DELETE /api/v1/orgs/acme/members/jfg": testutil.Status(http.StatusNoContent),
+		"DELETE /api/v1/orgs/acme/avatar":      testutil.Status(http.StatusNoContent),
 	})
 	for _, tc := range []struct {
 		args    []string
@@ -48,6 +49,9 @@ func TestOrgCommands(t *testing.T) {
 		{[]string{"org", "ismember", "nope", "jfg"}, nil, "Unable to fetch organization nope"},
 		{[]string{"org", "removemember", "acme", "jfg"}, []string{"n"}, "Aborted"},
 		{[]string{"org", "rmmember", "-y", "acme", "jfg"}, nil, "Removed jfg from acme"},
+		{[]string{"org", "avatar", "rm", "acme"}, []string{"n"}, "Aborted"},
+		{[]string{"org", "avatar", "delete", "-y", "acme"}, nil, "Avatar of organization acme deleted"},
+		{[]string{"org", "avatar", "set", "acme", "/nonexistent.png"}, nil, "Unable to read the avatar"},
 	} {
 		if out, _ := execute(t, tc.args, tc.answers...); !strings.Contains(out, tc.want) {
 			t.Errorf("%v: output = %q", tc.args, out)

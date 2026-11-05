@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-11-04
+
+### Added
+
+- `user email` commands (alias `emails`): the e-mail addresses of the connection's user, on Forgejo and GitHub (Bitbucket can only list them):
+  - `user email list [-j]` (alias `ls`): lists the addresses; `-q` outputs only the addresses
+  - `user email add [-j] <ADDRESS>...` (alias `create`): adds addresses
+  - `user email delete [-y] <ADDRESS>...` (aliases `rm`, `remove`): removes addresses, after confirmation; nothing changes if one is unknown, or is the primary address
+- `user sshkey` commands (aliases `sshkeys`, `ssh`): the public SSH keys of the connection's user, on Forgejo, GitHub and Bitbucket:
+  - `user sshkey list [-j]` (alias `ls`): lists the keys; `-q` outputs only their titles
+  - `user sshkey get [-j] <TITLE>` or `--id ID` (alias `info`): shows a key
+  - `user sshkey add [-j] <TITLE> <PUBLIC-KEY-FILE>` (alias `create`): adds a key; anything but one public key, such as a private key, is refused before contacting the server
+  - `user sshkey delete [-y] <TITLE>` or `--id ID` (aliases `rm`, `remove`): removes a key, after confirmation; a title shared by several keys is refused, and needs `--id`
+- `user avatar` commands: the avatar of the connection's user, on Forgejo (GitHub and Bitbucket have no API for this):
+  - `user avatar set <IMAGE-FILE>` (alias `upload`): uploads an image, of at most 10 MiB and 4096x4096
+  - `user avatar delete [-y]` (aliases `rm`, `remove`): restores the default avatar, after confirmation
+- `org avatar` commands: the avatar of an organization, on Forgejo, for its owners and site administrators; a token needs the `write:organization` scope:
+  - `org avatar set <ORG> <IMAGE-FILE>` (alias `upload`): uploads an image, with the same limits as `user avatar set`
+  - `org avatar delete [-y] <ORG>` (aliases `rm`, `remove`): restores the default avatar, after confirmation
+
+### Changed
+
+- Built on gitoperationslib 1.2.0, for its organization avatars API
+- `user whoami` now always shows the 2FA status, which used to need `-x`; it reads `not reported` when the forge does not tell, as Forgejo's API never does
+
 ## [1.3.0] - 2026-11-04
 
 ### Added

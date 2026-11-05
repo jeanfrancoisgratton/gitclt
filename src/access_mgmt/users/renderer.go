@@ -71,6 +71,62 @@ func printUser(w *tabwriter.Writer, u *gol.User) {
 	}
 }
 
+// printTwoFactor writes the 2FA status, which only gol.CurrentUser carries
+// nil is not "disabled": Forgejo's API never tells, and GitHub and Bitbucket can withhold it from a token
+func printTwoFactor(w *tabwriter.Writer, enabled *bool) {
+	status := "not reported"
+	if enabled != nil {
+		status = fmt.Sprintf("%t", *enabled)
+	}
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("2FA enabled:"), status)
+}
+
+func renderEmailTable(list []gol.Email) {
+	// Visibility is GitHub only
+	hasVisibility := slices.ContainsFunc(list, func(m gol.Email) bool { return m.Visibility != "" })
+
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	header := table.Row{"Address", "Primary", "Verified"}
+	if hasVisibility {
+		header = append(header, "Visibility")
+	}
+	t.AppendHeader(header)
+	for _, m := range list {
+		row := table.Row{m.Address, m.Primary, m.Verified}
+		if hasVisibility {
+			row = append(row, m.Visibility)
+		}
+		t.AppendRow(row)
+	}
+	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
+	t.Style().Format.Header = text.FormatDefault
+	t.Render()
+}
+
+func renderSSHKeyTable(list []gol.SSHKey) {
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"ID", "Title", "Fingerprint", "Created", "Last used"})
+	for _, k := range list {
+		t.AppendRow(table.Row{k.ID, k.Title, k.Fingerprint, formatTime(k.CreatedAt), formatTime(k.LastUsed)})
+	}
+	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
+	t.Style().Format.Header = text.FormatDefault
+	t.Render()
+}
+
+func printSSHKey(k *gol.SSHKey) {
+	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
+	_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("ID:"), k.ID)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Title:"), k.Title)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Fingerprint:"), k.Fingerprint)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Created:"), formatTime(k.CreatedAt))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Last used:"), formatTime(k.LastUsed))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Key:"), k.Key)
+	_ = w.Flush()
+}
+
 // printExtendedInfo writes what only gol.CurrentUser carries: the forge-specific fields (only those the forge
 // reported), settings, e-mails, organisations, teams, repositories and keys
 func printExtendedInfo(w *tabwriter.Writer, cu *gol.CurrentUser) {
@@ -82,9 +138,6 @@ func printExtendedInfo(w *tabwriter.Writer, cu *gol.CurrentUser) {
 	printIfSet(w, "Twitter:", cu.TwitterUsername)
 	if cu.AuthSourceID != 0 {
 		_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("Auth source ID:"), cu.AuthSourceID)
-	}
-	if cu.TwoFactorAuth != nil {
-		_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("2FA enabled:"), *cu.TwoFactorAuth)
 	}
 	if cu.Hireable {
 		_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Hireable:"), cu.Hireable)

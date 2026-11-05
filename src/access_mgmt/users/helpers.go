@@ -6,11 +6,42 @@
 package users
 
 import (
+	"context"
 	"fmt"
+	"gitclt/forge"
+	"gitclt/shared"
 	"io"
 	"os"
 	"strings"
+
+	cerr "github.com/jeanfrancoisgratton/customError/v3"
+	gol "github.com/jeanfrancoisgratton/gitoperationslib"
+	hf "github.com/jeanfrancoisgratton/helperFunctions/v5"
+	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 )
+
+// Connects, and returns the interface managing the connection user's own account
+func connectAccount(ctx context.Context) (*forge.Client, gol.Account, *cerr.CustomError) {
+	c, ce := forge.Connect(ctx, shared.ConnectionName)
+	if ce != nil {
+		return nil, nil, ce
+	}
+	acct, ce := c.Account()
+	if ce != nil {
+		return nil, nil, ce
+	}
+	return c, acct, nil
+}
+
+// Asks before an operation that cannot be undone, unless --yes was passed
+func confirmed(prompt string) bool {
+	if AssumeYes {
+		return true
+	}
+	answer := hf.GetStringValFromPrompt(hftx.WarningSign(prompt))
+	a := strings.ToLower(strings.TrimSpace(answer))
+	return a == "y" || a == "yes"
+}
 
 // readPasswordFile reads a password from path, refusing files that are
 // not regular files or that group/others can access.

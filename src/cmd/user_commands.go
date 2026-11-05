@@ -123,8 +123,187 @@ Boolean flags can be revoked with =false (e.g. --admin=false), and an empty stri
 	},
 }
 
+var userEmailCmd = &cobra.Command{
+	Use:     "email",
+	Aliases: []string{"emails"},
+	Short:   "Manages your own e-mail addresses",
+	Long:    "Acts on the connection's user, and needs no admin rights. Bitbucket can only list the addresses.",
+}
+
+var userEmailListCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Example: "  gitclt user email list [-c CONNECTION] [--json]",
+	Short:   "Lists your e-mail addresses",
+	Args:    cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, e := users.ListEmails(true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var userEmailAddCmd = &cobra.Command{
+	Use:     "add <ADDRESS>...",
+	Aliases: []string{"create"},
+	Example: "  gitclt user email add [-c CONNECTION] [--json] <ADDRESS>...",
+	Short:   "Adds e-mail addresses to your account (GitHub sends each a verification e-mail; Forgejo does if the server requires it)",
+	Args:    cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := users.AddEmails(args); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var userEmailDeleteCmd = &cobra.Command{
+	Use:     "delete <ADDRESS>...",
+	Aliases: []string{"rm", "remove"},
+	Example: "  gitclt user email delete [-c CONNECTION] [--yes] <ADDRESS>...",
+	Short:   "Removes e-mail addresses from your account; the primary one cannot be removed",
+	Args:    cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := users.DeleteEmails(args); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var userSSHKeyCmd = &cobra.Command{
+	Use:     "sshkey",
+	Aliases: []string{"sshkeys", "ssh"},
+	Short:   "Manages your own public SSH keys",
+	Long:    "Acts on the connection's user, and needs no admin rights.",
+}
+
+var userSSHKeyListCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Example: "  gitclt user sshkey list [-c CONNECTION] [--json]",
+	Short:   "Lists your public SSH keys",
+	Args:    cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, e := users.ListSSHKeys(true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var userSSHKeyGetCmd = &cobra.Command{
+	Use:     "get <TITLE>",
+	Aliases: []string{"info"},
+	Example: "  gitclt user sshkey get [-c CONNECTION] [--json] <TITLE>\n" +
+		"  gitclt user sshkey get --id 42",
+	Short: "Gives information about one of your public SSH keys",
+	Args:  sshKeyTargetArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, e := users.GetSSHKey(sshKeyTarget(args), true); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var userSSHKeyAddCmd = &cobra.Command{
+	Use:     "add <TITLE> <PUBLIC-KEY-FILE>",
+	Aliases: []string{"create"},
+	Example: "  gitclt user sshkey add [-c CONNECTION] [--json] <TITLE> <PUBLIC-KEY-FILE>\n" +
+		"  gitclt user sshkey add laptop ~/.ssh/id_ed25519.pub",
+	Short: "Adds a public SSH key to your account",
+	Long:  "The file must hold one public key; anything else, such as a private key, is refused before contacting the server.",
+	Args:  cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := users.AddSSHKey(args[0], args[1]); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var userSSHKeyDeleteCmd = &cobra.Command{
+	Use:     "delete <TITLE>",
+	Aliases: []string{"rm", "remove"},
+	Example: "  gitclt user sshkey delete [-c CONNECTION] [--yes] <TITLE>\n" +
+		"  gitclt user sshkey delete --id 42",
+	Short: "Removes a public SSH key from your account",
+	Args:  sshKeyTargetArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := users.DeleteSSHKey(sshKeyTarget(args)); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var userAvatarCmd = &cobra.Command{
+	Use:   "avatar",
+	Short: "Manages your own avatar (Forgejo only)",
+	Long:  "Acts on the connection's user, and needs no admin rights. GitHub and Bitbucket have no API for this.",
+}
+
+var userAvatarSetCmd = &cobra.Command{
+	Use:     "set <IMAGE-FILE>",
+	Aliases: []string{"upload"},
+	Example: "  gitclt user avatar set [-c CONNECTION] <IMAGE-FILE>",
+	Short:   "Uploads an image (at most 10 MiB and 4096x4096) as your avatar (Forgejo only)",
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := users.SetAvatar(args[0]); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var userAvatarDeleteCmd = &cobra.Command{
+	Use:     "delete",
+	Aliases: []string{"rm", "remove"},
+	Example: "  gitclt user avatar delete [-c CONNECTION] [--yes]",
+	Short:   "Restores the default avatar (Forgejo only)",
+	Args:    cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := users.DeleteAvatar(); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+// A key is designated either by its title, or with --id, as titles are not always unique
+func sshKeyTargetArgs(cmd *cobra.Command, args []string) error {
+	if !cmd.Flags().Changed("id") {
+		return cobra.ExactArgs(1)(cmd, args)
+	}
+	if len(args) != 0 {
+		return fmt.Errorf("pass either the key's title, or --id")
+	}
+	if users.SSHKeyID <= 0 {
+		return fmt.Errorf("--id must be a positive number")
+	}
+	return nil
+}
+
+func sshKeyTarget(args []string) string {
+	if len(args) == 0 {
+		return ""
+	}
+	return args[0]
+}
+
 func init() {
-	userCmd.AddCommand(userWhoAmICmd, userGetCmd, userListCmd, userDeleteCmd, userWipeCmd, userCreateCmd, userEditCmd)
+	userCmd.AddCommand(userWhoAmICmd, userGetCmd, userListCmd, userDeleteCmd, userWipeCmd, userCreateCmd, userEditCmd,
+		userEmailCmd, userSSHKeyCmd, userAvatarCmd)
+	userEmailCmd.AddCommand(userEmailListCmd, userEmailAddCmd, userEmailDeleteCmd)
+	userSSHKeyCmd.AddCommand(userSSHKeyListCmd, userSSHKeyGetCmd, userSSHKeyAddCmd, userSSHKeyDeleteCmd)
+	userAvatarCmd.AddCommand(userAvatarSetCmd, userAvatarDeleteCmd)
+
+	userEmailListCmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output as JSON")
+	userEmailAddCmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output as JSON")
+	userEmailDeleteCmd.Flags().BoolVarP(&users.AssumeYes, "yes", "y", false, "do not ask for confirmation before deleting")
+
+	userSSHKeyListCmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output as JSON")
+	userSSHKeyGetCmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output as JSON")
+	userSSHKeyGetCmd.Flags().Int64Var(&users.SSHKeyID, "id", 0, "designate the key by its ID instead of its title")
+	userSSHKeyAddCmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output as JSON")
+	userSSHKeyDeleteCmd.Flags().Int64Var(&users.SSHKeyID, "id", 0, "designate the key by its ID instead of its title")
+	userSSHKeyDeleteCmd.Flags().BoolVarP(&users.AssumeYes, "yes", "y", false, "do not ask for confirmation before deleting")
+
+	userAvatarDeleteCmd.Flags().BoolVarP(&users.AssumeYes, "yes", "y", false, "do not ask for confirmation before deleting")
 
 	userWhoAmICmd.Flags().BoolVarP(&users.ExtendedInfo, "extended", "x", false, "provide extended user information")
 	userWhoAmICmd.Flags().BoolVarP(&users.JSONoutput, "json", "j", false, "output as JSON")

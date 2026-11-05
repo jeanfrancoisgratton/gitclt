@@ -13,6 +13,9 @@ var PurgeUser = false
 var AssumeYes = false
 var WipeDryRun = false
 
+// SSH key flag
+var SSHKeyID int64
+
 // CreateUserOptions flags
 var CreateUserEmail string
 var CreateUserPasswdFile string

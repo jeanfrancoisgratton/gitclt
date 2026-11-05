@@ -8,6 +8,8 @@ import (
 	"io"
 	"maps"
 	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -55,6 +57,65 @@ func TestUserCommands(t *testing.T) {
 	} {
 		if out, _ := execute(t, tc.args, tc.answers...); !strings.Contains(out, tc.want) {
 			t.Errorf("%v: output = %q", tc.args, out)
+		}
+	}
+}
+
+func TestUserSelfServiceCommands(t *testing.T) {
+	keyFile := filepath.Join(t.TempDir(), "id.pub")
+	if err := os.WriteFile(keyFile, []byte("ssh-ed25519 AAAA jfg@laptop\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	const key = `{"id":5,"title":"laptop","key":"ssh-ed25519 AAAA jfg@laptop","fingerprint":"SHA256:abc"}`
+	testutil.Forgejo(t, map[string]http.HandlerFunc{
+		"GET /api/v1/user/emails":    testutil.Reply(`[{"email":"jfg@example.com","primary":true},{"email":"old@example.com"}]`),
+		"POST /api/v1/user/emails":   testutil.Reply(`[{"email":"new@example.com"}]`),
+		"DELETE /api/v1/user/emails": testutil.Status(http.StatusNoContent),
+		"GET /api/v1/user/keys":      testutil.Reply(`[` + key + `]`),
+		"POST /api/v1/user/keys":     testutil.Reply(key),
+		"DELETE /api/v1/user/keys/5": testutil.Status(http.StatusNoContent),
+		"DELETE /api/v1/user/avatar": testutil.Status(http.StatusNoContent),
+	})
+	for _, tc := range []struct {
+		args    []string
+		answers []string
+		want    string
+	}{
+		{[]string{"user", "email", "ls"}, nil, "old@example.com"},
+		{[]string{"user", "emails", "add", "new@example.com"}, nil, "Added e-mail address new@example.com"},
+		{[]string{"user", "email", "rm", "old@example.com"}, []string{"n"}, "Aborted"},
+		{[]string{"user", "email", "rm", "-y", "old@example.com"}, nil, "Deleted e-mail address old@example.com"},
+		{[]string{"user", "sshkey", "ls"}, nil, "SHA256:abc"},
+		{[]string{"user", "ssh", "get", "laptop"}, nil, "SHA256:abc"},
+		{[]string{"user", "sshkey", "get", "--id", "5", "-j"}, nil, `"fingerprint": "SHA256:abc"`},
+		{[]string{"user", "sshkey", "add", "laptop", keyFile}, nil, "Added SSH key laptop"},
+		{[]string{"user", "sshkey", "rm", "-y", "laptop"}, nil, "Deleted SSH key laptop"},
+		{[]string{"user", "avatar", "rm", "-y"}, nil, "Avatar deleted"},
+		{[]string{"user", "avatar", "set", keyFile}, nil, "Invalid avatar"},
+	} {
+		if out, _ := execute(t, tc.args, tc.answers...); !strings.Contains(out, tc.want) {
+			t.Errorf("%v: output = %q", tc.args, out)
+		}
+	}
+}
+
+func TestUserSelfService_FlagRules(t *testing.T) {
+	testutil.WriteRegistry(t, "")
+	for _, tc := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"user", "email", "add"}, "requires at least 1 arg(s)"},
+		{[]string{"user", "email", "rm"}, "requires at least 1 arg(s)"},
+		{[]string{"user", "sshkey", "add", "laptop"}, "accepts 2 arg(s)"},
+		{[]string{"user", "sshkey", "get"}, "accepts 1 arg(s)"},
+		{[]string{"user", "sshkey", "rm", "--id", "5", "laptop"}, "either the key's title, or --id"},
+		{[]string{"user", "sshkey", "rm", "--id", "0"}, "--id must be a positive number"},
+		{[]string{"user", "avatar", "set"}, "accepts 1 arg(s)"},
+		{[]string{"user", "avatar", "rm", "extra"}, "unknown command"},
+	} {
+		if _, stderr := execute(t, tc.args); !strings.Contains(stderr, tc.want) {
+			t.Errorf("%v: stderr = %q", tc.args, stderr)
 		}
 	}
 }

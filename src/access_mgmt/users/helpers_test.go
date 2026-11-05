@@ -31,6 +31,7 @@ func defaults(t *testing.T) {
 	}
 	testutil.Set(t, &CreateUserVisibility, "")
 	testutil.Set(t, &EditUserVisibility, "")
+	testutil.Set(t, &SSHKeyID, 0)
 	testutil.Set(t, &shared.DebugMode, true) // GetPassword needs a terminal otherwise
 }
 

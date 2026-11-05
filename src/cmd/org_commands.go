@@ -155,9 +155,44 @@ var orgRemoveMemberCmd = &cobra.Command{
 	},
 }
 
+var orgAvatarCmd = &cobra.Command{
+	Use:   "avatar",
+	Short: "Manages the avatar of an organization (Forgejo only)",
+	Long:  "Needs admin rights, or to be an owner of the organization. A token needs the write:organization scope.",
+}
+
+var orgAvatarSetCmd = &cobra.Command{
+	Use:     "set <ORG> <IMAGE-FILE>",
+	Aliases: []string{"upload"},
+	Example: "  gitclt org avatar set [-c CONNECTION] <ORG> <IMAGE-FILE>",
+	Short:   "Uploads an image (at most 10 MiB and 4096x4096) as the organization's avatar (Forgejo only)",
+	Args:    cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := organizations.SetOrgAvatar(args[0], args[1]); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
+var orgAvatarDeleteCmd = &cobra.Command{
+	Use:     "delete <ORG>",
+	Aliases: []string{"rm", "remove"},
+	Example: "  gitclt org avatar delete [-c CONNECTION] [--yes] <ORG>",
+	Short:   "Restores the organization's default avatar (Forgejo only)",
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if e := organizations.DeleteOrgAvatar(args[0]); e != nil {
+			fmt.Println(e.Error())
+		}
+	},
+}
+
 func init() {
 	orgCmd.AddCommand(orgListCmd, orgListAllCmd, orgGetCmd, orgDeleteCmd, orgRenameCmd,
-		orgCreateCmd, orgEditCmd, orgMembersCmd, orgIsMemberCmd, orgRemoveMemberCmd)
+		orgCreateCmd, orgEditCmd, orgMembersCmd, orgIsMemberCmd, orgRemoveMemberCmd, orgAvatarCmd)
+	orgAvatarCmd.AddCommand(orgAvatarSetCmd, orgAvatarDeleteCmd)
+
+	orgAvatarDeleteCmd.Flags().BoolVarP(&organizations.AssumeYes, "yes", "y", false, "do not ask for confirmation before deleting")
 
 	orgListCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output as JSON")
 	orgListAllCmd.Flags().BoolVarP(&organizations.JSONoutput, "json", "j", false, "output as JSON")

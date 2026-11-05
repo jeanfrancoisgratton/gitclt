@@ -142,6 +142,16 @@ func (c *Client) Account() (gol.Account, *cerr.CustomError) {
 	return a, nil
 }
 
+// Returns the organization avatar interface; only Forgejo implements it, and it is not part of gol.Client either
+func (c *Client) OrgAvatars() (gol.OrgAvatars, *cerr.CustomError) {
+	a, ok := c.Client.(gol.OrgAvatars)
+	if !ok {
+		return nil, &cerr.CustomError{Title: "Unsupported operation",
+			Message: fmt.Sprintf("Connection %s: organization avatars can only be managed on Forgejo", c.Connection.Name)}
+	}
+	return a, nil
+}
+
 // github.com has its API on a separate host (api.github.com), which the library uses by default
 func isGithubDotCom(serverURL string) bool {
 	u, err := url.Parse(serverURL)

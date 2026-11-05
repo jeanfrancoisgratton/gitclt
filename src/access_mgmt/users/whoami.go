@@ -45,6 +45,7 @@ func WhoAmI(displayOutput bool) (*gol.CurrentUser, *cerr.CustomError) {
 	// tabulated output
 	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
 	printUser(w, &cu.User)
+	printTwoFactor(w, cu.TwoFactorAuth)
 	if ExtendedInfo {
 		printExtendedInfo(w, cu)
 	}

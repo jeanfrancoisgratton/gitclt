@@ -77,10 +77,9 @@ func TestPrintUser(t *testing.T) {
 func TestPrintExtendedInfo(t *testing.T) {
 	day := time.Date(2026, 10, 1, 0, 0, 0, 0, time.Local)
 	cu := &gol.CurrentUser{
-		LoginName:     "jfg-ldap",
-		AuthSourceID:  2,
-		TwoFactorAuth: gol.Ptr(true),
-		PublicRepos:   4, TotalPrivateRepos: 2, OwnedPrivateRepos: 1,
+		LoginName:    "jfg-ldap",
+		AuthSourceID: 2,
+		PublicRepos:  4, TotalPrivateRepos: 2, OwnedPrivateRepos: 1,
 		Settings: &gol.UserSettings{Theme: "forgejo-dark", HideEmail: true},
 		Emails:   []gol.Email{{Address: "jfg@example.com", Primary: true, Verified: true}},
 		Orgs:     []gol.Org{{Name: "acme", FullName: "ACME Inc."}},
@@ -91,7 +90,7 @@ func TestPrintExtendedInfo(t *testing.T) {
 	}
 
 	out := render(func(w *tabwriter.Writer) { printExtendedInfo(w, cu) })
-	for _, want := range []string{"Login name:", "jfg-ldap", "Auth source ID:", "2FA enabled:", "4 public, 2 private (1 owned)",
+	for _, want := range []string{"Login name:", "jfg-ldap", "Auth source ID:", "4 public, 2 private (1 owned)",
 		"Settings", "forgejo-dark", "E-mail addresses", "primary, verified", "Organisations", "ACME Inc.",
 		"Teams", "acme/devs", "all repos", "Repositories (1)", "jfg/gitclt", "fork",
 		"SSH keys", "SHA256:abc", "last used -", "read-only", "GPG keys", "ABCD1234", "expires never", "sign"} {
