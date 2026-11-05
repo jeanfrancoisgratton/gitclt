@@ -46,7 +46,7 @@ func EditPR(repo, number string, changed func(string) bool) *cerr.CustomError {
 		return &cerr.CustomError{Title: "Nothing to edit", Message: "no flag was provided; see gitclt pr edit --help"}
 	}
 
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}
@@ -81,7 +81,7 @@ func ClosePRs(repo string, numbers []string, reopen bool) *cerr.CustomError {
 	if ce != nil {
 		return ce
 	}
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}

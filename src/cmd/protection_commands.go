@@ -34,53 +34,56 @@ On GitHub, a rule is a branch ruleset; a ruleset targeting several patterns is l
 }
 
 var protectionListCmd = &cobra.Command{
-	Use:     "list <REPO>",
+	Use:     "list [<REPO>]",
 	Aliases: []string{"ls"},
-	Example: "  gitclt branch protection list [-c CONNECTION] [-o OWNER] [-j] <REPO>",
+	Example: "  gitclt branch protection list [-c CONNECTION] [-o OWNER] [-j] [<REPO>]",
 	Short:   "Lists the branch protection rules of a repository",
-	Args:    cobra.ExactArgs(1),
+	Args:    cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if _, e := protections.ListProtections(args[0], true); e != nil {
+		repo, _ := splitRepo(args, 0)
+		if _, e := protections.ListProtections(repo, true); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
 }
 
 var protectionGetCmd = &cobra.Command{
-	Use:     "get <REPO> <PATTERN>",
+	Use:     "get [<REPO>] <PATTERN>",
 	Aliases: []string{"info"},
-	Example: "  gitclt branch protection get [-c CONNECTION] [-o OWNER] [-j] <REPO> <PATTERN>\n" +
+	Example: "  gitclt branch protection get [-c CONNECTION] [-o OWNER] [-j] [<REPO>] <PATTERN>\n" +
 		"  gitclt branch prot get myrepo 'release/*'",
 	Short: "Shows a branch protection rule",
-	Args:  cobra.ExactArgs(2),
+	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		if _, e := protections.GetProtection(args[0], args[1], true); e != nil {
+		repo, rest := splitRepo(args, 1)
+		if _, e := protections.GetProtection(repo, rest[0], true); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
 }
 
 var protectionCreateCmd = &cobra.Command{
-	Use:     "create <REPO> <PATTERN>",
+	Use:     "create [<REPO>] <PATTERN>",
 	Aliases: []string{"add"},
-	Example: "  gitclt branch protection create [-c CONNECTION] [-o OWNER] [flags] <REPO> <PATTERN>\n" +
+	Example: "  gitclt branch protection create [-c CONNECTION] [-o OWNER] [flags] [<REPO>] <PATTERN>\n" +
 		"  gitclt branch prot add --approvals 2 --no-push myrepo main\n" +
 		"  gitclt branch prot add --status-check ci/build --status-check ci/test --up-to-date myrepo 'release/*'",
 	Short: "Creates a branch protection rule",
 	Long: `Without any flag, the rule still blocks deleting the matching branches and force-pushing to them.
 Direct pushes stay open to anyone with write access, unless --no-push or --push-users / --push-teams say otherwise.` + protectionForgeNotes,
-	Args: cobra.ExactArgs(2),
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		if e := protections.CreateProtection(args[0], args[1], cmd.Flags().Changed); e != nil {
+		repo, rest := splitRepo(args, 1)
+		if e := protections.CreateProtection(repo, rest[0], cmd.Flags().Changed); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
 }
 
 var protectionEditCmd = &cobra.Command{
-	Use:     "edit <REPO> <PATTERN>",
+	Use:     "edit [<REPO>] <PATTERN>",
 	Aliases: []string{"update"},
-	Example: "  gitclt branch protection edit [-c CONNECTION] [-o OWNER] [flags] <REPO> <PATTERN>\n" +
+	Example: "  gitclt branch protection edit [-c CONNECTION] [-o OWNER] [flags] [<REPO>] <PATTERN>\n" +
 		"  gitclt branch prot edit --approvals 1 --signed=false myrepo main\n" +
 		"  gitclt branch prot edit --any-push --status-check '' myrepo main",
 	Short: "Edits a branch protection rule; only the flags passed are changed",
@@ -90,26 +93,28 @@ var protectionEditCmd = &cobra.Command{
 A rule's pattern cannot be changed: delete the rule, and create a new one.
 On GitHub, a rule is written back as a whole ruleset: the ruleset's own name, its enforcement status (a disabled one becomes active)
 and any setting gitclt does not know of are overwritten. Check the rulesets that were not made with gitclt before editing them.` + protectionForgeNotes,
-	Args: cobra.ExactArgs(2),
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		if e := protections.EditProtection(args[0], args[1], cmd.Flags().Changed); e != nil {
+		repo, rest := splitRepo(args, 1)
+		if e := protections.EditProtection(repo, rest[0], cmd.Flags().Changed); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
 }
 
 var protectionDeleteCmd = &cobra.Command{
-	Use:     "delete <REPO> <PATTERN>...",
+	Use:     "delete [<REPO>] <PATTERN>...",
 	Aliases: []string{"rm", "del"},
-	Example: "  gitclt branch protection delete [-c CONNECTION] [-o OWNER] [-y] <REPO> <PATTERN>...\n" +
+	Example: "  gitclt branch protection delete [-c CONNECTION] [-o OWNER] [-y] [<REPO>] <PATTERN>...\n" +
 		"  gitclt branch prot rm myrepo main 'release/*'",
 	Short: "Deletes branch protection rules",
 	Long: `Every rule is checked before the confirmation. The run stops at the first failure; the rules deleted before it stay deleted.
 On GitHub, a ruleset's settings that gitclt does not know of go with it.`,
-	Args: cobra.MinimumNArgs(2),
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if e := protections.DeleteProtections(args[0], args[1:]); e != nil {
-			fmt.Println(e.Error())
+		repo, names := splitRepo(args, 1)
+		if e := protections.DeleteProtections(repo, names); e != nil {
+			printTargetsError(e)
 		}
 	},
 }
@@ -150,7 +155,7 @@ func init() {
 	protectionCmd.AddCommand(protectionListCmd, protectionGetCmd, protectionCreateCmd, protectionEditCmd, protectionDeleteCmd)
 
 	// Takes over branchCmd's own -o, which is tied to the branches package
-	protectionCmd.PersistentFlags().StringVarP(&protections.OwnerOrg, "owner", "o", "", "user, organization or workspace that owns the repository (default: the connection's owner, else your username)")
+	protectionCmd.PersistentFlags().StringVarP(&protections.OwnerOrg, "owner", "o", "", ownerFlagHelp)
 
 	protectionListCmd.Flags().BoolVarP(&protections.JSONoutput, "json", "j", false, "output as JSON")
 	protectionGetCmd.Flags().BoolVarP(&protections.JSONoutput, "json", "j", false, "output as JSON")
@@ -168,4 +173,6 @@ func init() {
 	protectionEditCmd.MarkFlagsMutuallyExclusive("any-merge", "merge-teams")
 	protectionEditCmd.MarkFlagsMutuallyExclusive("any-approver", "approver-users")
 	protectionEditCmd.MarkFlagsMutuallyExclusive("any-approver", "approver-teams")
+
+	addHelp(protectionCmd, repoInferenceHelp)
 }

@@ -18,7 +18,7 @@ import (
 // ListProtections lists the branch protection rules of owner/repo
 func ListProtections(repo string, displayoutput bool) ([]gol.BranchProtection, *cerr.CustomError) {
 	ctx := context.Background()
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return nil, ce
 	}
@@ -55,7 +55,7 @@ func ListProtections(repo string, displayoutput bool) ([]gol.BranchProtection, *
 // GetProtection shows the branch protection rule of owner/repo addressed by pattern
 func GetProtection(repo, pattern string, displayoutput bool) (*gol.BranchProtection, *cerr.CustomError) {
 	ctx := context.Background()
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return nil, ce
 	}

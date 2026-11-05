@@ -5,6 +5,7 @@ package branches
 
 import (
 	"errors"
+	"gitclt/shared"
 	"maps"
 	"os"
 	"path/filepath"
@@ -90,7 +91,7 @@ func TestReadLocalRepo_Worktree(t *testing.T) {
 }
 
 func TestReadLocalRepo_NoWorkingCopy(t *testing.T) {
-	if _, err := readLocalRepo(t.TempDir()); !errors.Is(err, errNoWorkingCopy) {
+	if _, err := readLocalRepo(t.TempDir()); !errors.Is(err, shared.ErrNoWorkingCopy) {
 		t.Fatalf("got %v", err)
 	}
 }

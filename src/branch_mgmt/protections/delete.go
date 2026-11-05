@@ -21,7 +21,7 @@ import (
 // Every rule is checked before asking; the first failure stops the run, and the rules deleted before it stay deleted
 func DeleteProtections(repo string, patterns []string) *cerr.CustomError {
 	ctx := context.Background()
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}

@@ -23,7 +23,7 @@ func GetBranch(repo, branch string, displayoutput bool) (*Branch, *cerr.CustomEr
 	ctx := context.Background()
 
 	var owner string
-	if c, owner, ce = connect(ctx); ce != nil {
+	if c, owner, repo, ce = connect(ctx, repo); ce != nil {
 		return nil, ce
 	}
 	b := &Branch{Name: branch}

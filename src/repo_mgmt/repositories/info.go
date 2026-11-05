@@ -33,7 +33,7 @@ func RepositoryInfo(reponame string, displayoutput bool) (*gol.Repo, *cerr.Custo
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return nil, ce
 	}
-	owner, ce := c.Owner(ctx, OwnerOrg)
+	owner, reponame, ce := c.Target(ctx, OwnerOrg, reponame)
 	if ce != nil {
 		return nil, ce
 	}

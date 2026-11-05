@@ -24,7 +24,7 @@ import (
 // The first failure stops the run; the tags deleted before it stay deleted
 func DeleteTags(repo string, tags []string) *cerr.CustomError {
 	ctx := context.Background()
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}
@@ -63,10 +63,10 @@ func DeleteTags(repo string, tags []string) *cerr.CustomError {
 				strings.Join(released, ", "))}
 	}
 
-	question := fmt.Sprintf("Delete tag(s) %s on the server ? [y/N]: ", strings.Join(tags, ", "))
+	question := fmt.Sprintf("Delete tag(s) %s of %s/%s on the server ? [y/N]: ", strings.Join(tags, ", "), owner, repo)
 	if len(released) > 0 {
-		question = fmt.Sprintf("Delete tag(s) %s on the server, and the release(s) of %s with their assets ? [y/N]: ",
-			strings.Join(tags, ", "), strings.Join(released, ", "))
+		question = fmt.Sprintf("Delete tag(s) %s of %s/%s on the server, and the release(s) of %s with their assets ? [y/N]: ",
+			strings.Join(tags, ", "), owner, repo, strings.Join(released, ", "))
 	}
 	if !confirm(question) {
 		fmt.Println("Aborted, no tag is deleted")

@@ -189,7 +189,8 @@ func TestListBranches_AllWithoutWorkingCopy(t *testing.T) {
 
 func TestListBranches_Errors(t *testing.T) {
 	defaults(t)
-	testutil.WriteRegistry(t, "")
+	testutil.Forgejo(t, nil)
+	t.Chdir(t.TempDir())
 	if _, err := ListBranches("", false); err == nil || err.Title != "Missing repository" {
 		t.Fatalf("no repo: %+v", err)
 	}

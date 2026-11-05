@@ -32,7 +32,7 @@ func MergePR(repo, number string) *cerr.CustomError {
 			Message: MergeMethod + " is not one of merge, squash, rebase, rebase-merge, fast-forward-only, manually-merged"}
 	}
 
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}

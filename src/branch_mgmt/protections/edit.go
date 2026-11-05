@@ -27,7 +27,7 @@ func EditProtection(repo, pattern string, changed func(string) bool) *cerr.Custo
 		return &cerr.CustomError{Title: "Nothing to edit", Message: "no flag was provided; see gitclt branch protection edit --help"}
 	}
 
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}

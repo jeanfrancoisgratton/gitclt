@@ -24,7 +24,7 @@ import (
 // Every tag is checked before asking; the first failure stops the run, and the releases before it stay deleted
 func DeleteReleases(repo string, tags []string) *cerr.CustomError {
 	ctx := context.Background()
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}
@@ -55,7 +55,7 @@ func DeleteReleases(repo string, tags []string) *cerr.CustomError {
 			Message: fmt.Sprintf("%s/%s has no release for %s", owner, repo, strings.Join(missing, ", "))}
 	}
 
-	if !confirm(fmt.Sprintf("Delete the release(s) of %s, with their assets (the tags stay) ? [y/N]: ", strings.Join(tags, ", "))) {
+	if !confirm(fmt.Sprintf("Delete the release(s) of %s in %s/%s, with their assets (the tags stay) ? [y/N]: ", strings.Join(tags, ", "), owner, repo)) {
 		fmt.Println("Aborted, no release is deleted")
 		return nil
 	}
@@ -75,7 +75,7 @@ func DeleteReleases(repo string, tags []string) *cerr.CustomError {
 // Every name is checked before asking; the first failure stops the run, and the assets before it stay deleted
 func DeleteAssets(repo, tag string, names []string) *cerr.CustomError {
 	ctx := context.Background()
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}
@@ -113,7 +113,7 @@ func DeleteAssets(repo, tag string, names []string) *cerr.CustomError {
 			Message: fmt.Sprintf("release %s has no %s", tag, strings.Join(missing, ", "))}
 	}
 
-	if !confirm(fmt.Sprintf("Delete %s from release %s ? [y/N]: ", strings.Join(names, ", "), tag)) {
+	if !confirm(fmt.Sprintf("Delete %s from release %s of %s/%s ? [y/N]: ", strings.Join(names, ", "), tag, owner, repo)) {
 		fmt.Println("Aborted, no asset is deleted")
 		return nil
 	}

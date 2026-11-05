@@ -8,6 +8,7 @@ package branches
 import (
 	"bufio"
 	"errors"
+	"gitclt/shared"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -22,19 +23,14 @@ type localRepo struct {
 	remotes  []string          // the remotes' URLs
 }
 
-var errNoWorkingCopy = errors.New("not inside a git working copy")
-
 // readLocalRepo reads the working copy that dir is part of (dir itself, or one of its parents)
 func readLocalRepo(dir string) (*localRepo, error) {
-	gitDir, err := findGitDir(dir)
+	gitDir, err := shared.FindGitDir(dir)
 	if err != nil {
 		return nil, err
 	}
 	// A linked worktree has its own HEAD, but shares the branches and the config with the main working copy
-	commonDir := gitDir
-	if b, err := os.ReadFile(filepath.Join(gitDir, "commondir")); err == nil {
-		commonDir = resolve(gitDir, strings.TrimSpace(string(b)))
-	}
+	commonDir := shared.CommonGitDir(gitDir)
 
 	r := &localRepo{branches: map[string]string{}}
 	head, err := os.ReadFile(filepath.Join(gitDir, "HEAD"))
@@ -50,46 +46,14 @@ func readLocalRepo(dir string) (*localRepo, error) {
 	if err = r.readLooseRefs(filepath.Join(commonDir, "refs", "heads")); err != nil {
 		return nil, err
 	}
-	if r.remotes, err = readRemoteURLs(filepath.Join(commonDir, "config")); err != nil {
+	remotes, err := shared.ReadGitRemotes(filepath.Join(commonDir, "config"))
+	if err != nil {
 		return nil, err
 	}
+	for _, remote := range remotes {
+		r.remotes = append(r.remotes, remote.URL)
+	}
 	return r, nil
-}
-
-// findGitDir looks for .git in dir and its parents; .git is a directory, or a file pointing to one (worktrees, submodules)
-func findGitDir(dir string) (string, error) {
-	dir, err := filepath.Abs(dir)
-	if err != nil {
-		return "", err
-	}
-	for {
-		p := filepath.Join(dir, ".git")
-		if fi, err := os.Stat(p); err == nil {
-			if fi.IsDir() {
-				return p, nil
-			}
-			b, err := os.ReadFile(p)
-			if err != nil {
-				return "", err
-			}
-			if target, ok := strings.CutPrefix(strings.TrimSpace(string(b)), "gitdir: "); ok {
-				return resolve(dir, target), nil
-			}
-			return "", errors.New(p + " is neither a directory nor a gitdir link")
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", errNoWorkingCopy
-		}
-		dir = parent
-	}
-}
-
-func resolve(base, p string) string {
-	if filepath.IsAbs(p) {
-		return p
-	}
-	return filepath.Join(base, p)
 }
 
 // packed-refs holds the branches git has packed (git gc, or a fresh clone): "<sha> refs/heads/<name>" lines
@@ -133,32 +97,6 @@ func (r *localRepo) readLooseRefs(root string) error {
 		return nil
 	}
 	return err
-}
-
-// readRemoteURLs returns the url values of the [remote "..."] sections of a git config file
-func readRemoteURLs(path string) ([]string, error) {
-	f, err := os.Open(path)
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	var urls []string
-	inRemote := false
-	s := bufio.NewScanner(f)
-	for s.Scan() {
-		line := strings.TrimSpace(s.Text())
-		if strings.HasPrefix(line, "[") {
-			inRemote = strings.HasPrefix(line, "[remote ")
-			continue
-		}
-		if key, val, ok := strings.Cut(line, "="); ok && inRemote && strings.TrimSpace(key) == "url" {
-			urls = append(urls, strings.TrimSpace(val))
-		}
-	}
-	return urls, s.Err()
 }
 
 // matchesRepo tells if one of the remotes' URLs points to owner/repo, whatever the host and protocol

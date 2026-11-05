@@ -26,7 +26,7 @@ func ListPRs(repo string, displayoutput bool) ([]gol.PullRequest, *cerr.CustomEr
 		return nil, &cerr.CustomError{Title: "Invalid state", Message: ListState + " is not one of open, closed, all"}
 	}
 
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return nil, ce
 	}
@@ -65,7 +65,7 @@ func GetPR(repo, number string, displayoutput bool) (*PullRequest, *cerr.CustomE
 	if ce != nil {
 		return nil, ce
 	}
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return nil, ce
 	}

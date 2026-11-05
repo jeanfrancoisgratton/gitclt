@@ -17,13 +17,13 @@ func TestTagCommands(t *testing.T) {
 		args []string
 		want string
 	}{
-		{[]string{"tag", "ls"}, "accepts 1 arg(s)"},
+		{[]string{"tag", "ls", "a", "b"}, "accepts at most 1 arg(s)"},
 		// The local side is gone: so are its flags
 		{[]string{"tag", "ls", "-l", "web"}, "unknown shorthand flag: 'l'"},
 		{[]string{"tag", "rm", "--all", "web", "v1"}, "unknown flag: --all"},
-		{[]string{"tag", "get", "web"}, "accepts 2 arg(s)"},
-		{[]string{"tag", "create", "web"}, "accepts 2 arg(s)"},
-		{[]string{"tag", "rm", "web"}, "requires at least 2 arg(s)"},
+		{[]string{"tag", "get"}, "accepts between 1 and 2 arg(s)"},
+		{[]string{"tag", "create"}, "accepts between 1 and 2 arg(s)"},
+		{[]string{"tag", "rm"}, "requires at least 1 arg(s)"},
 	} {
 		out, stderr := execute(t, tc.args)
 		if !strings.Contains(out+stderr, tc.want) {

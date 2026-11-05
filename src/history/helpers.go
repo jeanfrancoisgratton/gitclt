@@ -17,22 +17,22 @@ import (
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
 )
 
-// connect opens the client on the selected connection, decides the repositories' owner (-o, or the connection's
-// default), and finds the commit history interface
-func connect(ctx context.Context) (*forge.Client, string, gol.History, *cerr.CustomError) {
+// connect opens the client on the selected connection, decides the repository and its owner (see forge.Client.Target),
+// and finds the commit history interface
+func connect(ctx context.Context, repo string) (*forge.Client, string, string, gol.History, *cerr.CustomError) {
 	c, ce := forge.Connect(ctx, shared.ConnectionName)
 	if ce != nil {
-		return nil, "", nil, ce
+		return nil, "", "", nil, ce
 	}
-	owner, ce := c.Owner(ctx, OwnerOrg)
+	owner, repo, ce := c.Target(ctx, OwnerOrg, repo)
 	if ce != nil {
-		return nil, "", nil, ce
+		return nil, "", "", nil, ce
 	}
 	h, ce := c.History()
 	if ce != nil {
-		return nil, "", nil, ce
+		return nil, "", "", nil, ce
 	}
-	return c, owner, h, nil
+	return c, owner, repo, h, nil
 }
 
 // checkRepo makes sure owner/repo exists, so that a 404 further down is about the reference, not the repository

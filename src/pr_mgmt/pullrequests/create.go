@@ -29,7 +29,7 @@ func CreatePR(repo, head, base string, changed func(string) bool) *cerr.CustomEr
 		return ce
 	}
 
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}

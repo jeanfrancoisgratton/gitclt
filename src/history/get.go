@@ -21,7 +21,7 @@ import (
 func Get(repo, ref string, displayoutput bool) (*gol.Commit, *cerr.CustomError) {
 	ctx := context.Background()
 
-	c, owner, h, ce := connect(ctx)
+	c, owner, repo, h, ce := connect(ctx, repo)
 	if ce != nil {
 		return nil, ce
 	}

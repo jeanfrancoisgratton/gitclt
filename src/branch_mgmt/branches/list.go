@@ -22,6 +22,7 @@ import (
 
 // ListBranches lists the branches of owner/reponame: those of the local working copy (the current directory),
 // those on the server, or both, merged by name (the default)
+// Without a repo name, it is the one the current directory is a clone of (see forge.Client.Target)
 // --local alone needs neither the owner nor the repo name; when they are given, the working copy must be that repo's
 // With both, a current directory that is not a working copy of the repo only drops the local side, with a notice
 func ListBranches(reponame string, displayoutput bool) ([]Branch, *cerr.CustomError) {
@@ -30,18 +31,13 @@ func ListBranches(reponame string, displayoutput bool) ([]Branch, *cerr.CustomEr
 		withLocal, withServer = true, true
 	}
 
-	if withServer && reponame == "" {
-		return nil, &cerr.CustomError{Title: "Missing repository",
-			Message: "the server's branches need the repository name; use --local for the local branches only"}
-	}
-
 	// The owner is only known once connected (see forge.Client.Owner); --local alone only checks an explicit -o
 	var c *forge.Client
 	owner := OwnerOrg
 	ctx := context.Background()
 	if withServer {
 		var ce *cerr.CustomError
-		if c, owner, ce = connect(ctx); ce != nil {
+		if c, owner, reponame, ce = connect(ctx, reponame); ce != nil {
 			return nil, ce
 		}
 	}
@@ -117,17 +113,17 @@ func ListBranches(reponame string, displayoutput bool) ([]Branch, *cerr.CustomEr
 	return branches, nil
 }
 
-// connect opens the client on the selected connection, and decides the repositories' owner (-o, or the connection's default)
-func connect(ctx context.Context) (*forge.Client, string, *cerr.CustomError) {
+// connect opens the client on the selected connection, and decides the repository and its owner (see forge.Client.Target)
+func connect(ctx context.Context, repo string) (*forge.Client, string, string, *cerr.CustomError) {
 	c, ce := forge.Connect(ctx, shared.ConnectionName)
 	if ce != nil {
-		return nil, "", ce
+		return nil, "", "", ce
 	}
-	owner, ce := c.Owner(ctx, OwnerOrg)
+	owner, repo, ce := c.Target(ctx, OwnerOrg, repo)
 	if ce != nil {
-		return nil, "", ce
+		return nil, "", "", ce
 	}
-	return c, owner, nil
+	return c, owner, repo, nil
 }
 
 // compareSides fills how the local branch relates to the server's, when both exist and differ
@@ -155,7 +151,7 @@ func localBranches(owner, reponame string) (*localRepo, *cerr.CustomError) {
 		return nil, &cerr.CustomError{Title: "Unable to read the local branches", Message: e.Error()}
 	}
 	lr, e := readLocalRepo(cwd)
-	if errors.Is(e, errNoWorkingCopy) {
+	if errors.Is(e, shared.ErrNoWorkingCopy) {
 		return nil, &cerr.CustomError{Title: "No local working copy", Message: cwd + " is " + e.Error()}
 	}
 	if e != nil {

@@ -20,7 +20,7 @@ import (
 // ListTags lists the tags of owner/repo on the server, newest version first, each with its release if it has one
 func ListTags(repo string, displayoutput bool) ([]Tag, *cerr.CustomError) {
 	ctx := context.Background()
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return nil, ce
 	}
@@ -64,7 +64,7 @@ func ListTags(repo string, displayoutput bool) ([]Tag, *cerr.CustomError) {
 // GetTag describes one tag of owner/repo on the server: its commit, its annotation, its release and its source archives
 func GetTag(repo, tag string, displayoutput bool) (*Tag, *cerr.CustomError) {
 	ctx := context.Background()
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return nil, ce
 	}

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.0] - 2026-11-04
+## [1.4.0] - 2026-11-05
 
 ### Added
 
@@ -24,9 +24,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `org avatar` commands: the avatar of an organization, on Forgejo, for its owners and site administrators; a token needs the `write:organization` scope:
   - `org avatar set <ORG> <IMAGE-FILE>` (alias `upload`): uploads an image, with the same limits as `user avatar set`
   - `org avatar delete [-y] <ORG>` (aliases `rm`, `remove`): restores the default avatar, after confirmation
+- From inside a clone (anywhere in it), `branch`, `branch protection`, `tag`, `release`, `pr`, `history`, `repo info` and `repo edit` work out the repository and its owner, so `<REPO>` and `-o` can be left out; `-c` picks which forge's remote is read. See "Working from inside a clone" in the README:
+  - with several targets, the first argument remains the repository; `.` stands for the current clone's: `tag rm . v1 v2`. Pull request numbers need no `.`: `pr close 12 13`
+  - `repo delete` still needs the name
+  - each command's `--help` tells what applies to it
 
 ### Changed
 
+- A repository named on the command line, without `-o`, now takes its owner from the current clone when it is that clone's repository; any other keeps the usual owner
+- `branch list` no longer refuses to run without a repository: it reads the current clone's
+- `pr close`, `pr reopen` and `pr reviewers` no longer take a number as the repository, so a repository with a numeric name cannot be designated by them
+- The confirmation questions of `branch delete` (server side), `tag delete`, `release delete` and `release delete-assets` now name the repository
 - Built on gitoperationslib 1.2.0, for its organization avatars API
 - `user whoami` now always shows the 2FA status, which used to need `-x`; it reads `not reported` when the forge does not tell, as Forgejo's API never does
 

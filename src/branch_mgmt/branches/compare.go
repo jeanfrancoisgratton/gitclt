@@ -23,7 +23,7 @@ func CompareBranches(repo, base, head string, displayoutput bool) (*gol.Comparis
 	ctx := context.Background()
 
 	var owner string
-	if c, owner, ce = connect(ctx); ce != nil {
+	if c, owner, repo, ce = connect(ctx, repo); ce != nil {
 		return nil, ce
 	}
 

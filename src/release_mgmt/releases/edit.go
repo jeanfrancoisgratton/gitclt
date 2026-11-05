@@ -32,7 +32,7 @@ func EditRelease(repo, tag string, changed func(string) bool) *cerr.CustomError 
 		return &cerr.CustomError{Title: "Nothing to edit", Message: "no flag was provided; see gitclt release edit --help"}
 	}
 
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}
@@ -68,7 +68,7 @@ func EditRelease(repo, tag string, changed func(string) bool) *cerr.CustomError 
 // The run stops at the first failure; the releases published before it stay published
 func PublishReleases(repo string, tags []string) *cerr.CustomError {
 	ctx := context.Background()
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}

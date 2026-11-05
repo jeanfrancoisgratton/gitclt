@@ -17,10 +17,10 @@ func TestHistoryCommands(t *testing.T) {
 		args []string
 		want string
 	}{
-		{[]string{"history", "ls"}, "accepts 1 arg(s)"},
-		{[]string{"log", "ls", "a", "b"}, "accepts 1 arg(s)"},
-		{[]string{"history", "get", "web"}, "accepts 2 arg(s)"},
-		{[]string{"commits", "show", "web", "a", "b"}, "accepts 2 arg(s)"},
+		{[]string{"history", "ls"}, "No connection specified"},
+		{[]string{"log", "ls", "a", "b"}, "accepts at most 1 arg(s)"},
+		{[]string{"history", "get"}, "accepts between 1 and 2 arg(s)"},
+		{[]string{"commits", "show", "web", "a", "b"}, "accepts between 1 and 2 arg(s)"},
 		{[]string{"history", "ls", "-n", "-1", "web"}, "-1 is not a commit count"},
 		{[]string{"history", "ls", "-n", "ten", "web"}, "invalid argument"},
 		{[]string{"history", "ls", "--since", "yesterday", "web"}, "yesterday is neither YYYY-MM-DD nor an RFC 3339 timestamp"},
