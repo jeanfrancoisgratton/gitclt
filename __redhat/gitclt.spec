@@ -55,6 +55,14 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Fri Nov 06 2026 Binary package builder <builder@famillegratton.net> 1.4.0-1
+- feature: issue
+- feature: webhook commands (user, system, default, repo, org)
+- added pr, issues, tags fixes, etc
+- builddeps update
+- completed ssh keys and avatars management
+- chore: update changelog for 1.3.0-1
+
 * Wed Nov 04 2026 Binary package builder <builder@famillegratton.net> 1.3.0-1
 - feature: allow otp support wherever needed
 - bugs: various repo-related fixes
