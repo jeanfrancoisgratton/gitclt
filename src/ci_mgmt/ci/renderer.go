@@ -71,6 +71,9 @@ func renderSecretTable(list []gol.Secret) {
 		}
 		t.AppendRow(row)
 	}
+	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
+	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(222)}
+	t.Style().Format.Header = text.FormatDefault
 	t.Render()
 }
 
@@ -88,6 +91,9 @@ func renderVariableTable(list []gol.Variable) {
 		}
 		t.AppendRow(row)
 	}
+	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
+	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(222)}
+	t.Style().Format.Header = text.FormatDefault
 	t.Render()
 }
 

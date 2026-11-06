@@ -34,6 +34,7 @@ func renderTokenTable(list []gol.AccessToken) {
 		t.AppendRow(table.Row{tok.ID, tok.Name, strings.Join(tok.Scopes, ", "), repositories(tok), tok.LastEight})
 	}
 	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
+	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(58)}
 	t.Style().Format.Header = text.FormatDefault
 	t.Render()
 }

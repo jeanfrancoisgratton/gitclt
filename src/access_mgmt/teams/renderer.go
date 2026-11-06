@@ -27,6 +27,7 @@ func renderTeamTable(list []gol.Team) {
 			tm.IncludesAllRepos, tm.CanCreateOrgRepo})
 	}
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
+	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(175)}
 	t.Style().Format.Header = text.FormatDefault
 	t.Render()
 }

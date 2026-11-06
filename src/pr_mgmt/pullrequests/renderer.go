@@ -63,6 +63,7 @@ func renderPRTable(list []gol.PullRequest) {
 		t.AppendRow(table.Row{pr.Number, pr.Title, branches(pr), pr.Author, status(pr), date(pr.UpdatedAt)})
 	}
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
+	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(94)}
 	t.Style().Format.Header = text.FormatDefault
 	t.Render()
 }
