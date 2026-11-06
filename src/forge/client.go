@@ -152,6 +152,26 @@ func (c *Client) OrgAvatars() (gol.OrgAvatars, *cerr.CustomError) {
 	return a, nil
 }
 
+// Returns the interface to the user's own webhooks; only Forgejo implements it, and it is not part of gol.Client either
+func (c *Client) UserHooks() (gol.UserHooks, *cerr.CustomError) {
+	h, ok := c.Client.(gol.UserHooks)
+	if !ok {
+		return nil, &cerr.CustomError{Title: "Unsupported operation",
+			Message: fmt.Sprintf("Connection %s: user webhooks only exist on Forgejo", c.Connection.Name)}
+	}
+	return h, nil
+}
+
+// Returns the interface to the server's system and default webhooks; only Forgejo implements it, and it is not part of gol.Client either
+func (c *Client) SiteHooks() (gol.SiteHooks, *cerr.CustomError) {
+	h, ok := c.Client.(gol.SiteHooks)
+	if !ok {
+		return nil, &cerr.CustomError{Title: "Unsupported operation",
+			Message: fmt.Sprintf("Connection %s: system and default webhooks only exist on Forgejo", c.Connection.Name)}
+	}
+	return h, nil
+}
+
 // github.com has its API on a separate host (api.github.com), which the library uses by default
 func isGithubDotCom(serverURL string) bool {
 	u, err := url.Parse(serverURL)

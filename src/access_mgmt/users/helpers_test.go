@@ -1,5 +1,5 @@
 // gitclt
-// Tests readPasswordFile, and holds what the other user tests share (fixtures, defaults)
+// Tests ReadPasswordFile, and holds what the other user tests share (fixtures, defaults)
 
 package users
 
@@ -49,7 +49,7 @@ func writeFile(t *testing.T, content string, perm os.FileMode) string {
 
 func TestReadPasswordFile(t *testing.T) {
 	// Only the trailing line ending is stripped
-	if pw, err := readPasswordFile(writeFile(t, " pass word \r\n", 0600)); err != nil || pw != " pass word " {
+	if pw, err := ReadPasswordFile(writeFile(t, " pass word \r\n", 0600)); err != nil || pw != " pass word " {
 		t.Fatalf("got %q, %v", pw, err)
 	}
 
@@ -62,7 +62,7 @@ func TestReadPasswordFile(t *testing.T) {
 		"directory":          {t.TempDir(), "not a regular file"},
 		"missing":            {filepath.Join(t.TempDir(), "nope"), "no such file"},
 	} {
-		if _, err := readPasswordFile(tc.path); err == nil || !strings.Contains(err.Error(), tc.want) {
+		if _, err := ReadPasswordFile(tc.path); err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: got %v, want %q", name, err, tc.want)
 		}
 	}

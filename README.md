@@ -5,7 +5,7 @@
 ___
 `gitclt` is a CLI client for Forgejo, GitHub (github.com, as well as GitHub Enterprise Server) and Bitbucket Cloud.<br>
 It is meant to handle the usual git server tasks from the command line: repositories, branches, tags, releases, users, orgs, etc.<br>
-It is a front-end to [gitoperationslib](https://github.com/jeanfrancoisgratton/gitoperationslib), which does the actual talking to the forges. Forgejo servers must run version 11.0.10 or later.
+It is a front-end to [gitoperationslib](https://github.com/jeanfrancoisgratton/gitoperationslib), which does the actual talking to the forges. Forgejo servers must run version 15.0.0 or later.
 
 What is currently implemented:
 - a connections registry (multiple servers, multiple accounts, one default connection)
@@ -13,6 +13,7 @@ What is currently implemented:
 - users: whoami, get, list, create, edit, delete; your own e-mail addresses, SSH keys and avatar
 - organizations: list, get, create, edit, rename, delete, membership (list, check, remove), avatar
 - teams: list, get, create, edit, delete, membership (list, check, add, remove), repository access (list, add, remove)
+- webhooks: your own, the server's (system and default), a repository's, an organization's
 - from inside a clone, the repository and its owner are read from the remotes: see [working from inside a clone](#working-from-inside-a-clone)
 
 **TABLE OF CONTENTS**<br>
@@ -103,7 +104,7 @@ These work on every command:
 | `--otp CODE`                    | The current two-factor authentication code, for a password login on Forgejo (see [the connections registry](#connections)) |
 
 ### Working from inside a clone
-`branch`, `branch protection`, `tag`, `release`, `pr`, `history`, `repo info` and `repo edit` work out the repository and its owner when run from anywhere inside a clone, like `git` does. `<REPO>` and `-o` can then be left out:
+`branch`, `branch protection`, `tag`, `release`, `pr`, `history`, `repo info`, `repo edit` and `webhook repo` work out the repository and its owner when run from anywhere inside a clone, like `git` does. `<REPO>` and `-o` can then be left out:
 
 ```
 cd ~/src/myrepo/some/dir
@@ -116,7 +117,7 @@ gitclt -c github tag ls       # the same clone, as seen on GitHub
 - **The connection picks the remote.** Only the remotes on the connection's server count, the SSH host and port being ignored (`ssh.bitbucket.org` is Bitbucket, and `git.example.net:9722` is `https://git.example.net:3000`). A clone with remotes on three forges therefore follows `-c`. If several remotes are on that server, `origin` wins; if none is `origin` and they point to different repositories, the command stops and asks for the name.
 - **No match, no guess.** Outside a clone, or with no remote on the connection's server (an SSH host alias, for example), the command stops with `Missing repository`: it never falls back on a repository of the same name elsewhere.
 - **`-o` still wins** for the owner. A repository named on the command line keeps the usual owner (`-o`, the connection's owner, your username), unless it is the current clone's: its owner then comes from the remote.
-- **Several targets.** `tag rm v1 v2` cannot be told from `tag rm myrepo v1`, so the first of two or more arguments stays the repository, as it always was: `v1` is then looked up as a repository, and nothing is deleted. Use `.` for the current clone's: `gitclt tag rm . v1 v2`, `gitclt release upload . v1.2.0 a.rpm b.deb`, `gitclt pr create . feature/x develop`. This applies wherever a command takes an open-ended list, or an optional last argument. Pull request numbers are the exception, as a number is not taken for a repository: `gitclt pr close 12 13`. In return, `pr close`, `pr reopen` and `pr reviewers` cannot designate a repository with a numeric name.
+- **Several targets.** `tag rm v1 v2` cannot be told from `tag rm myrepo v1`, so the first of two or more arguments stays the repository, as it always was: `v1` is then looked up as a repository, and nothing is deleted. Use `.` for the current clone's: `gitclt tag rm . v1 v2`, `gitclt release upload . v1.2.0 a.rpm b.deb`, `gitclt pr create . feature/x develop`. This applies wherever a command takes an open-ended list, or an optional last argument. Pull request numbers and webhook IDs are the exception, as a number is not taken for a repository: `gitclt pr close 12 13`, `gitclt webhook repo rm 5 6`. In return, `pr close`, `pr reopen`, `pr reviewers` and `webhook repo delete` cannot designate a repository with a numeric name.
 - `repo delete` always needs the name: it is not something to do on an inferred target.
 - The confirmation questions of `branch delete` (server side), `tag delete`, `release delete` and `release delete-assets` name the repository, as it may not have been typed.
 
@@ -304,6 +305,47 @@ The commits of a repository, read from the server like `git log` would: no local
 | `gitclt history list [-o OWNER] [-r REF] [-p PATH] [-n COUNT] [--since DATE] [--until DATE] [-j] [<REPO>]` (`ls`) | Lists the commits reachable from `-r`, `--ref` (a branch, tag or commit; default: the default branch), newest first: commit (merge commits marked with `M`), date, author and title. `-p`, `--path` keeps the commits that touched a file or directory; `-n`, `--limit` caps the count (default 30, `0`: the whole history). `--since` and `--until` take a day (`YYYY-MM-DD`, local time; `--until` includes the whole day) or an RFC 3339 timestamp, and are GitHub only. Ex: `gitclt log ls -r develop -p src/history -n 10 myrepo` |
 | `gitclt history get [-o OWNER] [-j] [<REPO>] <REF>` (`show`, `info`) | Shows one commit, like `git show --stat`: full SHA, author, committer (when it differs; never reported by Bitbucket), parents, line totals, URL, full message and changed files. `<REF>` is a commit SHA (full or abbreviated), a branch or a tag (their head commit). Forgejo reports no per-file line counts, and does not detect renames |
 
+### Webhooks: `gitclt webhook` (aliases: `webhooks`, `hook`, `hooks`)
+A webhook sends an HTTP request to a URL when events happen. There are five kinds, with the same commands, except for what the forges cannot do:
+
+| Kind | What it is | Forges | Rights |
+|------|------------|--------|--------|
+| `gitclt webhook user` | Your own webhooks, for the events of your repositories | Forgejo | Yours only: an admin gets a 404 on someone else's |
+| `gitclt webhook system` | The server's webhooks, for the events of every repository | Forgejo | Site admin |
+| `gitclt webhook default` | Templates copied into each repository created afterwards; existing repositories are not affected, and the copies are independent | Forgejo | Site admin |
+| `gitclt webhook repo` (`repository`) | A repository's webhooks; `[<REPO>]` is optional from inside a clone | Forgejo, GitHub, Bitbucket | Repository admin |
+| `gitclt webhook org` (`organization`) | An organization's webhooks; `<ORG>` is mandatory | Forgejo, GitHub, Bitbucket (workspace) | Organization owner |
+
+In the commands below, `KIND` stands for one of these, with `[<REPO>]` or `<ORG>` right before the other arguments for `repo` and `org`:
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt webhook KIND list [-j]` (`ls`) | Lists the webhooks; `-q` outputs only their IDs. Not on `default`: Forgejo's API cannot list those, so keep the ID that `create` shows, or read it in the web interface |
+| `gitclt webhook KIND get [-j] <ID>` (`info`) | Shows a webhook, with all of its events |
+| `gitclt webhook KIND create [flags] <URL>` (`add`) | Creates a webhook delivering to `<URL>`; `-q` outputs only its ID. `-t`, `--type` is the format of the deliveries (Forgejo only; `slack` also serves Mattermost, and needs `--slack-channel`), plus the flags below |
+| `gitclt webhook KIND edit [flags] <ID>` (`modify`, `update`) | Edits a webhook; **only the flags passed are changed**. `-u`, `--url`, plus the flags below. The type cannot be changed. Booleans are revoked with `=false`, and `""` clears a text field |
+| `gitclt webhook KIND delete [-y] <ID>...` (`rm`, `remove`) | Deletes webhooks, after confirmation (`-y`, `--yes` skips it); all are checked first, and the question shows their URLs |
+| `gitclt webhook KIND ping <ID>` (`test`) | Sends a test delivery. `repo` and `org` only; on Forgejo, repositories only, as a push event; not on Bitbucket |
+
+| Flag | Meaning |
+|------|---------|
+| `-e`, `--event EVENT` | Event to subscribe to (repeatable, or comma-separated). `create` defaults to `push`; on `edit`, it replaces the whole list. `all` is everything: GitHub's wildcard, or the events the library knows elsewhere |
+| `-T`, `--content-type TYPE` | Payload encoding: `json` (the default) or `form` (not on Bitbucket) |
+| `-b`, `--branch-filter GLOB` | Limits push and branch events to matching branches, such as `{main,release/*}` (Forgejo only) |
+| `-a`, `--active` | `=false` keeps the webhook without deliveries |
+| `-s`, `--secret`, `--secret-file FILE` | The secret that signs deliveries: prompted for, or read from a file only you can access; never a value on the command line |
+| `--auth-header`, `--auth-header-file FILE` | An authorization header sent with deliveries, given the same way (Forgejo only) |
+| `--slack-channel`, `--slack-username`, `--slack-icon-url`, `--slack-color` | The settings of a `slack` webhook; on `edit`, those not passed stay as they are |
+| `--insecure-ssl` | Does not check the target's TLS certificate, so a third party could read or alter deliveries (GitHub, Bitbucket) |
+
+What to know:
+- **A webhook's URL is shown as it is.** For Slack or Mattermost, that URL is a credential. Secrets and authorization headers are never shown: `get` only tells that a header is set.
+- **Events.** Forgejo's own names also work (ex: `workflow_run_failure`). `workflow_run` and `workflow_job` stand for all of their statuses, on GitHub and on Forgejo 17 and later. Forgejo drops the names it does not know: the command then says so, and the webhook exists without them.
+- **Forgejo 17 deprecates `action_run_*`** in favour of `workflow_run_*`, for removal in a later version. `--event all` follows the server's version: `workflow_*` from 17 on, `action_run_*` below it.
+- **What `edit` refuses on Forgejo**, as its API would ignore it and still answer success: changing the `package`, `action_run_*`, `workflow_run_*` and `workflow_job_*` events of an existing webhook, changing its secret, and removing its authorization header. Create a new webhook and delete the old one instead.
+- **`system create`** relies on a setting Forgejo's API does not document. If a later version stops honoring it, the command fails, and leaves nothing behind.
+- The IDs of `system` and `default` webhooks share one numbering: each kind refuses the other's IDs with a 404.
+
 <a id="completion"></a>
 ## Shell completion
 ```bash
@@ -333,7 +375,7 @@ access_mgmt/    feature packages, one per resource, grouped by area (these folde
   tokens/
 repo_mgmt/
   repositories/
-  webhooks/       (scaffolded)
+  webhooks/
 branch_mgmt/
   branches/
   protections/
@@ -372,7 +414,7 @@ if err != nil {
 Behind the scenes:
 - `connections.ResolveConnection()` loads the registry, picks the connection (and errors out if it's unknown, invalid, or if there's no default connection), and decides the authentication method (token over username/password)
 - `forge.Connect()` then opens the matching library client:
-  - Forgejo: `forgejo.New()` with `forgejo.Token()` or `forgejo.BasicAuth()`. **This already contacts the server**: it reads its version, and refuses anything older than the library's minimum (11.0.10)
+  - Forgejo: `forgejo.New()` with `forgejo.Token()` or `forgejo.BasicAuth()`. **This already contacts the server**: it reads its version, and refuses anything older than the library's minimum (15.0.0)
   - GitHub: `github.New()` with the token; any host other than `github.com` is treated as GitHub Enterprise Server (`github.WithEnterpriseURL()`, the library appends `/api/v3/`). This makes no request
   - Bitbucket: `bitbucket.New()` with `bitbucket.Token()` (access tokens) or `bitbucket.BasicAuth()` (username/password) or `bitbucket.APIToken()` (Atlassian API tokens, `ATATT...`, which Bitbucket refuses as bearer tokens: the connection's username must be the Atlassian e-mail); any host other than `bitbucket.org` is passed as is to `bitbucket.WithBaseURL()`. This makes no request
 - all of them get an `http.Client` with connect / TLS handshake / response headers timeouts (`forge.FastFailTimeout`, 30s by default), and `gitclt` as User-Agent. There is no global request timeout, so long transfers (ex: release assets) are not cut; use a context if you need a deadline
