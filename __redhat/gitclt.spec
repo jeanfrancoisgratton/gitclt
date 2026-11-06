@@ -55,6 +55,12 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Fri Nov 06 2026 Binary package builder <builder@famillegratton.net> 1.5.0-1
+- feature: secret, variable and collaborator commands
+- bugs: issue commands, what real GitHub showed
+- Merge branch 'main' into develop
+- chore: update changelog for 1.4.0-1
+
 * Fri Nov 06 2026 Binary package builder <builder@famillegratton.net> 1.4.0-1
 - feature: issue
 - feature: webhook commands (user, system, default, repo, org)
