@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-11-06
+
+### Added
+
+- `secret` commands (alias `secrets`): CI secrets, for Forgejo Actions, GitHub Actions and Bitbucket Pipelines. They are write-only: they can be replaced or deleted, never read back. See "CI secrets" in the README:
+  - `secret list [-j]` (alias `ls`): lists their names; `-q` outputs only those
+  - `secret set [-f FILE | --stdin] <NAME>` (aliases `add`, `create`, `update`): creates a secret, or replaces its value without asking. The value is never an argument: it is prompted for without being shown, read from a file only you can access, or from the standard input
+  - `secret delete [-y] <NAME>...` (aliases `rm`, `remove`, `del`): deletes secrets, after confirmation
+- `variable` commands (aliases `variables`, `var`, `vars`): CI variables, like secrets but readable:
+  - `variable list [-j]` (alias `ls`): lists them, with the beginning of their values; `-q` outputs only their names
+  - `variable get [-j] <NAME>` (alias `info`): shows a variable, with its whole value; `-q` outputs only the value
+  - `variable set <NAME> <VALUE>` (aliases `add`, `create`, `update`): creates a variable, or changes its value; `-f`, `--from-file` or `--stdin` replace `<VALUE>`
+  - `variable delete [-y] <NAME>...` (aliases `rm`, `remove`, `del`): deletes variables, after confirmation
+- Secrets and variables belong to a repository, or with `--org ORG` to an organization or Bitbucket workspace, with `--user` to your own account (Forgejo only), with `--env ENV` to an environment of the repository (GitHub, Bitbucket)
+- `collaborator` commands (aliases `collaborators`, `collab`, `collabs`): the users with their own access to a repository, on Forgejo, GitHub and Bitbucket. See "Collaborators" in the README:
+  - `collaborator list [-j]` (alias `ls`): lists them; `-q` outputs only their logins
+  - `collaborator get [-j] <USER>` (alias `info`): shows a collaborator's access
+  - `collaborator add [-p PERMISSION] <USER>` (aliases `create`, `set`, `update`): gives a user access, or changes that of a collaborator; it tells when GitHub only invited them
+  - `collaborator remove [-y] <USER>...` (aliases `rm`, `delete`, `del`): takes access away, after confirmation; removing someone who has none is an error here, not a silent success. On GitHub, it also withdraws a pending invitation
+  - `collaborator invitations [-j]` (alias `invites`): lists who has not accepted yet (GitHub only)
+- All of these work from inside a clone, without `<REPO>` nor `-o`, like the other repository commands
+
+### Changed
+
+- GitHub's issue lists can take a few seconds to catch up with a change: `issue create` now says so in its help
+
+### Fixed
+
+- `issue create` and `issue edit` no longer create a label on GitHub: GitHub does it without a word for a name it does not know, so a typo left a new label behind. They now refuse, as Forgejo does
+- `issue milestone` showed a GitHub due date one day early west of Greenwich, as GitHub only keeps the day
+- `issue get`, `issue edit` and `issue close` on a deleted GitHub issue now say that there is no such issue, instead of showing the HTTP 410
+
 ## [1.4.0] - 2026-11-06
 
 ### Added

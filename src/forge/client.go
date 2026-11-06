@@ -162,6 +162,26 @@ func (c *Client) IssueLocks() (gol.IssueLocks, *cerr.CustomError) {
 	return l, nil
 }
 
+// Returns the interface to CI secrets and variables; the three forges implement it, but it is not part of gol.Client either
+func (c *Client) CI() (gol.CI, *cerr.CustomError) {
+	ci, ok := c.Client.(gol.CI)
+	if !ok {
+		return nil, &cerr.CustomError{Title: "Unsupported operation",
+			Message: fmt.Sprintf("Connection %s: secrets and variables are not available on this forge", c.Connection.Name)}
+	}
+	return ci, nil
+}
+
+// Returns the interface to a repository's collaborators; the three forges implement it, but it is not part of gol.Client either
+func (c *Client) Collaborators() (gol.Collaborators, *cerr.CustomError) {
+	m, ok := c.Client.(gol.Collaborators)
+	if !ok {
+		return nil, &cerr.CustomError{Title: "Unsupported operation",
+			Message: fmt.Sprintf("Connection %s: collaborators are not available on this forge", c.Connection.Name)}
+	}
+	return m, nil
+}
+
 // Returns the interface to the user's own webhooks; only Forgejo implements it, and it is not part of gol.Client either
 func (c *Client) UserHooks() (gol.UserHooks, *cerr.CustomError) {
 	h, ok := c.Client.(gol.UserHooks)

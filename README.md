@@ -14,6 +14,8 @@ What is currently implemented:
 - organizations: list, get, create, edit, rename, delete, membership (list, check, remove), avatar
 - teams: list, get, create, edit, delete, membership (list, check, add, remove), repository access (list, add, remove)
 - issues, with their comments, labels and milestones
+- CI secrets and variables: a repository's, an environment's, an organization's, your own
+- repository collaborators
 - webhooks: your own, the server's (system and default), a repository's, an organization's
 - from inside a clone, the repository and its owner are read from the remotes: see [working from inside a clone](#working-from-inside-a-clone)
 
@@ -105,7 +107,7 @@ These work on every command:
 | `--otp CODE`                    | The current two-factor authentication code, for a password login on Forgejo (see [the connections registry](#connections)) |
 
 ### Working from inside a clone
-`branch`, `branch protection`, `tag`, `release`, `pr`, `issue`, `history`, `repo info`, `repo edit` and `webhook repo` work out the repository and its owner when run from anywhere inside a clone, like `git` does. `<REPO>` and `-o` can then be left out:
+`branch`, `branch protection`, `tag`, `release`, `pr`, `issue`, `secret`, `variable`, `collaborator`, `history`, `repo info`, `repo edit` and `webhook repo` work out the repository and its owner when run from anywhere inside a clone, like `git` does. `<REPO>` and `-o` can then be left out:
 
 ```
 cd ~/src/myrepo/some/dir
@@ -353,6 +355,50 @@ A repository's milestones, addressed by title or ID, a title coming first. Forge
 | `gitclt issue milestone edit [-o OWNER] [-t TITLE] [-d DESCRIPTION] [--due DATE] [-s open\|closed] [<REPO>] <MILESTONE>` (`modify`, `update`) | Edits a milestone; **only the flags passed are changed**. `-s`, `--state` closes or reopens it. The API cannot remove a due date: the web interface can |
 | `gitclt issue milestone delete [-o OWNER] [-y] [<REPO>] <MILESTONE>...` (`rm`, `del`) | Deletes milestones, after confirmation (`-y`, `--yes` skips it); their issues stay, without a milestone |
 
+### CI secrets: `gitclt secret` (alias: `secrets`)
+For Forgejo Actions, GitHub Actions and Bitbucket Pipelines. Secrets are write-only: once stored, they can be replaced or deleted, never read back.<br>
+They belong to a repository, unless a flag says otherwise; with `--org` or `--user`, `[<REPO>]` is left out, and these flags cannot be combined:
+
+| Flag | Where | Forges |
+|------|-------|--------|
+| `--org ORG` | An organization, or a workspace on Bitbucket, for all its repositories | Forgejo, GitHub, Bitbucket |
+| `--user` | Your own account | Forgejo only |
+| `--env ENV` | An environment of the repository, which must already exist | GitHub, Bitbucket |
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt secret list [-o OWNER] [--org ORG \| --user \| --env ENV] [-j] [<REPO>]` (`ls`) | Lists the secrets' names; `-q` outputs only those. Forgejo before 17 cannot list your own (`--user`) |
+| `gitclt secret set [-o OWNER] [--org ORG \| --user \| --env ENV] [-f FILE \| --stdin] [<REPO>] <NAME>` (`add`, `create`, `update`) | Creates a secret, or replaces its value without asking. **The value is never an argument**, where any local user could read it: it is prompted for without being shown, `-f`, `--from-file` reads it from a file only you can access, `--stdin` from the standard input. A trailing line ending is dropped |
+| `gitclt secret delete [-o OWNER] [--org ORG \| --user \| --env ENV] [-y] [<REPO>] <NAME>...` (`rm`, `remove`, `del`) | Deletes secrets, after confirmation (`-y`, `--yes` skips it); all are checked first |
+
+What to know, for secrets and variables:
+- **Names:** Forgejo and GitHub upper-case them, Bitbucket keeps them as given. They are letters, digits and underscores, not starting with a digit, nor, on Forgejo, with `GITEA_`, `GITHUB_` or `FORGEJO_`.
+- **Values:** empty ones are refused. Forgejo turns line endings into LF: base64-encode a value whose exact bytes matter.
+- **On Bitbucket**, secrets and variables share one list: a name used by one kind cannot be set as the other.
+- A new secret of a GitHub organization is available to all its repositories, and an existing one keeps its access. gitclt cannot limit it to some repositories.
+
+### CI variables: `gitclt variable` (aliases: `variables`, `var`, `vars`)
+Like secrets, with the same `--org`, `--user` and `--env` flags, but readable by anyone who can read the settings: they are not for credentials.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt variable list [-o OWNER] [--org ORG \| --user \| --env ENV] [-j] [<REPO>]` (`ls`) | Lists the variables, with the beginning of their values; `-q` outputs only their names |
+| `gitclt variable get [-o OWNER] [--org ORG \| --user \| --env ENV] [-j] [<REPO>] <NAME>` (`info`) | Shows a variable, with its whole value; `-q` outputs only the value |
+| `gitclt variable set [-o OWNER] [--org ORG \| --user \| --env ENV] [<REPO>] <NAME> <VALUE>` (`add`, `create`, `update`) | Creates a variable, or changes its value. `-f`, `--from-file FILE` or `--stdin` replace `<VALUE>`, and a trailing line ending is then dropped |
+| `gitclt variable delete [-o OWNER] [--org ORG \| --user \| --env ENV] [-y] [<REPO>] <NAME>...` (`rm`, `remove`, `del`) | Deletes variables, after confirmation (`-y`, `--yes` skips it); all are checked first |
+
+### Collaborators: `gitclt collaborator` (aliases: `collaborators`, `collab`, `collabs`)
+The users with their own access to a repository, on Forgejo, GitHub and Bitbucket; this needs admin access to it. Access through a team is managed with `gitclt team`.<br>
+On Bitbucket, a user is a nickname of a member of the workspace, an account ID or a `{UUID}`: to add someone from outside the workspace, use one of the last two.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt collaborator list [-o OWNER] [-j] [<REPO>]` (`ls`) | Lists the collaborators; `-q` outputs only their logins. GitHub and Bitbucket usually include the owner, Forgejo does not. On Forgejo, permissions stay empty unless you are an admin of the repository |
+| `gitclt collaborator get [-o OWNER] [-j] [<REPO>] <USER>` (`info`) | Shows a collaborator's access; anybody else is an error. On GitHub, this also finds those with access through the organization |
+| `gitclt collaborator add [-o OWNER] [-p PERMISSION] [<REPO>] <USER>` (`create`, `set`, `update`) | Gives a user access, or changes that of an existing collaborator. `-p`, `--permission` is `read`, `write` (the default) or `admin`; GitHub also has `triage` and `maintain`, and ignores the permission on a repository owned by a user. GitHub usually invites a new collaborator, who has no access until they accept: the command says so |
+| `gitclt collaborator remove [-o OWNER] [-y] [<REPO>] <USER>...` (`rm`, `delete`, `del`) | Takes users' access away, after confirmation (`-y`, `--yes` skips it). All are checked first, as the forges take removing a stranger for a success. On GitHub, this also withdraws a pending invitation |
+| `gitclt collaborator invitations [-o OWNER] [-j] [<REPO>]` (`invites`) | Lists who was invited and has not accepted yet; `-q` outputs only their logins. GitHub only: the other forges give access at once |
+
 ### Webhooks: `gitclt webhook` (aliases: `webhooks`, `hook`, `hooks`)
 A webhook sends an HTTP request to a URL when events happen. There are five kinds, with the same commands, except for what the forges cannot do:
 
@@ -424,6 +470,9 @@ access_mgmt/    feature packages, one per resource, grouped by area (these folde
 repo_mgmt/
   repositories/
   webhooks/
+  collaborators/
+ci_mgmt/
+  ci/             CI secrets and variables
 branch_mgmt/
   branches/
   protections/
