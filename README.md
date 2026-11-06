@@ -312,9 +312,9 @@ Issues and pull requests share one number sequence, and the server takes one for
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
-| `gitclt issue list [-o OWNER] [-s open\|closed\|all] [-l LABEL,...] [-j] [<REPO>]` (`ls`) | Lists the issues, open ones by default, without the pull requests; `-l`, `--label` keeps those carrying all these labels; `-q` outputs only their numbers |
+| `gitclt issue list [-o OWNER] [-s open\|closed\|all] [-l LABEL,...] [-j] [<REPO>]` (`ls`) | Lists the issues, open ones by default, without the pull requests (GitHub's lists take a few seconds to catch up with a change); `-l`, `--label` keeps those carrying all these labels; `-q` outputs only their numbers |
 | `gitclt issue get [-o OWNER] [--comments] [-j] [<REPO>] <NUMBER>` (`info`) | Shows an issue, with its text; `--comments` adds what was said on it |
-| `gitclt issue create [-o OWNER] -t TITLE [flags] [<REPO>]` (`add`, `open`) | Opens an issue; `-q` outputs only its number. `-b`, `--body` or `-F`, `--body-file FILE`, `-l`, `--label LABEL,...` (they must exist), `-a`, `--assignee USER,...`, `-m`, `--milestone MILESTONE` (a title or an ID) |
+| `gitclt issue create [-o OWNER] -t TITLE [flags] [<REPO>]` (`add`, `open`) | Opens an issue; `-q` outputs only its number. `-b`, `--body` or `-F`, `--body-file FILE`, `-l`, `--label LABEL,...` (they must exist; GitHub would create them, so gitclt checks first), `-a`, `--assignee USER,...`, `-m`, `--milestone MILESTONE` (a title or an ID) |
 | `gitclt issue edit [-o OWNER] [flags] [<REPO>] <NUMBER>` (`modify`, `update`) | Edits an issue; **only the flags passed are changed**. Same flags as `create`: `--label` and `--assignee` replace the whole list and `""` clears it, `--milestone ""` removes it. `--add-label` and `--remove-label` change labels one by one, and cannot be mixed with `--label`; they are separate requests, so if they fail, what came before them stays changed |
 | `gitclt issue close [-o OWNER] [<REPO>] <NUMBER>...` | Closes issues; those already closed are skipped, and all are checked first |
 | `gitclt issue reopen [-o OWNER] [<REPO>] <NUMBER>...` | Reopens issues; those already open are skipped, and all are checked first |
@@ -349,7 +349,7 @@ A repository's milestones, addressed by title or ID, a title coming first. Forge
 |------------------------------------------------|---------------------------------------------------------------------|
 | `gitclt issue milestone list [-o OWNER] [-s open\|closed\|all] [-j] [<REPO>]` (`ls`) | Lists the milestones, open ones by default; `-q` outputs only their titles |
 | `gitclt issue milestone get [-o OWNER] [-j] [<REPO>] <MILESTONE>` (`info`) | Shows a milestone |
-| `gitclt issue milestone create [-o OWNER] [-d DESCRIPTION] [--due DATE] [-j] [<REPO>] <TITLE>` (`add`) | Creates a milestone; `-q` outputs only its ID. `--due` is a day (`YYYY-MM-DD`, meaning the end of that day where the command runs) or an RFC 3339 timestamp |
+| `gitclt issue milestone create [-o OWNER] [-d DESCRIPTION] [--due DATE] [-j] [<REPO>] <TITLE>` (`add`) | Creates a milestone; `-q` outputs only its ID. `--due` is a day (`YYYY-MM-DD`, meaning the end of that day where the command runs) or an RFC 3339 timestamp; GitHub only keeps the day |
 | `gitclt issue milestone edit [-o OWNER] [-t TITLE] [-d DESCRIPTION] [--due DATE] [-s open\|closed] [<REPO>] <MILESTONE>` (`modify`, `update`) | Edits a milestone; **only the flags passed are changed**. `-s`, `--state` closes or reopens it. The API cannot remove a due date: the web interface can |
 | `gitclt issue milestone delete [-o OWNER] [-y] [<REPO>] <MILESTONE>...` (`rm`, `del`) | Deletes milestones, after confirmation (`-y`, `--yes` skips it); their issues stay, without a milestone |
 

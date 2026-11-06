@@ -25,9 +25,13 @@ func date(t time.Time) string {
 	return t.Local().Format("2006.01.02 15:04")
 }
 
+// A due date is a day: GitHub keeps only that, as midnight UTC, which would read as the day before anywhere west of Greenwich
 func day(t time.Time) string {
 	if t.IsZero() {
 		return ""
+	}
+	if u := t.UTC(); u.Hour() == 0 && u.Minute() == 0 && u.Second() == 0 {
+		return u.Format("2006.01.02")
 	}
 	return t.Local().Format("2006.01.02")
 }

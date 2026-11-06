@@ -99,13 +99,33 @@ func getRealIssue(ctx context.Context, c *forge.Client, owner, repo string, numb
 func getIssue(ctx context.Context, c *forge.Client, owner, repo string, number int) (*gol.Issue, *cerr.CustomError) {
 	issue, e := c.Issues().Get(ctx, owner, repo, number)
 	if e != nil {
-		if gol.IsNotFound(e) {
+		// GitHub answers 410 for an issue that was deleted
+		if gol.IsNotFound(e) || gol.StatusCode(e) == http.StatusGone {
 			return nil, &cerr.CustomError{Title: "No such issue", Code: http.StatusNotFound,
 				Message: fmt.Sprintf("%s/%s has no issue #%d", owner, repo, number)}
 		}
 		return nil, forge.Error(fmt.Sprintf("Unable to get issue #%d", number), e)
 	}
 	return issue, nil
+}
+
+// checkLabels refuses a label that does not exist on GitHub, which would otherwise create it without a word, so that a typo
+// leaves a new label behind; Forgejo refuses by itself, and also knows the organization's labels, which this list would miss
+func checkLabels(ctx context.Context, c *forge.Client, owner, repo string, names []string) *cerr.CustomError {
+	if c.Backend() != gol.BackendGitHub || len(names) == 0 {
+		return nil
+	}
+	list, ce := allLabels(ctx, c, owner, repo)
+	if ce != nil {
+		return ce
+	}
+	for _, name := range names {
+		if !slices.ContainsFunc(list, func(l gol.Label) bool { return strings.EqualFold(l.Name, name) }) {
+			return &cerr.CustomError{Title: "No such label", Code: http.StatusNotFound,
+				Message: fmt.Sprintf("%s/%s has no label %s; create it with gitclt issue label create", owner, repo, name)}
+		}
+	}
+	return nil
 }
 
 // body is the text of --body, or of the --body-file file; set tells whether either flag was passed

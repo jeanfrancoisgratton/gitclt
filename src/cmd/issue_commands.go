@@ -58,8 +58,9 @@ var issueCreateCmd = &cobra.Command{
 	Example: "  gitclt issue create [-c CONNECTION] [-o OWNER] -t TITLE [-b BODY | -F FILE] [-l LABEL,...] [-a USER,...] [-m MILESTONE] [-j] [<REPO>]\n" +
 		"  gitclt issue create -t \"Crash on empty list\" -l bug -a alice -m v1.5",
 	Short: "Opens an issue; -q outputs only its number",
-	Long: `The labels must already exist: see gitclt issue label. --milestone takes a title or an ID.
-On a Forgejo server, a label can also be one of the organization's.`,
+	Long: `The labels must already exist: see gitclt issue label; on GitHub, which would create them, gitclt checks first.
+--milestone takes a title or an ID. On a Forgejo server, a label can also be one of the organization's.
+GitHub's lists take a few seconds to catch up: a new issue may not show in gitclt issue list right away.`,
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo, _ := splitRepo(args, 0)
@@ -349,7 +350,7 @@ var issueMilestoneCreateCmd = &cobra.Command{
 	Example: "  gitclt issue milestone create [-c CONNECTION] [-o OWNER] [-d DESCRIPTION] [--due DATE] [-j] [<REPO>] <TITLE>\n" +
 		"  gitclt issue milestone create --due 2026-12-31 v1.5",
 	Short: "Creates a milestone; -q outputs only its ID",
-	Long:  "--due is a day (YYYY-MM-DD, meaning the end of that day where the command runs) or an RFC 3339 timestamp.",
+	Long:  "--due is a day (YYYY-MM-DD, meaning the end of that day where the command runs) or an RFC 3339 timestamp. GitHub only keeps the day.",
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo, rest := splitRepo(args, 1)

@@ -34,6 +34,10 @@ func CreateIssue(repo string, changed func(string) bool) *cerr.CustomError {
 		return ce
 	}
 
+	if ce = checkLabels(ctx, c, owner, repo, IssueLabels); ce != nil {
+		return ce
+	}
+
 	opts := gol.CreateIssueOptions{Title: IssueTitle, Body: text, Labels: IssueLabels, Assignees: IssueAssignees}
 	if IssueMilestone != "" {
 		m, ce := findMilestone(ctx, c, owner, repo, IssueMilestone)
@@ -100,6 +104,9 @@ func EditIssue(repo, number string, changed func(string) bool) *cerr.CustomError
 		return ce
 	}
 	if _, ce = getIssue(ctx, c, owner, repo, nums[0]); ce != nil {
+		return ce
+	}
+	if ce = checkLabels(ctx, c, owner, repo, append(slices.Clone(IssueLabels), IssueAddLabels...)); ce != nil {
 		return ce
 	}
 	if changed("milestone") {

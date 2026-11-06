@@ -7,11 +7,13 @@ package issues
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"gitclt/shared"
 	"gitclt/testutil"
@@ -312,6 +314,80 @@ func TestComments(t *testing.T) {
 	testutil.Run(t, func() { err = DeleteComments("web", []string{"16"}) }, "y")
 	if err != nil || !slices.Equal(f.calls, []string{"DELETE /issues/comments/16"}) {
 		t.Fatalf("yes: %v, %v", err, f.calls)
+	}
+}
+
+// GitHub keeps a due date as midnight UTC: it is that day, whatever the time zone
+func TestDay(t *testing.T) {
+	west := time.FixedZone("west", -5*3600)
+	testutil.Set(t, &time.Local, west)
+	if got := day(time.Date(2030, 6, 15, 0, 0, 0, 0, time.UTC)); got != "2030.06.15" {
+		t.Errorf("midnight UTC: %s", got)
+	}
+	if got := day(time.Date(2030, 6, 15, 23, 59, 59, 0, west)); got != "2030.06.15" {
+		t.Errorf("end of a local day: %s", got)
+	}
+	if got := day(time.Time{}); got != "" {
+		t.Errorf("none: %s", got)
+	}
+}
+
+// GitHub creates a label that does not exist, without a word; a typo must not leave one behind
+func TestGitHub_UnknownLabels(t *testing.T) {
+	defaults(t)
+	var calls []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		path := strings.TrimPrefix(r.URL.Path, "/api/v3")
+		switch {
+		case r.Method == http.MethodGet && path == "/repos/acme/web":
+			fmt.Fprint(w, `{"name":"web"}`)
+		case r.Method == http.MethodGet && path == "/repos/acme/web/labels":
+			fmt.Fprint(w, `[{"id":1,"name":"Bug","color":"d73a4a"}]`)
+		case r.Method == http.MethodGet && path == "/repos/acme/web/issues/2":
+			fmt.Fprint(w, `{"number":2,"title":"First","state":"open"}`)
+		case r.Method == http.MethodGet && path == "/repos/acme/web/issues/9":
+			w.WriteHeader(http.StatusGone)
+			fmt.Fprint(w, `{"message":"This issue was deleted"}`)
+		case r.Method == http.MethodPost && path == "/repos/acme/web/issues":
+			calls = append(calls, "create")
+			w.WriteHeader(http.StatusCreated)
+			fmt.Fprint(w, `{"number":3,"title":"x","state":"open"}`)
+		case r.Method == http.MethodPost && path == "/repos/acme/web/issues/2/labels":
+			calls = append(calls, "add")
+			fmt.Fprint(w, `[]`)
+		default:
+			t.Errorf("unexpected %s %s", r.Method, path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+	testutil.WriteRegistry(t, fmt.Sprintf(`{"auths":{"gh":{"url":%q,"token":"abc","username":"acme","servertype":"github"}},"default_connection":"gh"}`, srv.URL))
+
+	testutil.Set(t, &IssueTitle, "x")
+	testutil.Set(t, &IssueLabels, []string{"typo"})
+	if err := CreateIssue("web", passed()); err == nil || err.Title != "No such label" {
+		t.Errorf("create: %+v", err)
+	}
+	testutil.Set(t, &IssueLabels, nil)
+	testutil.Set(t, &IssueAddLabels, []string{"typo"})
+	if err := EditIssue("web", "2", passed("add-label")); err == nil || err.Title != "No such label" {
+		t.Errorf("edit: %+v", err)
+	}
+	if len(calls) != 0 {
+		t.Fatalf("sent: %v", calls)
+	}
+
+	// The label's case does not matter there
+	testutil.Set(t, &IssueAddLabels, []string{"bug"})
+	var err *cerr.CustomError
+	if testutil.Run(t, func() { err = EditIssue("web", "2", passed("add-label")) }); err != nil || !slices.Equal(calls, []string{"add"}) {
+		t.Errorf("known label: %v, %v", err, calls)
+	}
+
+	// A deleted issue answers 410
+	if _, err = GetIssue("web", "9", false); err == nil || err.Title != "No such issue" {
+		t.Errorf("deleted: %+v", err)
 	}
 }
 
