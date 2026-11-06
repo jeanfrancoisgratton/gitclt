@@ -36,7 +36,7 @@ func DeleteBranch(repo string, branches []string) *cerr.CustomError {
 	// on the local side alone, only an explicit -o is checked
 	owner := OwnerOrg
 	if withServer {
-		if c, owner, ce = connect(ctx); ce != nil {
+		if c, owner, repo, ce = connect(ctx, repo); ce != nil {
 			return ce
 		}
 	}
@@ -61,9 +61,9 @@ func DeleteBranch(repo string, branches []string) *cerr.CustomError {
 		sides := "local"
 		switch {
 		case withLocal && withServer:
-			sides = "local + server"
+			sides = "local + server, " + owner + "/" + repo
 		case withServer:
-			sides = "server"
+			sides = "server, " + owner + "/" + repo
 		}
 		answer := hf.GetStringValFromPrompt(hftx.WarningSign(fmt.Sprintf("Delete branch(es) %s (%s) ? [y/N]: ", strings.Join(branches, ", "), sides)))
 		if a := strings.ToLower(strings.TrimSpace(answer)); a != "y" && a != "yes" {

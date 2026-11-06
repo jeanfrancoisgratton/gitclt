@@ -21,17 +21,17 @@ import (
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 )
 
-// connect opens the client on the selected connection, and decides the repositories' owner (-o, or the connection's default)
-func connect(ctx context.Context) (*forge.Client, string, *cerr.CustomError) {
+// connect opens the client on the selected connection, and decides the repository and its owner (see forge.Client.Target)
+func connect(ctx context.Context, repo string) (*forge.Client, string, string, *cerr.CustomError) {
 	c, ce := forge.Connect(ctx, shared.ConnectionName)
 	if ce != nil {
-		return nil, "", ce
+		return nil, "", "", ce
 	}
-	owner, ce := c.Owner(ctx, OwnerOrg)
+	owner, repo, ce := c.Target(ctx, OwnerOrg, repo)
 	if ce != nil {
-		return nil, "", ce
+		return nil, "", "", ce
 	}
-	return c, owner, nil
+	return c, owner, repo, nil
 }
 
 // checkRepo makes sure owner/repo exists, so that a 404 further down is about the tag, not the repository

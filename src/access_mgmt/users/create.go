@@ -37,7 +37,7 @@ func CreateUser(username string, mustchangepassword *bool) *cerr.CustomError {
 		}
 		cuo.Password = hf.GetPassword("Enter the username's password: ", shared.DebugMode)
 	} else {
-		if pw, e := readPasswordFile(CreateUserPasswdFile); e != nil {
+		if pw, e := ReadPasswordFile(CreateUserPasswdFile); e != nil {
 			return &cerr.CustomError{Title: "Unable to read password file", Message: e.Error()}
 		} else {
 			cuo.Password = pw

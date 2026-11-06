@@ -12,12 +12,13 @@ import (
 
 func TestBranchCommands(t *testing.T) {
 	// The checks happen before any connection; the empty registry makes sure of it
-	testutil.WriteRegistry(t, "")
+	testutil.Forgejo(t, nil)
+	t.Chdir(t.TempDir())
 	for _, tc := range []struct {
 		args []string
 		want string
 	}{
-		// -a, or -l with -r, or neither, means both sides: the server's needs the repository
+		// -a, or -l with -r, or neither, means both sides: the server's needs the repository, and this is no clone
 		{[]string{"branch", "ls", "-l", "-a"}, "Missing repository"},
 		{[]string{"branch", "ls", "-l", "-r"}, "Missing repository"},
 		{[]string{"branch", "ls"}, "Missing repository"},

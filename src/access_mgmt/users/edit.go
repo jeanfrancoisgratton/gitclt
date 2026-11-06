@@ -111,7 +111,7 @@ func editOptionsFromFlags(changed func(string) bool) (gol.EditUserOptions, *cerr
 
 	switch {
 	case changed("password-file"):
-		pw, e := readPasswordFile(EditUserPasswdFile)
+		pw, e := ReadPasswordFile(EditUserPasswdFile)
 		if e != nil {
 			return euo, &cerr.CustomError{Title: "Unable to read password file", Message: e.Error()}
 		}

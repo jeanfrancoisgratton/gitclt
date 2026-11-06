@@ -19,7 +19,7 @@ import (
 // ListReleases lists the releases of owner/reponame, drafts included, in the server's order (newest first)
 func ListReleases(reponame string, displayoutput bool) ([]gol.Release, *cerr.CustomError) {
 	ctx := context.Background()
-	c, owner, ce := connect(ctx)
+	c, owner, reponame, ce := connect(ctx, reponame)
 	if ce != nil {
 		return nil, ce
 	}
@@ -54,7 +54,7 @@ func ListReleases(reponame string, displayoutput bool) ([]gol.Release, *cerr.Cus
 // ListAssets lists the files attached to the release of owner/reponame's tag
 func ListAssets(reponame, tag string, displayoutput bool) ([]gol.Asset, *cerr.CustomError) {
 	ctx := context.Background()
-	c, owner, ce := connect(ctx)
+	c, owner, reponame, ce := connect(ctx, reponame)
 	if ce != nil {
 		return nil, ce
 	}
@@ -95,21 +95,21 @@ func ListAssets(reponame, tag string, displayoutput bool) ([]gol.Asset, *cerr.Cu
 }
 
 // connect opens the client on the selected connection, refuses Bitbucket (no releases there), and decides the
-// repositories' owner (-o, or the connection's default)
-func connect(ctx context.Context) (*forge.Client, string, *cerr.CustomError) {
+// repository and its owner (see forge.Client.Target)
+func connect(ctx context.Context, repo string) (*forge.Client, string, string, *cerr.CustomError) {
 	c, ce := forge.Connect(ctx, shared.ConnectionName)
 	if ce != nil {
-		return nil, "", ce
+		return nil, "", "", ce
 	}
 	if c.Backend() == gol.BackendBitbucket {
-		return nil, "", &cerr.CustomError{Title: "Unsupported operation",
+		return nil, "", "", &cerr.CustomError{Title: "Unsupported operation",
 			Message: fmt.Sprintf("Connection %s: Bitbucket Cloud has no releases", c.Connection.Name)}
 	}
-	owner, ce := c.Owner(ctx, OwnerOrg)
+	owner, repo, ce := c.Target(ctx, OwnerOrg, repo)
 	if ce != nil {
-		return nil, "", ce
+		return nil, "", "", ce
 	}
-	return c, owner, nil
+	return c, owner, repo, nil
 }
 
 // checkRepo makes sure owner/repo exists, so that a 404 further down is about the release, not the repository

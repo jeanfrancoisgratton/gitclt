@@ -33,7 +33,7 @@ func List(repo string, displayoutput bool) ([]gol.Commit, *cerr.CustomError) {
 		return nil, ce
 	}
 
-	c, owner, h, ce := connect(ctx)
+	c, owner, repo, h, ce := connect(ctx, repo)
 	if ce != nil {
 		return nil, ce
 	}

@@ -21,7 +21,7 @@ import (
 // -m makes an annotated tag, otherwise a lightweight one (Bitbucket always annotates, with its own message)
 func CreateTag(repo, tag string) *cerr.CustomError {
 	ctx := context.Background()
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}

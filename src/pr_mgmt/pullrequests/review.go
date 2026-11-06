@@ -44,7 +44,7 @@ func ReviewPR(repo, number string) *cerr.CustomError {
 		return &cerr.CustomError{Title: "Missing text", Message: "--request-changes and --comment need a text (-m)"}
 	}
 
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}
@@ -76,7 +76,7 @@ func SetReviewers(repo, number string, users []string) *cerr.CustomError {
 	if ce != nil {
 		return ce
 	}
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}

@@ -34,7 +34,7 @@ func UploadAssets(repo, tag string, paths []string) *cerr.CustomError {
 		return ce
 	}
 
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}
@@ -42,7 +42,7 @@ func UploadAssets(repo, tag string, paths []string) *cerr.CustomError {
 	// look like a release lookup failure
 	if ce = checkRepo(ctx, c, owner, repo); ce != nil {
 		if ce.Title == "No such repository" {
-			ce.Message += " (usage: gitclt release upload <REPO> <TAG> <FILE>...)"
+			ce.Message += " (usage: gitclt release upload [<REPO>] <TAG> <FILE>...; to upload several files to the current clone's repository: . <TAG> <FILE>...)"
 		}
 		return ce
 	}

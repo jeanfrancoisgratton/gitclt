@@ -21,71 +21,76 @@ var prCmd = &cobra.Command{
 }
 
 var prListCmd = &cobra.Command{
-	Use:     "list <REPO>",
+	Use:     "list [<REPO>]",
 	Aliases: []string{"ls"},
-	Example: "  gitclt pr list [-c CONNECTION] [-o OWNER] [-s open|closed|all] [-j] <REPO>",
+	Example: "  gitclt pr list [-c CONNECTION] [-o OWNER] [-s open|closed|all] [-j] [<REPO>]",
 	Short:   "Lists the pull requests of a repository: open ones by default",
-	Args:    cobra.ExactArgs(1),
+	Args:    cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if _, e := pullrequests.ListPRs(args[0], true); e != nil {
+		repo, _ := splitRepo(args, 0)
+		if _, e := pullrequests.ListPRs(repo, true); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
 }
 
 var prGetCmd = &cobra.Command{
-	Use:     "get <REPO> <NUMBER>",
+	Use:     "get [<REPO>] <NUMBER>",
 	Aliases: []string{"info"},
-	Example: "  gitclt pr get [-c CONNECTION] [-o OWNER] [-j] <REPO> <NUMBER>",
+	Example: "  gitclt pr get [-c CONNECTION] [-o OWNER] [-j] [<REPO>] <NUMBER>",
 	Short:   "Shows a pull request: branches, author, status, mergeability, reviews and description",
-	Args:    cobra.ExactArgs(2),
+	Args:    cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		if _, e := pullrequests.GetPR(args[0], args[1], true); e != nil {
+		repo, rest := splitRepo(args, 1)
+		if _, e := pullrequests.GetPR(repo, rest[0], true); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
 }
 
 var prCreateCmd = &cobra.Command{
-	Use:     "create <REPO> <HEAD> [<BASE>]",
+	Use:     "create [<REPO>] <HEAD> [<BASE>]",
 	Aliases: []string{"add", "open"},
-	Example: "  gitclt pr create [-c CONNECTION] [-o OWNER] [-t TITLE] [-b BODY | -F FILE] [-d] [-r USER,...] <REPO> <HEAD> [<BASE>]\n" +
+	Example: "  gitclt pr create [-c CONNECTION] [-o OWNER] [-t TITLE] [-b BODY | -F FILE] [-d] [-r USER,...] [<REPO>] <HEAD> [<BASE>]\n" +
 		"  gitclt pr create -t \"Add the pr commands\" -r alice,bob myrepo feature/pr develop",
 	Short: "Opens a pull request, from <HEAD> into <BASE> (default: the default branch)",
 	Long: `<HEAD> is the branch with the changes, <BASE> the branch to merge into; both must be on the server (push them first).
 The title defaults to the head branch's name. -d, --draft opens it as a draft (on Forgejo, a "WIP: " title prefix).
--r, --reviewers requests the review of these users once the pull request is open.`,
-	Args: cobra.RangeArgs(2, 3),
+-r, --reviewers requests the review of these users once the pull request is open.
+From inside a clone, <REPO> can be left out with <HEAD> alone; with <BASE> too, use . as <REPO>: gitclt pr create . feature/x develop`,
+	Args: cobra.RangeArgs(1, 3),
 	Run: func(cmd *cobra.Command, args []string) {
+		repo, rest := splitRepo(args, 1)
 		base := ""
-		if len(args) > 2 {
-			base = args[2]
+		if len(rest) > 1 {
+			base = rest[1]
 		}
-		if e := pullrequests.CreatePR(args[0], args[1], base, cmd.Flags().Changed); e != nil {
-			fmt.Println(e.Error())
+		if e := pullrequests.CreatePR(repo, rest[0], base, cmd.Flags().Changed); e != nil {
+			printTargetsError(e)
 		}
 	},
 }
 
 var prEditCmd = &cobra.Command{
-	Use:     "edit <REPO> <NUMBER>",
+	Use:     "edit [<REPO>] <NUMBER>",
 	Aliases: []string{"modify", "update"},
-	Example: "  gitclt pr edit [-c CONNECTION] [-o OWNER] [flags] <REPO> <NUMBER>\n" +
+	Example: "  gitclt pr edit [-c CONNECTION] [-o OWNER] [flags] [<REPO>] <NUMBER>\n" +
 		"  gitclt pr edit --draft=false --base main myrepo 12",
 	Short: "Edits a pull request; only the flags passed are changed",
 	Long: `Only the fields whose flag is passed are sent to the server; everything else is left unchanged.
 --draft=false marks a draft ready for review, --draft turns it back into a draft. An empty string clears the body (--body "").`,
-	Args: cobra.ExactArgs(2),
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		if e := pullrequests.EditPR(args[0], args[1], cmd.Flags().Changed); e != nil {
+		repo, rest := splitRepo(args, 1)
+		if e := pullrequests.EditPR(repo, rest[0], cmd.Flags().Changed); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
 }
 
 var prMergeCmd = &cobra.Command{
-	Use: "merge <REPO> <NUMBER>",
-	Example: "  gitclt pr merge [-c CONNECTION] [-o OWNER] [-m METHOD] [-d] [--auto | --cancel-auto] <REPO> <NUMBER>\n" +
+	Use: "merge [<REPO>] <NUMBER>",
+	Example: "  gitclt pr merge [-c CONNECTION] [-o OWNER] [-m METHOD] [-d] [--auto | --cancel-auto] [<REPO>] <NUMBER>\n" +
 		"  gitclt pr merge -m squash -d myrepo 12",
 	Short: "Merges a pull request",
 	Long: `-m, --method is merge (the default: a merge commit), squash, rebase, rebase-merge (rebase, then a merge commit),
@@ -93,66 +98,71 @@ fast-forward-only, or manually-merged (only marks as merged a pull request whose
 GitHub only offers merge, squash and rebase.
 The merge fails if the head branch moved since gitclt checked it. Drafts, closed and conflicting pull requests are refused.
 --auto schedules the merge for when the checks pass (not on Bitbucket); --cancel-auto cancels such a schedule.`,
-	Args: cobra.ExactArgs(2),
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		if e := pullrequests.MergePR(args[0], args[1]); e != nil {
+		repo, rest := splitRepo(args, 1)
+		if e := pullrequests.MergePR(repo, rest[0]); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
 }
 
 var prCloseCmd = &cobra.Command{
-	Use:     "close <REPO> <NUMBER>...",
-	Example: "  gitclt pr close [-c CONNECTION] [-o OWNER] <REPO> <NUMBER>...",
+	Use:     "close [<REPO>] <NUMBER>...",
+	Example: "  gitclt pr close [-c CONNECTION] [-o OWNER] [<REPO>] <NUMBER>...",
 	Short:   "Closes pull requests without merging them",
 	Long: `Every pull request is checked first; those already closed or merged are skipped.
 On Bitbucket, a closed (declined) pull request cannot be reopened.`,
-	Args: cobra.MinimumNArgs(2),
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if e := pullrequests.ClosePRs(args[0], args[1:], false); e != nil {
+		repo, numbers := splitRepoNumber(args, 1)
+		if e := pullrequests.ClosePRs(repo, numbers, false); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
 }
 
 var prReopenCmd = &cobra.Command{
-	Use:     "reopen <REPO> <NUMBER>...",
-	Example: "  gitclt pr reopen [-c CONNECTION] [-o OWNER] <REPO> <NUMBER>...",
+	Use:     "reopen [<REPO>] <NUMBER>...",
+	Example: "  gitclt pr reopen [-c CONNECTION] [-o OWNER] [<REPO>] <NUMBER>...",
 	Short:   "Reopens closed pull requests; not on Bitbucket",
 	Long:    `Every pull request is checked first; those already open are skipped, and a merged one is refused.`,
-	Args:    cobra.MinimumNArgs(2),
+	Args:    cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if e := pullrequests.ClosePRs(args[0], args[1:], true); e != nil {
+		repo, numbers := splitRepoNumber(args, 1)
+		if e := pullrequests.ClosePRs(repo, numbers, true); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
 }
 
 var prReviewCmd = &cobra.Command{
-	Use: "review <REPO> <NUMBER>",
-	Example: "  gitclt pr review [-c CONNECTION] [-o OWNER] (-a | -x | -n) [-m TEXT] <REPO> <NUMBER>\n" +
+	Use: "review [<REPO>] <NUMBER>",
+	Example: "  gitclt pr review [-c CONNECTION] [-o OWNER] (-a | -x | -n) [-m TEXT] [<REPO>] <NUMBER>\n" +
 		"  gitclt -c reviewer pr review -a myrepo 12\n" +
 		"  gitclt pr review -x -m \"Please add tests\" myrepo 12",
 	Short: "Reviews a pull request, as the connection's user: approve, request changes, or comment",
 	Long: `Pass exactly one of -a (--approve), -x (--request-changes), -n (--comment); the last two need a text (-m).
 The authors of a pull request cannot approve it, nor request changes on it (Forgejo, GitHub): review it with another
 user's connection (-c).`,
-	Args: cobra.ExactArgs(2),
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		if e := pullrequests.ReviewPR(args[0], args[1]); e != nil {
+		repo, rest := splitRepo(args, 1)
+		if e := pullrequests.ReviewPR(repo, rest[0]); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
 }
 
 var prReviewersCmd = &cobra.Command{
-	Use: "reviewers <REPO> <NUMBER> <USER>...",
-	Example: "  gitclt pr reviewers [-c CONNECTION] [-o OWNER] [--remove] <REPO> <NUMBER> <USER>...\n" +
+	Use: "reviewers [<REPO>] <NUMBER> <USER>...",
+	Example: "  gitclt pr reviewers [-c CONNECTION] [-o OWNER] [--remove] [<REPO>] <NUMBER> <USER>...\n" +
 		"  gitclt pr reviewers myrepo 12 alice bob",
 	Short: "Requests the review of users on a pull request (--remove withdraws the requests)",
-	Args:  cobra.MinimumNArgs(3),
+	Args:  cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		if e := pullrequests.SetReviewers(args[0], args[1], args[2:]); e != nil {
+		repo, rest := splitRepoNumber(args, 2)
+		if e := pullrequests.SetReviewers(repo, rest[0], rest[1:]); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
@@ -161,7 +171,7 @@ var prReviewersCmd = &cobra.Command{
 func init() {
 	prCmd.AddCommand(prListCmd, prGetCmd, prCreateCmd, prEditCmd, prMergeCmd, prCloseCmd, prReopenCmd, prReviewCmd, prReviewersCmd)
 
-	prCmd.PersistentFlags().StringVarP(&pullrequests.OwnerOrg, "owner", "o", "", "user, organization or workspace that owns the repository (default: the connection's owner, else your username)")
+	prCmd.PersistentFlags().StringVarP(&pullrequests.OwnerOrg, "owner", "o", "", ownerFlagHelp)
 	prListCmd.Flags().StringVarP(&pullrequests.ListState, "state", "s", "open", "open, closed (merged included) or all")
 	prListCmd.Flags().BoolVarP(&pullrequests.JSONoutput, "json", "j", false, "output as JSON")
 	prGetCmd.Flags().BoolVarP(&pullrequests.JSONoutput, "json", "j", false, "output as JSON")
@@ -195,4 +205,9 @@ func init() {
 	prReviewCmd.MarkFlagsMutuallyExclusive("approve", "request-changes", "comment")
 
 	prReviewersCmd.Flags().BoolVar(&pullrequests.RemoveReviewers, "remove", false, "withdraw the review requests instead")
+
+	addHelp(prCmd, repoInferenceHelp)
+	addHelp(prCloseCmd, prNumberHelp)
+	addHelp(prReopenCmd, prNumberHelp)
+	addHelp(prReviewersCmd, prNumberHelp)
 }

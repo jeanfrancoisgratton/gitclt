@@ -43,9 +43,9 @@ func confirmed(prompt string) bool {
 	return a == "y" || a == "yes"
 }
 
-// readPasswordFile reads a password from path, refusing files that are
+// ReadPasswordFile reads a password (or any other secret) from path, refusing files that are
 // not regular files or that group/others can access.
-func readPasswordFile(path string) (string, error) {
+func ReadPasswordFile(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return "", err

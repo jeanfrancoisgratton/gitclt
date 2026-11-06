@@ -37,13 +37,14 @@ var repoListCmd = &cobra.Command{
 }
 
 var repoInfoCmd = &cobra.Command{
-	Use:     "info <REPO>",
+	Use:     "info [<REPO>]",
 	Aliases: []string{"get"},
-	Example: "  gitclt repo info [-c CONNECTION] [-o OWNER] [--json] <REPO>",
+	Example: "  gitclt repo info [-c CONNECTION] [-o OWNER] [--json] [<REPO>]",
 	Short:   "Provides detailed information about a repository",
-	Args:    cobra.ExactArgs(1),
+	Args:    cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if _, e := repositories.RepositoryInfo(args[0], true); e != nil {
+		repo, _ := splitRepo(args, 0)
+		if _, e := repositories.RepositoryInfo(repo, true); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
@@ -89,9 +90,9 @@ Other values are using hardcoded values such as gitignore template (Go, not avai
 }
 
 var repoEditCmd = &cobra.Command{
-	Use:     "edit <REPO>",
+	Use:     "edit [<REPO>]",
 	Aliases: []string{"modify", "update"},
-	Example: "  gitclt repo edit [-c CONNECTION] [-o OWNER] [flags] <REPO>\n" +
+	Example: "  gitclt repo edit [-c CONNECTION] [-o OWNER] [flags] [<REPO>]\n" +
 		"  gitclt -c bitbucket repo edit --default-branch develop myrepo\n" +
 		"  gitclt repo edit --archived --description \"\" oldrepo",
 	Short: "Edits a repository; only the flags passed are changed",
@@ -100,9 +101,10 @@ Boolean flags can be revoked with =false (e.g. --public=false makes the reposito
 and an empty string clears a text field (e.g. --website "").
 --name renames the repository; the forge usually redirects the old URLs, but local clones should update their remotes.
 Bitbucket cannot archive a repository, nor make it a template.`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if e := repositories.EditRepo(args[0], cmd.Flags().Changed); e != nil {
+		repo, _ := splitRepo(args, 0)
+		if e := repositories.EditRepo(repo, cmd.Flags().Changed); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
@@ -120,13 +122,13 @@ func init() {
 	repoDeleteCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user, organization or workspace that owns the repository (default: the connection's owner, else your username)")
 	repoDeleteCmd.Flags().BoolVarP(&repositories.AssumeYes, "yes", "y", false, "confirm deletion")
 	repoInfoCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "output as JSON")
-	repoInfoCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user, organization or workspace that owns the repository (default: the connection's owner, else your username)")
+	repoInfoCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", ownerFlagHelp)
 	repoListCmd.Flags().BoolVarP(&repositories.JSONoutput, "json", "j", false, "output as JSON")
 	repoListCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "only show repositories owned by this user or organization (default: all accessible repositories)")
 	repoListCmd.Flags().StringVarP(&repositories.SortBy, "sort", "s", "", "sort on this column, in descending order")
 	repoListCmd.Flags().StringVarP(&repositories.SortByAsc, "sort-asc", "S", "", "sort on this column, in ascending order (default: ID)")
 
-	repoEditCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", "user, organization or workspace that owns the repository (default: the connection's owner, else your username)")
+	repoEditCmd.Flags().StringVarP(&repositories.OwnerOrg, "owner", "o", "", ownerFlagHelp)
 	repoEditCmd.Flags().StringVar(&repositories.EditRepoName, "name", "", "new name of the repository")
 	repoEditCmd.Flags().StringVar(&repositories.EditRepoDescription, "description", "", "repository description")
 	repoEditCmd.Flags().StringVar(&repositories.EditRepoWebsite, "website", "", "repository web site")
@@ -136,4 +138,7 @@ func init() {
 	repoEditCmd.Flags().BoolVar(&repositories.EditRepoTemplate, "template", false, "template repository (--template=false reverts it)")
 
 	repoListCmd.MarkFlagsMutuallyExclusive("sort", "sort-asc")
+
+	addHelp(repoInfoCmd, repoCommandInferenceHelp)
+	addHelp(repoEditCmd, repoCommandInferenceHelp)
 }

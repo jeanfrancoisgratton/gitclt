@@ -5,7 +5,7 @@
 ___
 `gitclt` is a CLI client for Forgejo, GitHub (github.com, as well as GitHub Enterprise Server) and Bitbucket Cloud.<br>
 It is meant to handle the usual git server tasks from the command line: repositories, branches, tags, releases, users, orgs, etc.<br>
-It is a front-end to [gitoperationslib](https://github.com/jeanfrancoisgratton/gitoperationslib), which does the actual talking to the forges. Forgejo servers must run version 11.0.10 or later.
+It is a front-end to [gitoperationslib](https://github.com/jeanfrancoisgratton/gitoperationslib), which does the actual talking to the forges. Forgejo servers must run version 15.0.0 or later.
 
 What is currently implemented:
 - a connections registry (multiple servers, multiple accounts, one default connection)
@@ -13,6 +13,9 @@ What is currently implemented:
 - users: whoami, get, list, create, edit, delete; your own e-mail addresses, SSH keys and avatar
 - organizations: list, get, create, edit, rename, delete, membership (list, check, remove), avatar
 - teams: list, get, create, edit, delete, membership (list, check, add, remove), repository access (list, add, remove)
+- issues, with their comments, labels and milestones
+- webhooks: your own, the server's (system and default), a repository's, an organization's
+- from inside a clone, the repository and its owner are read from the remotes: see [working from inside a clone](#working-from-inside-a-clone)
 
 **TABLE OF CONTENTS**<br>
 
@@ -101,6 +104,26 @@ These work on every command:
 | `-D`, `--debug`                 | Debug mode (also lets the password and two-factor prompts read from a pipe) |
 | `--otp CODE`                    | The current two-factor authentication code, for a password login on Forgejo (see [the connections registry](#connections)) |
 
+### Working from inside a clone
+`branch`, `branch protection`, `tag`, `release`, `pr`, `issue`, `history`, `repo info`, `repo edit` and `webhook repo` work out the repository and its owner when run from anywhere inside a clone, like `git` does. `<REPO>` and `-o` can then be left out:
+
+```
+cd ~/src/myrepo/some/dir
+gitclt tag ls                 # same as: gitclt tag ls -o myorg myrepo
+gitclt branch get feature/x
+gitclt pr close 12 13
+gitclt -c github tag ls       # the same clone, as seen on GitHub
+```
+
+- **The connection picks the remote.** Only the remotes on the connection's server count, the SSH host and port being ignored (`ssh.bitbucket.org` is Bitbucket, and `git.example.net:9722` is `https://git.example.net:3000`). A clone with remotes on three forges therefore follows `-c`. If several remotes are on that server, `origin` wins; if none is `origin` and they point to different repositories, the command stops and asks for the name.
+- **No match, no guess.** Outside a clone, or with no remote on the connection's server (an SSH host alias, for example), the command stops with `Missing repository`: it never falls back on a repository of the same name elsewhere.
+- **`-o` still wins** for the owner. A repository named on the command line keeps the usual owner (`-o`, the connection's owner, your username), unless it is the current clone's: its owner then comes from the remote.
+- **Several targets.** `tag rm v1 v2` cannot be told from `tag rm myrepo v1`, so the first of two or more arguments stays the repository, as it always was: `v1` is then looked up as a repository, and nothing is deleted. Use `.` for the current clone's: `gitclt tag rm . v1 v2`, `gitclt release upload . v1.2.0 a.rpm b.deb`, `gitclt pr create . feature/x develop`. This applies wherever a command takes an open-ended list, or an optional last argument. Pull request and issue numbers, comment and webhook IDs are the exception, as a number is not taken for a repository: `gitclt pr close 12 13`, `gitclt issue close 12 13`, `gitclt webhook repo rm 5 6`. In return, `pr close`, `pr reopen`, `pr reviewers`, `issue close`, `issue reopen`, `issue delete`, `issue comment delete`, `issue milestone delete` and `webhook repo delete` cannot designate a repository with a numeric name.
+- `repo delete` always needs the name: it is not something to do on an inferred target.
+- The confirmation questions of `branch delete` (server side), `tag delete`, `release delete` and `release delete-assets` name the repository, as it may not have been typed.
+
+Each command's `--help` repeats what applies to it.
+
 ### Other commands
 | Command                       | Description                                       |
 |-------------------------------|---------------------------------------------------|
@@ -122,10 +145,10 @@ These work on every command:
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
 | `gitclt repo list [-o OWNER] [-s\|-S SORT] [-j]` (`ls`) | Lists all repositories visible to the connection's user (the connection's default owner does not apply here). `-o` limits the list to a user / organization (a workspace on Bitbucket); `-s` sorts on a column in descending order, `-S` in ascending order (its first letter is enough: `i`d, `o`wner, `r`epository, `c`reated, `u`pdated; default: descending on ID, or on Repository on Bitbucket, which has no repository IDs); `-j`, `--json` outputs JSON; `-q` outputs only the `owner/name` of each repo. The sort order applies to all three outputs |
-| `gitclt repo info [-o OWNER] [-j] <REPO>` (`get`) | Shows the details of a repository |
+| `gitclt repo info [-o OWNER] [-j] [<REPO>]` (`get`) | Shows the details of a repository |
 | `gitclt repo create [-o OWNER] [flags] <REPO>` (`add`) | Creates a repository. `--description`, `--default-branch` (default: `develop`, where the forge can set it: GitHub cannot at creation, and uses your account's or organization's setting; Bitbucket only can with `--initialize`, as an empty repository has no branch yet; passing the flag anyway is refused there), `--public=false` for a private repo, `--template`, `--initialize` (creates it with a `.gitignore` and a `README.md`) |
 | `gitclt repo delete [-o OWNER] [-y] <REPO>` (`rm`, `remove`) | Deletes a repository, with everything in it, after confirmation (`-y`, `--yes` skips it; without a terminal to ask on, the repository is not deleted unless `-y` is passed) |
-| `gitclt repo edit [-o OWNER] [flags] <REPO>` (`modify`, `update`) | Edits a repository; **only the flags passed are sent**: `--name` (renames it), `--description`, `--website`, `--default-branch`, `--public` (`=false` makes it private), `--archived` (`=false` unarchives it), `--template`. Booleans are revoked with `=false`, and `""` clears a text field. Bitbucket cannot archive a repository, nor make it a template |
+| `gitclt repo edit [-o OWNER] [flags] [<REPO>]` (`modify`, `update`) | Edits a repository; **only the flags passed are sent**: `--name` (renames it), `--description`, `--website`, `--default-branch`, `--public` (`=false` makes it private), `--archived` (`=false` unarchives it), `--template`. Booleans are revoked with `=false`, and `""` clears a text field. Bitbucket cannot archive a repository, nor make it a template |
 
 ### Users: `gitclt user`
 `whoami` and the `email`, `sshkey` and `avatar` commands act on the connection's user, and need no admin rights. All the others need admin rights, and only work on Forgejo.
@@ -197,26 +220,26 @@ The access tokens of the connection's user; Forgejo only, as GitHub and Bitbucke
 | `gitclt token delete [--otp CODE] [-y] <NAME>` or `--id ID` (`rm`, `remove`) | Deletes a token, after confirmation (`-y`, `--yes` skips it); you are warned if it looks like the one the connection authenticates with |
 
 ### Branches: `gitclt branch`
-Every `branch` command takes the repository's owner with `-o`, `--owner OWNER`; without it, the connection's default owner is used (see [the connections registry](#connections)). The local branches are those of the git working copy in the current directory (or one of its parents), read straight from its `.git` directory: the git client does not need to be installed.
+Every `branch` command takes the repository's owner with `-o`, `--owner OWNER`; without it, the clone's owner is used for its repository (see [working from inside a clone](#working-from-inside-a-clone)), else the connection's default owner (see [the connections registry](#connections)). The local branches are those of the git working copy in the current directory (or one of its parents), read straight from its `.git` directory: the git client does not need to be installed.
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
-| `gitclt branch list [-o OWNER] [-l \| -r \| -a] [-j] <REPO>` (`ls`) | Lists the branches: `-l`, `--local` the working copy's (a rough equivalent of `git branch`; `<REPO>` is then optional, and when given, the working copy must be a clone of that repository), `-r`, `--remote` the server's, with their last commit (date and author; not reported by GitHub's branch list), default and protected flags, `-a`, `--all` (the default; it overrides `-l` and `-r`, and `-l -r` together means the same) both, merged by name, with a status seen from the local branch, like `git status`: `in sync`, `ahead N`, `behind N`, `ahead N, behind M` (counted by the server, for the branches that differ only), `unpushed commits` (the local head is unknown to the server, so it cannot count), `local only`, `server only`. If the current directory is not a working copy of `<REPO>`, `--all` shows the server's branches only. The checked out branch is marked with `*` |
-| `gitclt branch get [-o OWNER] [-j] <REPO> <BRANCH>` | Shows one branch, from both sides when it exists on both: local commit (and whether it is checked out), server commit, last commit (date, author and title), default and protected flags, and the same status as `branch list`. A branch on one side only is still shown; outside of a working copy of `<REPO>`, only the server's side is shown, with the reason |
-| `gitclt branch delete [-o OWNER] [-l \| -r \| -a] [-f] [-y] <REPO> <BRANCH>...` (`rm`, `del`) | Deletes branches locally (the default), on the server (`-r`, `--remote`), or both (`-a`, `--all`, or `-l -r`; local first). The working copy must be a clone of `<REPO>`, and the local deletion is done by the git client, which refuses the checked out branch and, unless `-f`, `--force`, an unmerged one. Everything is checked before the confirmation (`-y`, `--yes` skips it); the run stops at the first failure, and the branches deleted before it stay deleted |
-| `gitclt branch rename [-o OWNER] [-l \| -r \| -a] <REPO> <BRANCH> <NEW NAME>` (`mv`) | Renames a branch locally (the default), on the server, or both (local first), with the same `-l`, `-r`, `-a` as `delete`. On the server, open pull requests and protection rules follow the branch; with both sides, the local branch then tracks the server's new name. The local rename is done by the git client |
-| `gitclt branch compare [-o OWNER] [-j] <REPO> <BASE> <HEAD>` (`cmp`) | Counts, on the server, how far ahead of and behind `<BASE>` `<HEAD>` is (branches, tags or commits), and tells if `<HEAD>` can be merged into `<BASE>` as a fast-forward |
+| `gitclt branch list [-o OWNER] [-l \| -r \| -a] [-j] [<REPO>]` (`ls`) | Lists the branches: `-l`, `--local` the working copy's (a rough equivalent of `git branch`; `<REPO>` is then optional, and when given, the working copy must be a clone of that repository), `-r`, `--remote` the server's, with their last commit (date and author; not reported by GitHub's branch list), default and protected flags, `-a`, `--all` (the default; it overrides `-l` and `-r`, and `-l -r` together means the same) both, merged by name, with a status seen from the local branch, like `git status`: `in sync`, `ahead N`, `behind N`, `ahead N, behind M` (counted by the server, for the branches that differ only), `unpushed commits` (the local head is unknown to the server, so it cannot count), `local only`, `server only`. If the current directory is not a working copy of `<REPO>`, `--all` shows the server's branches only. The checked out branch is marked with `*` |
+| `gitclt branch get [-o OWNER] [-j] [<REPO>] <BRANCH>` | Shows one branch, from both sides when it exists on both: local commit (and whether it is checked out), server commit, last commit (date, author and title), default and protected flags, and the same status as `branch list`. A branch on one side only is still shown; outside of a working copy of `<REPO>`, only the server's side is shown, with the reason |
+| `gitclt branch delete [-o OWNER] [-l \| -r \| -a] [-f] [-y] [<REPO>] <BRANCH>...` (`rm`, `del`) | Deletes branches locally (the default), on the server (`-r`, `--remote`), or both (`-a`, `--all`, or `-l -r`; local first). The working copy must be a clone of `<REPO>`, and the local deletion is done by the git client, which refuses the checked out branch and, unless `-f`, `--force`, an unmerged one. Everything is checked before the confirmation (`-y`, `--yes` skips it); the run stops at the first failure, and the branches deleted before it stay deleted |
+| `gitclt branch rename [-o OWNER] [-l \| -r \| -a] [<REPO>] <BRANCH> <NEW NAME>` (`mv`) | Renames a branch locally (the default), on the server, or both (local first), with the same `-l`, `-r`, `-a` as `delete`. On the server, open pull requests and protection rules follow the branch; with both sides, the local branch then tracks the server's new name. The local rename is done by the git client |
+| `gitclt branch compare [-o OWNER] [-j] [<REPO>] <BASE> <HEAD>` (`cmp`) | Counts, on the server, how far ahead of and behind `<BASE>` `<HEAD>` is (branches, tags or commits), and tells if `<HEAD>` can be merged into `<BASE>` as a fast-forward |
 
 #### Branch protection rules: `gitclt branch protection` (aliases: `protections`, `protect`, `prot`)
 A rule protects the branches matching its pattern, a branch name or a glob (`main`, `release/*`); rules are addressed by it. On GitHub, a rule is a branch ruleset: one targeting several patterns is listed, but cannot be addressed.
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
-| `gitclt branch protection list [-o OWNER] [-j] <REPO>` (`ls`) | Lists the rules: pattern, required approvals, status checks, signed commits, whether admins are concerned, who may push directly, and whether deletion and force pushes are allowed; `-q` outputs only the patterns |
-| `gitclt branch protection get [-o OWNER] [-j] <REPO> <PATTERN>` (`info`) | Shows a rule, with the settings this forge has |
-| `gitclt branch protection create [-o OWNER] [flags] <REPO> <PATTERN>` (`add`) | Creates a rule. Without any flag, it still blocks deleting the matching branches and force-pushing to them; direct pushes stay open to anyone with write access |
-| `gitclt branch protection edit [-o OWNER] [flags] <REPO> <PATTERN>` (`update`) | Changes only the settings whose flag is passed. Yes/no settings are turned off with `=false`, lists are replaced (`--push-users ''` empties one, `--status-check ''` removes all checks), and `--any-push`, `--any-merge`, `--any-approver` remove an allowlist. A pattern cannot be changed: delete the rule, and create a new one. **On GitHub, the whole ruleset is written back**: its name, its enforcement status (a disabled ruleset becomes active) and any setting gitclt does not know of are overwritten |
-| `gitclt branch protection delete [-o OWNER] [-y] <REPO> <PATTERN>...` (`rm`, `del`) | Deletes rules, after confirmation (`-y`, `--yes` skips it). Every rule is checked first; the run stops at the first failure, and the rules deleted before it stay deleted |
+| `gitclt branch protection list [-o OWNER] [-j] [<REPO>]` (`ls`) | Lists the rules: pattern, required approvals, status checks, signed commits, whether admins are concerned, who may push directly, and whether deletion and force pushes are allowed; `-q` outputs only the patterns |
+| `gitclt branch protection get [-o OWNER] [-j] [<REPO>] <PATTERN>` (`info`) | Shows a rule, with the settings this forge has |
+| `gitclt branch protection create [-o OWNER] [flags] [<REPO>] <PATTERN>` (`add`) | Creates a rule. Without any flag, it still blocks deleting the matching branches and force-pushing to them; direct pushes stay open to anyone with write access |
+| `gitclt branch protection edit [-o OWNER] [flags] [<REPO>] <PATTERN>` (`update`) | Changes only the settings whose flag is passed. Yes/no settings are turned off with `=false`, lists are replaced (`--push-users ''` empties one, `--status-check ''` removes all checks), and `--any-push`, `--any-merge`, `--any-approver` remove an allowlist. A pattern cannot be changed: delete the rule, and create a new one. **On GitHub, the whole ruleset is written back**: its name, its enforcement status (a disabled ruleset becomes active) and any setting gitclt does not know of are overwritten |
+| `gitclt branch protection delete [-o OWNER] [-y] [<REPO>] <PATTERN>...` (`rm`, `del`) | Deletes rules, after confirmation (`-y`, `--yes` skips it). Every rule is checked first; the run stops at the first failure, and the rules deleted before it stay deleted |
 
 The flags of `create` and `edit`; a forge refuses the settings it does not have:
 
@@ -242,46 +265,134 @@ Forgejo and GitHub only: Bitbucket Cloud has no releases. Files (assets) are att
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
-| `gitclt release upload [-o OWNER] [--create [--draft] [--prerelease]] [-r] <REPO> <TAG> <FILE>...` (`up`) | Uploads files to the release of `<TAG>`, each under its base name. Without `--create`, the release must already exist; with it, a missing release is created, titled after the tag (`--draft`, `--prerelease`). The tag must already be on the server: push it first. A name already taken by an asset is an error, unless `-r`, `--replace` is passed: the old asset is then deleted before the upload. Everything (files, release, names) is checked before the first upload; the run stops at the first failed upload, and the files uploaded before it stay. Meant for CI: `gitclt rel up --create -r myrepo v1.2.0 __redhat/*.rpm __debian/*.deb` |
-| `gitclt release list [-o OWNER] [-j] <REPO>` (`ls`) | Lists the releases, drafts included, in the server's order (newest first): tag, title, type (`release`, `prerelease`, `draft release`, `draft prerelease`), publication date (a draft shows its creation date instead), author and number of assets |
-| `gitclt release list-assets [-o OWNER] [-j] <REPO> <TAG>` (`lsa`) | Lists the files attached to the release of `<TAG>` (a draft's included): name, size, download count and upload date. Forgejo's external assets (links to files hosted elsewhere) show `external` as their size |
-| `gitclt release delete [-o OWNER] [-y] <REPO> <TAG>...` (`rm`) | Deletes the releases of one or more tags, drafts included, with their assets. **The tags stay on the server.** Every tag is checked before the confirmation (`-y`, `--yes` skips it), and the missing ones are all reported at once; the run stops at the first failed deletion, and the releases deleted before it stay deleted |
-| `gitclt release delete-assets [-o OWNER] [-y] <REPO> <TAG> <ASSET>...` (`rma`, `dla`) | Deletes files from the release of `<TAG>`, by asset name (see `release list-assets`). Same checks, confirmation and failure handling as `release delete` |
-| `gitclt release edit [-o OWNER] [flags] <REPO> <TAG>` (`modify`, `update`) | Edits the release of `<TAG>`, drafts included; only the flags passed are sent: `--title`, `--notes` or `--notes-file FILE` (the release notes, Markdown), `--draft`, `--prerelease`. Booleans are revoked with `=false` (`--draft=false` publishes a draft, provided its tag is on the server), and an empty string clears a text field |
-| `gitclt release publish [-o OWNER] <REPO> <TAG>...` (`pub`) | Publishes the draft releases of one or more tags; the releases already published are skipped. Every tag is checked first: it must have a release, and be on the server (push it first: publishing would otherwise create it from the release's target); the run stops at the first failure, and the releases published before it stay published |
+| `gitclt release upload [-o OWNER] [--create [--draft] [--prerelease]] [-r] [<REPO>] <TAG> <FILE>...` (`up`) | Uploads files to the release of `<TAG>`, each under its base name. Without `--create`, the release must already exist; with it, a missing release is created, titled after the tag (`--draft`, `--prerelease`). The tag must already be on the server: push it first. A name already taken by an asset is an error, unless `-r`, `--replace` is passed: the old asset is then deleted before the upload. Everything (files, release, names) is checked before the first upload; the run stops at the first failed upload, and the files uploaded before it stay. Meant for CI: `gitclt rel up --create -r myrepo v1.2.0 __redhat/*.rpm __debian/*.deb` |
+| `gitclt release list [-o OWNER] [-j] [<REPO>]` (`ls`) | Lists the releases, drafts included, in the server's order (newest first): tag, title, type (`release`, `prerelease`, `draft release`, `draft prerelease`), publication date (a draft shows its creation date instead), author and number of assets |
+| `gitclt release list-assets [-o OWNER] [-j] [<REPO>] <TAG>` (`lsa`) | Lists the files attached to the release of `<TAG>` (a draft's included): name, size, download count and upload date. Forgejo's external assets (links to files hosted elsewhere) show `external` as their size |
+| `gitclt release delete [-o OWNER] [-y] [<REPO>] <TAG>...` (`rm`) | Deletes the releases of one or more tags, drafts included, with their assets. **The tags stay on the server.** Every tag is checked before the confirmation (`-y`, `--yes` skips it), and the missing ones are all reported at once; the run stops at the first failed deletion, and the releases deleted before it stay deleted |
+| `gitclt release delete-assets [-o OWNER] [-y] [<REPO>] <TAG> <ASSET>...` (`rma`, `dla`) | Deletes files from the release of `<TAG>`, by asset name (see `release list-assets`). Same checks, confirmation and failure handling as `release delete` |
+| `gitclt release edit [-o OWNER] [flags] [<REPO>] <TAG>` (`modify`, `update`) | Edits the release of `<TAG>`, drafts included; only the flags passed are sent: `--title`, `--notes` or `--notes-file FILE` (the release notes, Markdown), `--draft`, `--prerelease`. Booleans are revoked with `=false` (`--draft=false` publishes a draft, provided its tag is on the server), and an empty string clears a text field |
+| `gitclt release publish [-o OWNER] [<REPO>] <TAG>...` (`pub`) | Publishes the draft releases of one or more tags; the releases already published are skipped. Every tag is checked first: it must have a release, and be on the server (push it first: publishing would otherwise create it from the release's target); the run stops at the first failure, and the releases published before it stay published |
 
 ### Tags: `gitclt tag`
 **Remote-only**: these commands work on the server's tags (Forgejo, GitHub and Bitbucket), never on the local working copy's, which are left to git (`git tag`, `git push`, `git fetch`). Every `tag` command takes the repository's owner with `-o`, `--owner OWNER`; without it, the connection's default owner is used. A tag's release, files included, is managed with `gitclt release`.
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
-| `gitclt tag list [-o OWNER] [-j] <REPO>` (`ls`) | Lists the server's tags, newest version first (`v0.10.0` before `v0.9.0`): commit, release (Forgejo and GitHub: `release`, `prerelease`, `draft release`...; empty when there is none) and the annotation's first line (not reported by GitHub's tag list: see `tag get`) |
-| `gitclt tag get [-o OWNER] [-j] <REPO> <TAG>` (`info`) | Shows one tag of the server: full commit SHA, type (`annotated` or `lightweight`) and annotation, release (with its URL) and source archive URLs |
-| `gitclt tag create [-o OWNER] [-t TARGET] [-m MESSAGE] <REPO> <TAG>` (`add`) | Creates a tag on the server, on `-t`, `--target` (a branch, tag or commit the server knows; the default branch's head when left out). `-m`, `--message` makes an annotated tag, otherwise it is lightweight; Bitbucket always annotates, with its own message. An existing tag is refused. `git fetch` brings the new tag into the local working copy |
-| `gitclt tag delete [-o OWNER] [--with-release] [-y] <REPO> <TAG>...` (`rm`, `del`) | Deletes tags on the server; the local ones stay. Every tag is checked before the confirmation (`-y`, `--yes` skips it): it must exist, and a tag with a release is refused, unless `--with-release` is passed: the release, with its assets, is then deleted before the tag (Forgejo refuses to delete a tag that has a release, GitHub would leave the release without its tag). The run stops at the first failure, and the tags deleted before it stay deleted. Ex: `gitclt tag rm --with-release -y myrepo v1.2.0-rc1 v1.2.0-rc2` |
+| `gitclt tag list [-o OWNER] [-j] [<REPO>]` (`ls`) | Lists the server's tags, newest version first (`v0.10.0` before `v0.9.0`): commit, release (Forgejo and GitHub: `release`, `prerelease`, `draft release`...; empty when there is none) and the annotation's first line (not reported by GitHub's tag list: see `tag get`) |
+| `gitclt tag get [-o OWNER] [-j] [<REPO>] <TAG>` (`info`) | Shows one tag of the server: full commit SHA, type (`annotated` or `lightweight`) and annotation, release (with its URL) and source archive URLs |
+| `gitclt tag create [-o OWNER] [-t TARGET] [-m MESSAGE] [<REPO>] <TAG>` (`add`) | Creates a tag on the server, on `-t`, `--target` (a branch, tag or commit the server knows; the default branch's head when left out). `-m`, `--message` makes an annotated tag, otherwise it is lightweight; Bitbucket always annotates, with its own message. An existing tag is refused. `git fetch` brings the new tag into the local working copy |
+| `gitclt tag delete [-o OWNER] [--with-release] [-y] [<REPO>] <TAG>...` (`rm`, `del`) | Deletes tags on the server; the local ones stay. Every tag is checked before the confirmation (`-y`, `--yes` skips it): it must exist, and a tag with a release is refused, unless `--with-release` is passed: the release, with its assets, is then deleted before the tag (Forgejo refuses to delete a tag that has a release, GitHub would leave the release without its tag). The run stops at the first failure, and the tags deleted before it stay deleted. Ex: `gitclt tag rm --with-release -y myrepo v1.2.0-rc1 v1.2.0-rc2` |
 
 ### Pull requests: `gitclt pr` (aliases: `pull`, `pullrequest`)
 Pull requests on the server; their branches must already be pushed. Every `pr` command takes the repository's owner with `-o`, `--owner OWNER`; without it, the connection's default owner is used. `<NUMBER>` is the pull request's number, with or without a leading `#` (`12` or `#12`).
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
-| `gitclt pr list [-o OWNER] [-s open\|closed\|all] [-j] <REPO>` (`ls`) | Lists the pull requests, open ones by default (`closed` includes the merged ones), newest first: number, title, branches (head → base), author, status (`open`, `draft`, `closed`, `merged`) and last update |
-| `gitclt pr get [-o OWNER] [-j] <REPO> <NUMBER>` (`info`) | Shows one pull request: branches, head commit, author, status, mergeability (`unknown` while GitHub computes it; never reported by Bitbucket), dates, URL, reviews (requested ones included on Forgejo) and description |
-| `gitclt pr create [-o OWNER] [-t TITLE] [-b BODY \| -F FILE] [-d] [-r USER,...] <REPO> <HEAD> [<BASE>]` (`add`, `open`) | Opens a pull request from `<HEAD>` into `<BASE>` (default: the default branch); both must be on the server. The title defaults to the head branch's name; `-d`, `--draft` opens a draft (on Forgejo, a `WIP: ` title prefix); `-r`, `--reviewers` requests reviews once it is open |
-| `gitclt pr edit [-o OWNER] [flags] <REPO> <NUMBER>` (`modify`, `update`) | Edits a pull request; only the flags passed are sent: `-t`, `--title`, `-b`, `--body` or `-F`, `--body-file`, `--base`, `-d`, `--draft` (`--draft=false` marks a draft ready for review) |
-| `gitclt pr merge [-o OWNER] [-m METHOD] [-d] [--title T] [--message M] [--auto \| --cancel-auto] <REPO> <NUMBER>` | Merges a pull request with `-m`, `--method`: `merge` (default), `squash`, `rebase`, `rebase-merge`, `fast-forward-only`, `manually-merged` (GitHub: the first three only). `-d`, `--delete-branch` deletes the head branch once merged. The merge fails if the head moved since gitclt checked it; drafts, closed and conflicting pull requests are refused. `--auto` schedules the merge for when the checks pass (not on Bitbucket), `--cancel-auto` cancels it |
-| `gitclt pr close [-o OWNER] <REPO> <NUMBER>...` | Closes pull requests without merging them; those already closed or merged are skipped. On Bitbucket, a closed (declined) pull request is final |
-| `gitclt pr reopen [-o OWNER] <REPO> <NUMBER>...` | Reopens closed pull requests (not on Bitbucket); those already open are skipped, a merged one is refused. Every number is checked before the first change, for `close` too |
-| `gitclt pr review [-o OWNER] (-a \| -x \| -n) [-m TEXT] <REPO> <NUMBER>` | Reviews a pull request as the connection's user: `-a`, `--approve`, `-x`, `--request-changes` or `-n`, `--comment` (the last two need `-m`). Authors cannot approve, nor request changes on, their own pull requests (Forgejo, GitHub): use another user's connection (`-c`) |
-| `gitclt pr reviewers [-o OWNER] [--remove] <REPO> <NUMBER> <USER>...` | Requests the review of users on a pull request; `--remove` withdraws the requests |
+| `gitclt pr list [-o OWNER] [-s open\|closed\|all] [-j] [<REPO>]` (`ls`) | Lists the pull requests, open ones by default (`closed` includes the merged ones), newest first: number, title, branches (head → base), author, status (`open`, `draft`, `closed`, `merged`) and last update |
+| `gitclt pr get [-o OWNER] [-j] [<REPO>] <NUMBER>` (`info`) | Shows one pull request: branches, head commit, author, status, mergeability (`unknown` while GitHub computes it; never reported by Bitbucket), dates, URL, reviews (requested ones included on Forgejo) and description |
+| `gitclt pr create [-o OWNER] [-t TITLE] [-b BODY \| -F FILE] [-d] [-r USER,...] [<REPO>] <HEAD> [<BASE>]` (`add`, `open`) | Opens a pull request from `<HEAD>` into `<BASE>` (default: the default branch); both must be on the server. The title defaults to the head branch's name; `-d`, `--draft` opens a draft (on Forgejo, a `WIP: ` title prefix); `-r`, `--reviewers` requests reviews once it is open |
+| `gitclt pr edit [-o OWNER] [flags] [<REPO>] <NUMBER>` (`modify`, `update`) | Edits a pull request; only the flags passed are sent: `-t`, `--title`, `-b`, `--body` or `-F`, `--body-file`, `--base`, `-d`, `--draft` (`--draft=false` marks a draft ready for review) |
+| `gitclt pr merge [-o OWNER] [-m METHOD] [-d] [--title T] [--message M] [--auto \| --cancel-auto] [<REPO>] <NUMBER>` | Merges a pull request with `-m`, `--method`: `merge` (default), `squash`, `rebase`, `rebase-merge`, `fast-forward-only`, `manually-merged` (GitHub: the first three only). `-d`, `--delete-branch` deletes the head branch once merged. The merge fails if the head moved since gitclt checked it; drafts, closed and conflicting pull requests are refused. `--auto` schedules the merge for when the checks pass (not on Bitbucket), `--cancel-auto` cancels it |
+| `gitclt pr close [-o OWNER] [<REPO>] <NUMBER>...` | Closes pull requests without merging them; those already closed or merged are skipped. On Bitbucket, a closed (declined) pull request is final |
+| `gitclt pr reopen [-o OWNER] [<REPO>] <NUMBER>...` | Reopens closed pull requests (not on Bitbucket); those already open are skipped, a merged one is refused. Every number is checked before the first change, for `close` too |
+| `gitclt pr review [-o OWNER] (-a \| -x \| -n) [-m TEXT] [<REPO>] <NUMBER>` | Reviews a pull request as the connection's user: `-a`, `--approve`, `-x`, `--request-changes` or `-n`, `--comment` (the last two need `-m`). Authors cannot approve, nor request changes on, their own pull requests (Forgejo, GitHub): use another user's connection (`-c`) |
+| `gitclt pr reviewers [-o OWNER] [--remove] [<REPO>] <NUMBER> <USER>...` | Requests the review of users on a pull request; `--remove` withdraws the requests |
 
 ### Commit history: `gitclt history` (aliases: `log`, `commits`)
 The commits of a repository, read from the server like `git log` would: no local clone is needed, and only the commits that were pushed are seen (Forgejo, GitHub and Bitbucket). Every `history` command takes the repository's owner with `-o`, `--owner OWNER`; without it, the connection's default owner is used.
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
-| `gitclt history list [-o OWNER] [-r REF] [-p PATH] [-n COUNT] [--since DATE] [--until DATE] [-j] <REPO>` (`ls`) | Lists the commits reachable from `-r`, `--ref` (a branch, tag or commit; default: the default branch), newest first: commit (merge commits marked with `M`), date, author and title. `-p`, `--path` keeps the commits that touched a file or directory; `-n`, `--limit` caps the count (default 30, `0`: the whole history). `--since` and `--until` take a day (`YYYY-MM-DD`, local time; `--until` includes the whole day) or an RFC 3339 timestamp, and are GitHub only. Ex: `gitclt log ls -r develop -p src/history -n 10 myrepo` |
-| `gitclt history get [-o OWNER] [-j] <REPO> <REF>` (`show`, `info`) | Shows one commit, like `git show --stat`: full SHA, author, committer (when it differs; never reported by Bitbucket), parents, line totals, URL, full message and changed files. `<REF>` is a commit SHA (full or abbreviated), a branch or a tag (their head commit). Forgejo reports no per-file line counts, and does not detect renames |
+| `gitclt history list [-o OWNER] [-r REF] [-p PATH] [-n COUNT] [--since DATE] [--until DATE] [-j] [<REPO>]` (`ls`) | Lists the commits reachable from `-r`, `--ref` (a branch, tag or commit; default: the default branch), newest first: commit (merge commits marked with `M`), date, author and title. `-p`, `--path` keeps the commits that touched a file or directory; `-n`, `--limit` caps the count (default 30, `0`: the whole history). `--since` and `--until` take a day (`YYYY-MM-DD`, local time; `--until` includes the whole day) or an RFC 3339 timestamp, and are GitHub only. Ex: `gitclt log ls -r develop -p src/history -n 10 myrepo` |
+| `gitclt history get [-o OWNER] [-j] [<REPO>] <REF>` (`show`, `info`) | Shows one commit, like `git show --stat`: full SHA, author, committer (when it differs; never reported by Bitbucket), parents, line totals, URL, full message and changed files. `<REF>` is a commit SHA (full or abbreviated), a branch or a tag (their head commit). Forgejo reports no per-file line counts, and does not detect renames |
+
+### Issues: `gitclt issue` (alias: `issues`)
+Forgejo and GitHub; Bitbucket Cloud retired its issue tracker. `<NUMBER>` is the issue's number, with or without a leading `#`.<br>
+Issues and pull requests share one number sequence, and the server takes one for the other without a word: `get`, `close`, `reopen`, `delete` and `lock` refuse a pull request's number. `edit` and `comment` accept it, which is how a pull request gets labels, a milestone or comments.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt issue list [-o OWNER] [-s open\|closed\|all] [-l LABEL,...] [-j] [<REPO>]` (`ls`) | Lists the issues, open ones by default, without the pull requests; `-l`, `--label` keeps those carrying all these labels; `-q` outputs only their numbers |
+| `gitclt issue get [-o OWNER] [--comments] [-j] [<REPO>] <NUMBER>` (`info`) | Shows an issue, with its text; `--comments` adds what was said on it |
+| `gitclt issue create [-o OWNER] -t TITLE [flags] [<REPO>]` (`add`, `open`) | Opens an issue; `-q` outputs only its number. `-b`, `--body` or `-F`, `--body-file FILE`, `-l`, `--label LABEL,...` (they must exist), `-a`, `--assignee USER,...`, `-m`, `--milestone MILESTONE` (a title or an ID) |
+| `gitclt issue edit [-o OWNER] [flags] [<REPO>] <NUMBER>` (`modify`, `update`) | Edits an issue; **only the flags passed are changed**. Same flags as `create`: `--label` and `--assignee` replace the whole list and `""` clears it, `--milestone ""` removes it. `--add-label` and `--remove-label` change labels one by one, and cannot be mixed with `--label`; they are separate requests, so if they fail, what came before them stays changed |
+| `gitclt issue close [-o OWNER] [<REPO>] <NUMBER>...` | Closes issues; those already closed are skipped, and all are checked first |
+| `gitclt issue reopen [-o OWNER] [<REPO>] <NUMBER>...` | Reopens issues; those already open are skipped, and all are checked first |
+| `gitclt issue delete [-o OWNER] [-y] [<REPO>] <NUMBER>...` (`rm`, `del`) | Deletes issues for good, with their comments, after confirmation (`-y`, `--yes` skips it). Needs repository admin rights; closing is usually what is wanted |
+| `gitclt issue lock [-o OWNER] [-r REASON] [<REPO>] <NUMBER>` | Locks an issue's conversation, on Forgejo 17 and later and GitHub. Forgejo requires `-r`, `--reason`, and takes any text; GitHub only takes `off-topic`, `too heated`, `resolved` or `spam` |
+| `gitclt issue unlock [-o OWNER] [<REPO>] <NUMBER>` | Unlocks an issue's conversation |
+
+#### Comments: `gitclt issue comment` (alias: `comments`)
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt issue comment list [-o OWNER] [-j] [<REPO>] <NUMBER>` (`ls`) | Lists an issue's comments; `-q` outputs only their IDs |
+| `gitclt issue comment add [-o OWNER] (-b BODY \| -F FILE) [<REPO>] <NUMBER>` (`create`) | Comments on an issue; `-q` outputs only the comment's ID |
+| `gitclt issue comment edit [-o OWNER] (-b BODY \| -F FILE) [<REPO>] <ID>` (`modify`, `update`) | Replaces a comment's text |
+| `gitclt issue comment delete [-o OWNER] [-y] [<REPO>] <ID>...` (`rm`, `del`) | Deletes comments, after confirmation (`-y`, `--yes` skips it) |
+
+#### Labels: `gitclt issue label` (alias: `labels`)
+A repository's labels, addressed by name. Forgejo lets labels share a name, while its API only tells them by name: gitclt does not create such duplicates, and refuses to touch those it meets; keep one in the web interface.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt issue label list [-o OWNER] [-j] [<REPO>]` (`ls`) | Lists the labels; `-q` outputs only their names |
+| `gitclt issue label get [-o OWNER] [-j] [<REPO>] <NAME>` (`info`) | Shows a label |
+| `gitclt issue label create [-o OWNER] -C COLOR [-d DESCRIPTION] [-j] [<REPO>] <NAME>` (`add`) | Creates a label; `-C`, `--color` is six hexadecimal digits, with or without `#` |
+| `gitclt issue label edit [-o OWNER] [-n NEW-NAME] [-C COLOR] [-d DESCRIPTION] [<REPO>] <NAME>` (`modify`, `update`) | Edits a label; **only the flags passed are changed**, and `""` clears the description. A new name follows on every issue carrying it |
+| `gitclt issue label delete [-o OWNER] [-y] [<REPO>] <NAME>...` (`rm`, `del`) | Deletes labels, after confirmation (`-y`, `--yes` skips it); they leave every issue carrying them |
+
+#### Milestones: `gitclt issue milestone` (aliases: `milestones`, `ms`)
+A repository's milestones, addressed by title or ID, a title coming first. Forgejo lets milestones share a title: gitclt does not create such duplicates, and asks for the ID when it meets some.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt issue milestone list [-o OWNER] [-s open\|closed\|all] [-j] [<REPO>]` (`ls`) | Lists the milestones, open ones by default; `-q` outputs only their titles |
+| `gitclt issue milestone get [-o OWNER] [-j] [<REPO>] <MILESTONE>` (`info`) | Shows a milestone |
+| `gitclt issue milestone create [-o OWNER] [-d DESCRIPTION] [--due DATE] [-j] [<REPO>] <TITLE>` (`add`) | Creates a milestone; `-q` outputs only its ID. `--due` is a day (`YYYY-MM-DD`, meaning the end of that day where the command runs) or an RFC 3339 timestamp |
+| `gitclt issue milestone edit [-o OWNER] [-t TITLE] [-d DESCRIPTION] [--due DATE] [-s open\|closed] [<REPO>] <MILESTONE>` (`modify`, `update`) | Edits a milestone; **only the flags passed are changed**. `-s`, `--state` closes or reopens it. The API cannot remove a due date: the web interface can |
+| `gitclt issue milestone delete [-o OWNER] [-y] [<REPO>] <MILESTONE>...` (`rm`, `del`) | Deletes milestones, after confirmation (`-y`, `--yes` skips it); their issues stay, without a milestone |
+
+### Webhooks: `gitclt webhook` (aliases: `webhooks`, `hook`, `hooks`)
+A webhook sends an HTTP request to a URL when events happen. There are five kinds, with the same commands, except for what the forges cannot do:
+
+| Kind | What it is | Forges | Rights |
+|------|------------|--------|--------|
+| `gitclt webhook user` | Your own webhooks, for the events of your repositories | Forgejo | Yours only: an admin gets a 404 on someone else's |
+| `gitclt webhook system` | The server's webhooks, for the events of every repository | Forgejo | Site admin |
+| `gitclt webhook default` | Templates copied into each repository created afterwards; existing repositories are not affected, and the copies are independent | Forgejo | Site admin |
+| `gitclt webhook repo` (`repository`) | A repository's webhooks; `[<REPO>]` is optional from inside a clone | Forgejo, GitHub, Bitbucket | Repository admin |
+| `gitclt webhook org` (`organization`) | An organization's webhooks; `<ORG>` is mandatory | Forgejo, GitHub, Bitbucket (workspace) | Organization owner |
+
+In the commands below, `KIND` stands for one of these, with `[<REPO>]` or `<ORG>` right before the other arguments for `repo` and `org`:
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt webhook KIND list [-j]` (`ls`) | Lists the webhooks; `-q` outputs only their IDs. Not on `default`: Forgejo's API cannot list those, so keep the ID that `create` shows, or read it in the web interface |
+| `gitclt webhook KIND get [-j] <ID>` (`info`) | Shows a webhook, with all of its events |
+| `gitclt webhook KIND create [flags] <URL>` (`add`) | Creates a webhook delivering to `<URL>`; `-q` outputs only its ID. `-t`, `--type` is the format of the deliveries (Forgejo only; `slack` also serves Mattermost, and needs `--slack-channel`), plus the flags below |
+| `gitclt webhook KIND edit [flags] <ID>` (`modify`, `update`) | Edits a webhook; **only the flags passed are changed**. `-u`, `--url`, plus the flags below. The type cannot be changed. Booleans are revoked with `=false`, and `""` clears a text field |
+| `gitclt webhook KIND delete [-y] <ID>...` (`rm`, `remove`) | Deletes webhooks, after confirmation (`-y`, `--yes` skips it); all are checked first, and the question shows their URLs |
+| `gitclt webhook KIND ping <ID>` (`test`) | Sends a test delivery. `repo` and `org` only; on Forgejo, repositories only, as a push event; not on Bitbucket |
+
+| Flag | Meaning |
+|------|---------|
+| `-e`, `--event EVENT` | Event to subscribe to (repeatable, or comma-separated). `create` defaults to `push`; on `edit`, it replaces the whole list. `all` is everything: GitHub's wildcard, or the events the library knows elsewhere |
+| `-T`, `--content-type TYPE` | Payload encoding: `json` (the default) or `form` (not on Bitbucket) |
+| `-b`, `--branch-filter GLOB` | Limits push and branch events to matching branches, such as `{main,release/*}` (Forgejo only) |
+| `-a`, `--active` | `=false` keeps the webhook without deliveries |
+| `-s`, `--secret`, `--secret-file FILE` | The secret that signs deliveries: prompted for, or read from a file only you can access; never a value on the command line |
+| `--auth-header`, `--auth-header-file FILE` | An authorization header sent with deliveries, given the same way (Forgejo only) |
+| `--slack-channel`, `--slack-username`, `--slack-icon-url`, `--slack-color` | The settings of a `slack` webhook; on `edit`, those not passed stay as they are |
+| `--insecure-ssl` | Does not check the target's TLS certificate, so a third party could read or alter deliveries (GitHub, Bitbucket) |
+
+What to know:
+- **A webhook's URL is shown as it is.** For Slack or Mattermost, that URL is a credential. Secrets and authorization headers are never shown: `get` only tells that a header is set.
+- **Events.** Forgejo's own names also work (ex: `workflow_run_failure`). `workflow_run` and `workflow_job` stand for all of their statuses, on GitHub and on Forgejo 17 and later. Forgejo drops the names it does not know: the command then says so, and the webhook exists without them.
+- **Forgejo 17 deprecates `action_run_*`** in favour of `workflow_run_*`, for removal in a later version. `--event all` follows the server's version: `workflow_*` from 17 on, `action_run_*` below it.
+- **What `edit` refuses on Forgejo**, as its API would ignore it and still answer success: changing the `package`, `action_run_*`, `workflow_run_*` and `workflow_job_*` events of an existing webhook, changing its secret, and removing its authorization header. Create a new webhook and delete the old one instead.
+- **`system create`** relies on a setting Forgejo's API does not document. If a later version stops honoring it, the command fails, and leaves nothing behind.
+- The IDs of `system` and `default` webhooks share one numbering: each kind refuses the other's IDs with a 404.
 
 <a id="completion"></a>
 ## Shell completion
@@ -312,13 +423,15 @@ access_mgmt/    feature packages, one per resource, grouped by area (these folde
   tokens/
 repo_mgmt/
   repositories/
-  webhooks/       (scaffolded)
+  webhooks/
 branch_mgmt/
   branches/
   protections/
 pr_mgmt/
   pullrequests/
 history/        (a feature package directly: commit history)
+issue_mgmt/
+  issues/         issues, their comments, labels and milestones
 release_mgmt/
   releases/
 tag_mgmt/
@@ -327,7 +440,7 @@ tag_mgmt/
 forge/          opens a gitoperationslib client on a connection; converts library errors; decides the repositories' owner
   │
 connections/    the connections registry; resolves a connection name into an ActiveConnection
-shared/         global flag values (QuietOutput, ConnectionName), FetchAll(), PrintJSON(), VisibilityFlag
+shared/         global flag values (QuietOutput, ConnectionName), FetchAll(), PrintJSON(), VisibilityFlag, InferRepo() and the rest of the .git reading
 testutil/       test helpers only (fake Forgejo, throw-away registry, prompt answering); never in the binary
 ```
 
@@ -351,10 +464,12 @@ if err != nil {
 Behind the scenes:
 - `connections.ResolveConnection()` loads the registry, picks the connection (and errors out if it's unknown, invalid, or if there's no default connection), and decides the authentication method (token over username/password)
 - `forge.Connect()` then opens the matching library client:
-  - Forgejo: `forgejo.New()` with `forgejo.Token()` or `forgejo.BasicAuth()`. **This already contacts the server**: it reads its version, and refuses anything older than the library's minimum (11.0.10)
+  - Forgejo: `forgejo.New()` with `forgejo.Token()` or `forgejo.BasicAuth()`. **This already contacts the server**: it reads its version, and refuses anything older than the library's minimum (15.0.0)
   - GitHub: `github.New()` with the token; any host other than `github.com` is treated as GitHub Enterprise Server (`github.WithEnterpriseURL()`, the library appends `/api/v3/`). This makes no request
   - Bitbucket: `bitbucket.New()` with `bitbucket.Token()` (access tokens) or `bitbucket.BasicAuth()` (username/password) or `bitbucket.APIToken()` (Atlassian API tokens, `ATATT...`, which Bitbucket refuses as bearer tokens: the connection's username must be the Atlassian e-mail); any host other than `bitbucket.org` is passed as is to `bitbucket.WithBaseURL()`. This makes no request
 - all of them get an `http.Client` with connect / TLS handshake / response headers timeouts (`forge.FastFailTimeout`, 30s by default), and `gitclt` as User-Agent. There is no global request timeout, so long transfers (ex: release assets) are not cut; use a context if you need a deadline
+
+Commands working on a repository then call `c.Target(ctx, OwnerOrg, repo)`, usually through their package's `connect()`: an empty `repo` is read from the clone in the current directory (`shared.InferRepo()`), and it returns the owner and the repository to use. In `cmd/`, `splitRepo()` turns the arguments into that optional repository.
 
 You get back a `*forge.Client`:
 - it embeds `gol.Client` (`gol` being the usual alias for `github.com/jeanfrancoisgratton/gitoperationslib`), so the library's areas are called directly on it: `c.Repos()`, `c.Branches()`, `c.Tags()`, `c.Releases()`, `c.PullRequests()`, `c.Issues()`, `c.Labels()`, `c.Milestones()`, `c.Webhooks()`, ...

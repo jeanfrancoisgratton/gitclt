@@ -5,6 +5,8 @@ package cmd
 
 import (
 	"bytes"
+	"gitclt/issue_mgmt/issues"
+	"gitclt/repo_mgmt/webhooks"
 	"regexp"
 	"slices"
 	"strings"
@@ -33,6 +35,8 @@ func execute(t *testing.T, args []string, answers ...string) (string, string) {
 		organizations.CreateOrgVisibility, organizations.EditOrgVisibility = "", ""
 		teams.CreateTeamPermission, teams.EditTeamPermission = "", ""
 		// A string slice takes its own "[]" default for a value
+		webhooks.HookEvents = nil
+		issues.ListLabels, issues.IssueLabels, issues.IssueAddLabels, issues.IssueRemoveLabels, issues.IssueAssignees = nil, nil, nil, nil, nil
 		tokens.CreateTokenScopes, tokens.CreateTokenRepos = nil, nil
 		protections.StatusChecks, protections.PushUsers, protections.PushTeams = nil, nil, nil
 		protections.MergeUsers, protections.MergeTeams, protections.ApproverUsers, protections.ApproverTeams = nil, nil, nil, nil

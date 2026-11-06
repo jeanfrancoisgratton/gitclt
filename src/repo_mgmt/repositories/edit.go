@@ -31,7 +31,7 @@ func EditRepo(reponame string, changed func(string) bool) *cerr.CustomError {
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	owner, ce := c.Owner(ctx, OwnerOrg)
+	owner, reponame, ce := c.Target(ctx, OwnerOrg, reponame)
 	if ce != nil {
 		return ce
 	}

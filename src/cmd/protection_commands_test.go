@@ -18,10 +18,10 @@ func TestProtectionCommands(t *testing.T) {
 		args []string
 		want string
 	}{
-		{[]string{"branch", "protection", "ls"}, "accepts 1 arg(s)"},
-		{[]string{"branch", "prot", "get", "web"}, "accepts 2 arg(s)"},
-		{[]string{"branch", "prot", "add", "web"}, "accepts 2 arg(s)"},
-		{[]string{"branch", "prot", "rm", "web"}, "requires at least 2 arg(s)"},
+		{[]string{"branch", "protection", "ls", "a", "b"}, "accepts at most 1 arg(s)"},
+		{[]string{"branch", "prot", "get"}, "accepts between 1 and 2 arg(s)"},
+		{[]string{"branch", "prot", "add"}, "accepts between 1 and 2 arg(s)"},
+		{[]string{"branch", "prot", "rm"}, "requires at least 1 arg(s)"},
 		{[]string{"branch", "prot", "edit", "web", "main"}, "Nothing to edit"},
 		{[]string{"branch", "prot", "edit", "--no-push=false", "web", "main"}, "Nothing to edit"},
 		{[]string{"branch", "prot", "add", "--approvals", "-1", "web", "main"}, "cannot be negative"},

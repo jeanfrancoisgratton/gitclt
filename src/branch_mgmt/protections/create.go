@@ -26,7 +26,7 @@ func CreateProtection(repo, pattern string, changed func(string) bool) *cerr.Cus
 	if ce != nil {
 		return ce
 	}
-	c, owner, ce := connect(ctx)
+	c, owner, repo, ce := connect(ctx, repo)
 	if ce != nil {
 		return ce
 	}

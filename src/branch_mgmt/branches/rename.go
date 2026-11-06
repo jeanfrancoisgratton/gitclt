@@ -35,7 +35,7 @@ func RenameBranch(repo, branch, newName string) *cerr.CustomError {
 	// on the local side alone, only an explicit -o is checked
 	owner := OwnerOrg
 	if withServer {
-		if c, owner, ce = connect(ctx); ce != nil {
+		if c, owner, repo, ce = connect(ctx, repo); ce != nil {
 			return ce
 		}
 	}
