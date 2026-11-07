@@ -8,6 +8,7 @@ package issues
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -48,6 +49,7 @@ func newTable(header table.Row) table.Writer {
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(header)
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
+	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(22)}
 	t.Style().Format.Header = text.FormatDefault
 	return t
 }
@@ -106,18 +108,48 @@ func renderComments(list []gol.Comment) {
 	}
 }
 
-func renderLabelTable(list []gol.Label) {
-	t := newTable(table.Row{"Name", "Color", "Description"})
+// A label's color can be seen, not only read: the closest one of the 256-color palette, as go-pretty's own colors are
+// (they turn themselves off where colors are not wanted)
+func swatch(hex string) string {
+	var r, g, b int
+	if _, e := fmt.Sscanf(hex, "%02x%02x%02x", &r, &g, &b); e != nil {
+		return "  "
+	}
+	// The palette's color cube has six levels per channel, starting at 16
+	level := func(v int) int { return (v*5 + 127) / 255 }
+	return text.Colors{text.Bg256Color(16 + 36*level(r) + 6*level(g) + level(b))}.Sprint("  ")
+}
+
+// The scope column only appears when an organization's labels are listed too
+func renderLabelTable(list []Label) {
+	hasScope := slices.ContainsFunc(list, func(l Label) bool { return l.Scope != "repo" })
+	header := table.Row{"ID", "Name", "Color", "Description"}
+	if hasScope {
+		header = table.Row{"ID", "Name", "Color", "Scope", "Description"}
+	}
+	t := newTable(header)
 	for _, l := range list {
-		t.AppendRow(table.Row{l.Name, "#" + l.Color, l.Description})
+		row := table.Row{l.ID, l.Name, swatch(l.Color) + " #" + l.Color}
+		if hasScope {
+			scope := l.Scope
+			if scope != "repo" {
+				scope = "org " + scope
+			}
+			if l.Hidden {
+				scope += " (hidden by the repo's)"
+			}
+			row = append(row, scope)
+		}
+		t.AppendRow(append(row, l.Description))
 	}
 	t.Render()
 }
 
 func renderLabel(l *gol.Label) {
 	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
+	_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("ID:"), l.ID)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Name:"), l.Name)
-	_, _ = fmt.Fprintf(w, "%s\t#%s\n", hftx.Blue("Color:"), l.Color)
+	_, _ = fmt.Fprintf(w, "%s\t%s #%s\n", hftx.Blue("Color:"), swatch(l.Color), l.Color)
 	printIfSet(w, "Description:", l.Description)
 	_ = w.Flush()
 }

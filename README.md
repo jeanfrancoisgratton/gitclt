@@ -16,6 +16,7 @@ What is currently implemented:
 - issues, with their comments, labels and milestones
 - CI secrets and variables: a repository's, an environment's, an organization's, your own
 - repository collaborators
+- CI workflow runs: their jobs, logs and artifacts
 - webhooks: your own, the server's (system and default), a repository's, an organization's
 - from inside a clone, the repository and its owner are read from the remotes: see [working from inside a clone](#working-from-inside-a-clone)
 
@@ -107,7 +108,7 @@ These work on every command:
 | `--otp CODE`                    | The current two-factor authentication code, for a password login on Forgejo (see [the connections registry](#connections)) |
 
 ### Working from inside a clone
-`branch`, `branch protection`, `tag`, `release`, `pr`, `issue`, `secret`, `variable`, `collaborator`, `history`, `repo info`, `repo edit` and `webhook repo` work out the repository and its owner when run from anywhere inside a clone, like `git` does. `<REPO>` and `-o` can then be left out:
+`branch`, `branch protection`, `tag`, `release`, `pr`, `issue`, `secret`, `variable`, `collaborator`, `run`, `history`, `repo info`, `repo edit` and `webhook repo` work out the repository and its owner when run from anywhere inside a clone, like `git` does. `<REPO>` and `-o` can then be left out:
 
 ```
 cd ~/src/myrepo/some/dir
@@ -120,7 +121,7 @@ gitclt -c github tag ls       # the same clone, as seen on GitHub
 - **The connection picks the remote.** Only the remotes on the connection's server count, the SSH host and port being ignored (`ssh.bitbucket.org` is Bitbucket, and `git.example.net:9722` is `https://git.example.net:3000`). A clone with remotes on three forges therefore follows `-c`. If several remotes are on that server, `origin` wins; if none is `origin` and they point to different repositories, the command stops and asks for the name.
 - **No match, no guess.** Outside a clone, or with no remote on the connection's server (an SSH host alias, for example), the command stops with `Missing repository`: it never falls back on a repository of the same name elsewhere.
 - **`-o` still wins** for the owner. A repository named on the command line keeps the usual owner (`-o`, the connection's owner, your username), unless it is the current clone's: its owner then comes from the remote.
-- **Several targets.** `tag rm v1 v2` cannot be told from `tag rm myrepo v1`, so the first of two or more arguments stays the repository, as it always was: `v1` is then looked up as a repository, and nothing is deleted. Use `.` for the current clone's: `gitclt tag rm . v1 v2`, `gitclt release upload . v1.2.0 a.rpm b.deb`, `gitclt pr create . feature/x develop`. This applies wherever a command takes an open-ended list, or an optional last argument. Pull request and issue numbers, comment and webhook IDs are the exception, as a number is not taken for a repository: `gitclt pr close 12 13`, `gitclt issue close 12 13`, `gitclt webhook repo rm 5 6`. In return, `pr close`, `pr reopen`, `pr reviewers`, `issue close`, `issue reopen`, `issue delete`, `issue comment delete`, `issue milestone delete` and `webhook repo delete` cannot designate a repository with a numeric name.
+- **Several targets.** `tag rm v1 v2` cannot be told from `tag rm myrepo v1`, so the first of two or more arguments stays the repository, as it always was: `v1` is then looked up as a repository, and nothing is deleted. Use `.` for the current clone's: `gitclt tag rm . v1 v2`, `gitclt release upload . v1.2.0 a.rpm b.deb`, `gitclt pr create . feature/x develop`. This applies wherever a command takes an open-ended list, or an optional last argument. Pull request and issue numbers, comment, webhook, run and artifact IDs are the exception, as a number is not taken for a repository: `gitclt pr close 12 13`, `gitclt issue close 12 13`, `gitclt webhook repo rm 5 6`. In return, `pr close`, `pr reopen`, `pr reviewers`, `issue close`, `issue reopen`, `issue delete`, `issue comment delete`, `issue milestone delete` and `webhook repo delete` cannot designate a repository with a numeric name.
 - `repo delete` always needs the name: it is not something to do on an inferred target.
 - The confirmation questions of `branch delete` (server side), `tag delete`, `release delete` and `release delete-assets` name the repository, as it may not have been typed.
 
@@ -334,25 +335,26 @@ Issues and pull requests share one number sequence, and the server takes one for
 | `gitclt issue comment delete [-o OWNER] [-y] [<REPO>] <ID>...` (`rm`, `del`) | Deletes comments, after confirmation (`-y`, `--yes` skips it) |
 
 #### Labels: `gitclt issue label` (alias: `labels`)
-A repository's labels, addressed by name. Forgejo lets labels share a name, while its API only tells them by name: gitclt does not create such duplicates, and refuses to touch those it meets; keep one in the web interface.
+`gitclt issue labels` alone lists every label an issue can take: the repository's and, on Forgejo, its organization's, with a scope column. A repository label wins over an organization's of the same name, which is marked hidden. `--org ORG` works on an organization's labels instead, with no `[<REPO>]` (Forgejo only); without it, `edit` and `delete` never touch an organization's.<br>
+Labels are designated by name, or with `--id ID` (on `get`, `edit` and `delete`) by the ID the list shows: Forgejo lets labels share a name, and the ID then tells them apart. A name already in use is refused on `create` and on a rename.
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
-| `gitclt issue label list [-o OWNER] [-j] [<REPO>]` (`ls`) | Lists the labels; `-q` outputs only their names |
-| `gitclt issue label get [-o OWNER] [-j] [<REPO>] <NAME>` (`info`) | Shows a label |
-| `gitclt issue label create [-o OWNER] -C COLOR [-d DESCRIPTION] [-j] [<REPO>] <NAME>` (`add`) | Creates a label; `-C`, `--color` is six hexadecimal digits, with or without `#` |
-| `gitclt issue label edit [-o OWNER] [-n NEW-NAME] [-C COLOR] [-d DESCRIPTION] [<REPO>] <NAME>` (`modify`, `update`) | Edits a label; **only the flags passed are changed**, and `""` clears the description. A new name follows on every issue carrying it |
-| `gitclt issue label delete [-o OWNER] [-y] [<REPO>] <NAME>...` (`rm`, `del`) | Deletes labels, after confirmation (`-y`, `--yes` skips it); they leave every issue carrying them |
+| `gitclt issue label list [-o OWNER \| --org ORG] [-j] [<REPO>]` (`ls`) | Lists the labels, with their IDs and colors; `-q` outputs only the names an issue can take, once each |
+| `gitclt issue label get [-o OWNER \| --org ORG] [--id ID] [-j] [<REPO>] <NAME>` (`info`) | Shows a label |
+| `gitclt issue label create [-o OWNER \| --org ORG] -C COLOR [-d DESCRIPTION] [-j] [<REPO>] <NAME>` (`add`) | Creates a label; `-C`, `--color` is six hexadecimal digits, with or without `#` |
+| `gitclt issue label edit [-o OWNER \| --org ORG] [--id ID] [-n NEW-NAME] [-C COLOR] [-d DESCRIPTION] [<REPO>] <NAME>` (`modify`, `update`) | Edits a label; **only the flags passed are changed**, and `""` clears the description. A new name follows on every issue carrying it |
+| `gitclt issue label delete [-o OWNER \| --org ORG] [--id ID] [-y] [<REPO>] <NAME>...` (`rm`, `del`) | Deletes labels, after confirmation (`-y`, `--yes` skips it); they leave every issue carrying them, and an organization's, every issue of its repositories |
 
 #### Milestones: `gitclt issue milestone` (aliases: `milestones`, `ms`)
-A repository's milestones, addressed by title or ID, a title coming first. Forgejo lets milestones share a title: gitclt does not create such duplicates, and asks for the ID when it meets some.
+A repository's milestones, addressed by title or ID, a title coming first. A title already in use is refused; where Forgejo already holds several milestones with one title, gitclt asks for the ID.
 
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
 | `gitclt issue milestone list [-o OWNER] [-s open\|closed\|all] [-j] [<REPO>]` (`ls`) | Lists the milestones, open ones by default; `-q` outputs only their titles |
 | `gitclt issue milestone get [-o OWNER] [-j] [<REPO>] <MILESTONE>` (`info`) | Shows a milestone |
 | `gitclt issue milestone create [-o OWNER] [-d DESCRIPTION] [--due DATE] [-j] [<REPO>] <TITLE>` (`add`) | Creates a milestone; `-q` outputs only its ID. `--due` is a day (`YYYY-MM-DD`, meaning the end of that day where the command runs) or an RFC 3339 timestamp; GitHub only keeps the day |
-| `gitclt issue milestone edit [-o OWNER] [-t TITLE] [-d DESCRIPTION] [--due DATE] [-s open\|closed] [<REPO>] <MILESTONE>` (`modify`, `update`) | Edits a milestone; **only the flags passed are changed**. `-s`, `--state` closes or reopens it. The API cannot remove a due date: the web interface can |
+| `gitclt issue milestone edit [-o OWNER] [-t TITLE] [-d DESCRIPTION] [--due DATE] [-s open\|closed] [<REPO>] <MILESTONE>` (`modify`, `update`) | Edits a milestone; **only the flags passed are changed**. `-s`, `--state` closes or reopens it. `--due ""` removes the due date on GitHub; Forgejo's API cannot, and the command says so |
 | `gitclt issue milestone delete [-o OWNER] [-y] [<REPO>] <MILESTONE>...` (`rm`, `del`) | Deletes milestones, after confirmation (`-y`, `--yes` skips it); their issues stay, without a milestone |
 
 ### CI secrets: `gitclt secret` (alias: `secrets`)
@@ -398,6 +400,28 @@ On Bitbucket, a user is a nickname of a member of the workspace, an account ID o
 | `gitclt collaborator add [-o OWNER] [-p PERMISSION] [<REPO>] <USER>` (`create`, `set`, `update`) | Gives a user access, or changes that of an existing collaborator. `-p`, `--permission` is `read`, `write` (the default) or `admin`; GitHub also has `triage` and `maintain`, and ignores the permission on a repository owned by a user. GitHub usually invites a new collaborator, who has no access until they accept: the command says so |
 | `gitclt collaborator remove [-o OWNER] [-y] [<REPO>] <USER>...` (`rm`, `delete`, `del`) | Takes users' access away, after confirmation (`-y`, `--yes` skips it). All are checked first, as the forges take removing a stranger for a success. On GitHub, this also withdraws a pending invitation |
 | `gitclt collaborator invitations [-o OWNER] [-j] [<REPO>]` (`invites`) | Lists who was invited and has not accepted yet; `-q` outputs only their logins. GitHub only: the other forges give access at once |
+
+### CI workflow runs: `gitclt run` (alias: `runs`)
+The runs of a repository's workflows, on Forgejo Actions and GitHub Actions; Bitbucket Pipelines is not supported yet. On Forgejo, listing and reading runs work from 15; cancel, delete, jobs, logs and artifacts need 16; a job's steps and reruns need 17: the commands say so on an older server. A run's ID is the one the list shows, not its number (`#`), which counts the repository's runs. Starting a workflow by hand is not offered.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt run list [-o OWNER] [-w WORKFLOW] [-s STATUS] [-e EVENT] [-b BRANCH] [--sha SHA] [-n COUNT] [-j] [<REPO>]` (`ls`) | Lists the runs, newest first, at most 30 unless `-n`, `--limit` says otherwise (`0`: all); `-q` outputs only their IDs. `-w` is the workflow's file name (`build.yml`); `-s` is the forge's own word, such as `running` or `failure` |
+| `gitclt run get [-o OWNER] [-j] [<REPO>] <RUN-ID>` (`info`, `show`) | Shows a run, with its jobs |
+| `gitclt run cancel [-o OWNER] [<REPO>] <RUN-ID>...` (`stop`) | Stops runs; those already finished are skipped |
+| `gitclt run rerun [-o OWNER] [<REPO>] <RUN-ID>` | Starts a finished run's jobs again, under the same ID |
+| `gitclt run delete [-o OWNER] [-y] [<REPO>] <RUN-ID>...` (`rm`, `del`) | Deletes finished runs, with their logs and artifacts, after confirmation (`-y`, `--yes` skips it); one still going is refused: cancel it first |
+| `gitclt run logs [-o OWNER] [-O FILE] [--force] [<REPO>] <RUN-ID>` | Saves the logs of a run's jobs, as a ZIP archive: `run-<RUN-ID>-logs.zip`, or `-O`, `--output FILE`, or `-` for the standard output |
+| `gitclt run job list [-o OWNER] [-j] [<REPO>] <RUN-ID>` (`ls`) | Lists a run's jobs; `-q` outputs only their IDs |
+| `gitclt run job get [-o OWNER] [-j] [<REPO>] <JOB-ID>` (`info`, `show`) | Shows a job, with its steps |
+| `gitclt run job rerun [-o OWNER] [<REPO>] <JOB-ID>` | Starts a finished job again, with the jobs that depend on it |
+| `gitclt run job log [-o OWNER] [-O FILE] [--force] [<REPO>] <JOB-ID>` (`logs`) | Shows a job's log, as text, or saves it with `-O` |
+| `gitclt run artifact list [-o OWNER] [--run RUN-ID] [--name NAME] [-j] [<REPO>]` (`ls`) | Lists the artifacts, of the repository or of one run; `-q` outputs only their IDs |
+| `gitclt run artifact get [-o OWNER] [-j] [<REPO>] <ARTIFACT-ID>` (`info`) | Shows an artifact |
+| `gitclt run artifact download [-o OWNER] [-O FILE] [--force] [<REPO>] <ARTIFACT-ID>` (`dl`) | Saves an artifact as `<NAME>.zip`, or `-O`, `--output FILE`, or `-` for the standard output; an expired one cannot be downloaded |
+| `gitclt run artifact delete [-o OWNER] [-y] [<REPO>] <ARTIFACT-ID>...` (`rm`, `del`) | Deletes artifacts, after confirmation (`-y`, `--yes` skips it) |
+
+An existing file is only replaced with `--force`.
 
 ### Webhooks: `gitclt webhook` (aliases: `webhooks`, `hook`, `hooks`)
 A webhook sends an HTTP request to a URL when events happen. There are five kinds, with the same commands, except for what the forges cannot do:
@@ -473,6 +497,7 @@ repo_mgmt/
   collaborators/
 ci_mgmt/
   ci/             CI secrets and variables
+  runs/           CI workflow runs, their jobs, logs and artifacts
 branch_mgmt/
   branches/
   protections/

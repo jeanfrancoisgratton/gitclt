@@ -66,6 +66,9 @@ func TestIssueCommands(t *testing.T) {
 		{[]string{"issue", "comment", "ls", "web", "2"}, nil, "Hello"},
 		{[]string{"issue", "comments", "add", "-b", "hi", "web", "2"}, nil, "Added comment 17"},
 		{[]string{"issue", "label", "ls", "web"}, nil, "#d73a4a"},
+		{[]string{"issue", "labels", "web"}, nil, "#d73a4a"},
+		{[]string{"issue", "label", "-j", "web"}, nil, `"color"`},
+		{[]string{"issue", "labels", "-q", "web"}, nil, "docs"},
 		{[]string{"issue", "labels", "add", "-C", "d73a4a", "web", "new"}, nil, "Created label new"},
 		{[]string{"issue", "label", "rm", "-y", "web", "bug"}, nil, "Deleted label bug"},
 		{[]string{"issue", "milestone", "ls", "web"}, nil, "v1.5"},
@@ -99,6 +102,7 @@ func TestIssueCommands_FromAClone(t *testing.T) {
 		{[]string{"issue", "get", "#2"}, "Issue:"},
 		{[]string{"issue", "create", "-t", "First"}, "corp/web"},
 		{[]string{"issue", "label", "ls"}, "docs"},
+		{[]string{"issue", "labels"}, "docs"},
 		{[]string{"issue", "ms", "ls"}, "v1.5"},
 		// Several names: the first is the repository, and nothing is deleted on a guess
 		{[]string{"issue", "label", "rm", "-y", "bug", "docs"}, "pass . for the current one"},

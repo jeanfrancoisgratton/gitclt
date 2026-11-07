@@ -33,7 +33,9 @@ var IssueMilestone = ""
 // issue lock
 var LockReason = ""
 
-// issue label
+// issue label: --org works on an organization's labels, --id designates a label whose name is shared
+var LabelOrg = ""
+var LabelID int64
 var LabelName = ""
 var LabelColor = ""
 var LabelDescription = ""

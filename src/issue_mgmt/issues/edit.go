@@ -34,10 +34,6 @@ func CreateIssue(repo string, changed func(string) bool) *cerr.CustomError {
 		return ce
 	}
 
-	if ce = checkLabels(ctx, c, owner, repo, IssueLabels); ce != nil {
-		return ce
-	}
-
 	opts := gol.CreateIssueOptions{Title: IssueTitle, Body: text, Labels: IssueLabels, Assignees: IssueAssignees}
 	if IssueMilestone != "" {
 		m, ce := findMilestone(ctx, c, owner, repo, IssueMilestone)
@@ -49,7 +45,7 @@ func CreateIssue(repo string, changed func(string) bool) *cerr.CustomError {
 
 	issue, e := c.Issues().Create(ctx, owner, repo, opts)
 	if e != nil {
-		return forge.Error(fmt.Sprintf("Unable to create an issue in %s/%s", owner, repo), e)
+		return labelError(fmt.Sprintf("Unable to create an issue in %s/%s", owner, repo), e)
 	}
 
 	if JSONoutput {
@@ -106,9 +102,6 @@ func EditIssue(repo, number string, changed func(string) bool) *cerr.CustomError
 	if _, ce = getIssue(ctx, c, owner, repo, nums[0]); ce != nil {
 		return ce
 	}
-	if ce = checkLabels(ctx, c, owner, repo, append(slices.Clone(IssueLabels), IssueAddLabels...)); ce != nil {
-		return ce
-	}
 	if changed("milestone") {
 		// "" removes it
 		id := int64(0)
@@ -124,17 +117,17 @@ func EditIssue(repo, number string, changed func(string) bool) *cerr.CustomError
 
 	if edited {
 		if _, e := c.Issues().Edit(ctx, owner, repo, nums[0], opts); e != nil {
-			return forge.Error(fmt.Sprintf("Unable to edit issue #%d", nums[0]), e)
+			return labelError(fmt.Sprintf("Unable to edit issue #%d", nums[0]), e)
 		}
 	}
 	if len(IssueAddLabels) > 0 {
 		if e := c.Issues().AddLabels(ctx, owner, repo, nums[0], IssueAddLabels); e != nil {
-			return forge.Error(fmt.Sprintf("Unable to add labels to issue #%d", nums[0]), e)
+			return labelError(fmt.Sprintf("Unable to add labels to issue #%d", nums[0]), e)
 		}
 	}
 	for _, label := range IssueRemoveLabels {
 		if e := c.Issues().RemoveLabel(ctx, owner, repo, nums[0], label); e != nil {
-			return forge.Error(fmt.Sprintf("Unable to remove label %s from issue #%d", label, nums[0]), e)
+			return labelError(fmt.Sprintf("Unable to remove label %s from issue #%d", label, nums[0]), e)
 		}
 	}
 

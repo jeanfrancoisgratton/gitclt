@@ -229,34 +229,82 @@ var issueCommentDeleteCmd = &cobra.Command{
 var issueLabelCmd = &cobra.Command{
 	Use:     "label",
 	Aliases: []string{"labels"},
-	Short:   "Label commands: a repository's labels, addressed by name",
-	Long: `To put labels on an issue, or take them off, see gitclt issue edit.
+	Example: "  gitclt issue labels [-c CONNECTION] [-o OWNER] [-j] [<REPO>]\n" +
+		"  gitclt issue labels -q\n" +
+		"  gitclt issue labels --org devops",
+	Short: "Label commands: a repository's labels, or an organization's; alone, lists them",
+	Long: `Alone, this lists the labels, like its list subcommand: gitclt issue labels. To put labels on an issue, or take them off, see gitclt issue edit.
+The list shows every label an issue can take: the repository's and, on Forgejo, its organization's; a repository label wins over an
+organization's of the same name, which is marked hidden. --org ORG works on an organization's labels instead, with no <REPO> (Forgejo only).
+Labels are designated by name, or by the ID the list shows (see the help of get, edit and delete): Forgejo lets labels share a name,
+and the ID then tells them apart.
 Forgejo lets labels share a name, while its API only tells them by name: gitclt does not create such duplicates, and refuses to touch those it meets.`,
+}
+
+// labelArgs validates [<REPO>] followed by n names, or at least n; --id replaces the name, and --org leaves no room for a repository
+func labelArgs(n int, atLeast bool) cobra.PositionalArgs {
+	return func(cmd *cobra.Command, args []string) error {
+		if cmd.Flags().Changed("id") {
+			if issues.LabelID <= 0 {
+				return fmt.Errorf("--id must be a positive number")
+			}
+			n, atLeast = 0, false
+		}
+		switch {
+		case atLeast:
+			return cobra.MinimumNArgs(n)(cmd, args)
+		case issues.LabelOrg != "":
+			return cobra.ExactArgs(n)(cmd, args)
+		}
+		return cobra.RangeArgs(n, n+1)(cmd, args)
+	}
+}
+
+// labelSplit is splitRepo for label commands; see labelArgs
+func labelSplit(cmd *cobra.Command, args []string, n int) (string, []string) {
+	if cmd.Flags().Changed("id") {
+		n = 0
+	}
+	if issues.LabelOrg != "" {
+		return "", args
+	}
+	return splitRepo(args, n)
+}
+
+// labelName is the name a command was given, or "" when --id designates the label
+func labelName(names []string) string {
+	if len(names) == 0 {
+		return ""
+	}
+	return names[0]
+}
+
+func runIssueLabelList(cmd *cobra.Command, args []string) {
+	repo, _ := labelSplit(cmd, args, 0)
+	if _, e := issues.ListLabelsOf(repo, true); e != nil {
+		fmt.Println(e.Error())
+	}
 }
 
 var issueLabelListCmd = &cobra.Command{
 	Use:     "list [<REPO>]",
 	Aliases: []string{"ls"},
 	Example: "  gitclt issue label list [-c CONNECTION] [-o OWNER] [-j] [<REPO>]",
-	Short:   "Lists the labels; -q outputs only their names",
-	Args:    cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		repo, _ := splitRepo(args, 0)
-		if _, e := issues.ListLabelsOf(repo, true); e != nil {
-			fmt.Println(e.Error())
-		}
-	},
+	Short:   "Lists the labels an issue can take, with their colors; -q outputs only their names",
+	Args:    labelArgs(0, false),
+	Run:     runIssueLabelList,
 }
 
 var issueLabelGetCmd = &cobra.Command{
 	Use:     "get [<REPO>] <NAME>",
 	Aliases: []string{"info"},
-	Example: "  gitclt issue label get [-c CONNECTION] [-o OWNER] [-j] [<REPO>] <NAME>",
-	Short:   "Shows a label",
-	Args:    cobra.RangeArgs(1, 2),
+	Example: "  gitclt issue label get [-c CONNECTION] [-o OWNER | --org ORG] [-j] [<REPO>] <NAME>\n" +
+		"  gitclt issue label get --id 42",
+	Short: "Shows a label",
+	Args:  labelArgs(1, false),
 	Run: func(cmd *cobra.Command, args []string) {
-		repo, rest := splitRepo(args, 1)
-		if _, e := issues.GetLabel(repo, rest[0], true); e != nil {
+		repo, rest := labelSplit(cmd, args, 1)
+		if _, e := issues.GetLabel(repo, labelName(rest), true); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
@@ -265,12 +313,13 @@ var issueLabelGetCmd = &cobra.Command{
 var issueLabelCreateCmd = &cobra.Command{
 	Use:     "create [<REPO>] <NAME>",
 	Aliases: []string{"add"},
-	Example: "  gitclt issue label create [-c CONNECTION] [-o OWNER] -C COLOR [-d DESCRIPTION] [-j] [<REPO>] <NAME>\n" +
-		"  gitclt issue label create -C d73a4a -d \"Something is broken\" bug",
-	Short: "Creates a label",
-	Args:  cobra.RangeArgs(1, 2),
+	Example: "  gitclt issue label create [-c CONNECTION] [-o OWNER | --org ORG] -C COLOR [-d DESCRIPTION] [-j] [<REPO>] <NAME>\n" +
+		"  gitclt issue label create -C d73a4a -d \"Something is broken\" bug\n" +
+		"  gitclt issue label create --org devops -C 9c27b0 security",
+	Short: "Creates a label; a name already in use is refused",
+	Args:  labelArgs(1, false),
 	Run: func(cmd *cobra.Command, args []string) {
-		repo, rest := splitRepo(args, 1)
+		repo, rest := labelSplit(cmd, args, 1)
 		if e := issues.CreateLabel(repo, rest[0]); e != nil {
 			fmt.Println(e.Error())
 		}
@@ -280,13 +329,15 @@ var issueLabelCreateCmd = &cobra.Command{
 var issueLabelEditCmd = &cobra.Command{
 	Use:     "edit [<REPO>] <NAME>",
 	Aliases: []string{"modify", "update"},
-	Example: "  gitclt issue label edit [-c CONNECTION] [-o OWNER] [-n NEW-NAME] [-C COLOR] [-d DESCRIPTION] [<REPO>] <NAME>",
-	Short:   "Edits a label; only the flags passed are changed",
-	Long:    `--name renames the label, which follows on every issue carrying it; "" clears the description.`,
-	Args:    cobra.RangeArgs(1, 2),
+	Example: "  gitclt issue label edit [-c CONNECTION] [-o OWNER | --org ORG] [-n NEW-NAME] [-C COLOR] [-d DESCRIPTION] [<REPO>] <NAME>\n" +
+		"  gitclt issue label edit --id 42 -n bug-old",
+	Short: "Edits a label; only the flags passed are changed",
+	Long: `--name renames the label, which follows on every issue carrying it, and is refused if the name is in use; "" clears the description.
+Without --org, only a repository label is changed, never an organization's.`,
+	Args: labelArgs(1, false),
 	Run: func(cmd *cobra.Command, args []string) {
-		repo, rest := splitRepo(args, 1)
-		if e := issues.EditLabel(repo, rest[0], cmd.Flags().Changed); e != nil {
+		repo, rest := labelSplit(cmd, args, 1)
+		if e := issues.EditLabel(repo, labelName(rest), cmd.Flags().Changed); e != nil {
 			fmt.Println(e.Error())
 		}
 	},
@@ -295,13 +346,15 @@ var issueLabelEditCmd = &cobra.Command{
 var issueLabelDeleteCmd = &cobra.Command{
 	Use:     "delete [<REPO>] <NAME>...",
 	Aliases: []string{"rm", "del"},
-	Example: "  gitclt issue label delete [-c CONNECTION] [-o OWNER] [-y] [<REPO>] <NAME>...\n" +
-		"  gitclt issue label rm . wontfix duplicate",
+	Example: "  gitclt issue label delete [-c CONNECTION] [-o OWNER | --org ORG] [-y] [<REPO>] <NAME>...\n" +
+		"  gitclt issue label rm . wontfix duplicate\n" +
+		"  gitclt issue label rm --id 42",
 	Short: "Deletes labels, after confirmation; they leave every issue carrying them",
-	Long:  "Every name is checked before asking. The run stops at the first failure; the labels deleted before it stay deleted.",
-	Args:  cobra.MinimumNArgs(1),
+	Long: `Every name is checked before asking. The run stops at the first failure; the labels deleted before it stay deleted.
+Without --org, only repository labels are deleted, never an organization's; an organization's label leaves the issues of all its repositories.`,
+	Args: labelArgs(1, true),
 	Run: func(cmd *cobra.Command, args []string) {
-		repo, names := splitRepo(args, 1)
+		repo, names := labelSplit(cmd, args, 1)
 		if e := issues.DeleteLabels(repo, names); e != nil {
 			printTargetsError(e)
 		}
@@ -436,6 +489,14 @@ func init() {
 	}
 	issueCommentDeleteCmd.Flags().BoolVarP(&issues.AssumeYes, "yes", "y", false, "do not ask for confirmation before deleting")
 
+	issueLabelCmd.Args = labelArgs(0, false)
+	issueLabelCmd.Run = runIssueLabelList
+	issueLabelCmd.PersistentFlags().StringVar(&issues.LabelOrg, "org", "", "the labels of this organization, instead of a repository's (Forgejo only)")
+	issueLabelCmd.MarkFlagsMutuallyExclusive("org", "owner")
+	for _, c := range []*cobra.Command{issueLabelGetCmd, issueLabelEditCmd, issueLabelDeleteCmd} {
+		c.Flags().Int64Var(&issues.LabelID, "id", 0, "designate the label by its ID, as gitclt issue labels shows it, instead of its name")
+	}
+	issueLabelCmd.Flags().BoolVarP(&issues.JSONoutput, "json", "j", false, "output as JSON")
 	issueLabelListCmd.Flags().BoolVarP(&issues.JSONoutput, "json", "j", false, "output as JSON")
 	issueLabelGetCmd.Flags().BoolVarP(&issues.JSONoutput, "json", "j", false, "output as JSON")
 	issueLabelCreateCmd.Flags().BoolVarP(&issues.JSONoutput, "json", "j", false, "output as JSON")

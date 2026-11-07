@@ -55,8 +55,14 @@ func WriteRegistry(t *testing.T, registry string) string {
 // Anything else gets a 404, which is also how "no such user / org / repo" is simulated
 func Forgejo(t *testing.T, routes map[string]http.HandlerFunc) *httptest.Server {
 	t.Helper()
+	return ForgejoAt(t, "15.0.2", routes)
+}
+
+// ForgejoAt is Forgejo, for a server of this version: the library refuses what an older one lacks
+func ForgejoAt(t *testing.T, version string, routes map[string]http.HandlerFunc) *httptest.Server {
+	t.Helper()
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/version", Reply(`{"version":"15.0.2"}`))
+	mux.HandleFunc("GET /api/v1/version", Reply(`{"version":"`+version+`"}`))
 	for pattern, h := range routes {
 		mux.HandleFunc(pattern, h)
 	}

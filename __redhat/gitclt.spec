@@ -2,7 +2,7 @@
 %define _build_id_links none
 %define _name gitclt
 %define _prefix /opt
-%define _version 1.5.1
+%define _version 1.6.0
 %define _rel 1
 %define _arch x86_64
 %define _binaryname gitclt

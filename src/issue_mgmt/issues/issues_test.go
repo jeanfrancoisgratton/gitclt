@@ -19,16 +19,19 @@ import (
 	"gitclt/testutil"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
+	"github.com/jedib0t/go-pretty/v6/text"
 )
 
 const (
 	issueTwo   = `{"number":2,"title":"First","body":"Body text","state":"open","user":{"login":"acme"},"labels":[{"name":"bug"}],"assignees":[{"login":"acme"}],"milestone":{"id":1,"title":"v1.5"},"comments":1,"html_url":"http://x/acme/web/issues/2"}`
 	issueThree = `{"number":3,"title":"Second","state":"closed","user":{"login":"acme"},"labels":[],"comments":0}`
-	prAsIssue  = `{"number":1,"title":"a PR","state":"open","user":{"login":"acme"},"labels":[],"comments":0}`
+	prAsIssue  = `{"number":1,"title":"a PR","state":"open","user":{"login":"acme"},"labels":[],"comments":0,"pull_request":{"merged":false}}`
 )
 
 func defaults(t *testing.T) {
 	t.Helper()
+	testutil.Set(t, &LabelOrg, "")
+	testutil.Set(t, &LabelID, 0)
 	for _, s := range []*string{&OwnerOrg, &IssueTitle, &IssueBody, &IssueBodyFile, &IssueMilestone, &LockReason, &LabelName, &LabelColor,
 		&LabelDescription, &MilestoneTitle, &MilestoneDescription, &MilestoneDue, &MilestoneState, &shared.ConnectionName} {
 		testutil.Set(t, s, "")
@@ -116,13 +119,21 @@ func TestList(t *testing.T) {
 	}
 }
 
-// Forgejo ignores a label it does not know, and lists everything
-func TestList_LabelFilterIsEnforced(t *testing.T) {
+// The filter reaches the server; a label it does not know selects nothing (the library sees to that, as Forgejo ignores one)
+func TestList_LabelFilter(t *testing.T) {
 	defaults(t)
-	server(t)
-	testutil.Set(t, &ListLabels, []string{"BUG"})
-	if l, err := ListIssues("web", false); err != nil || len(l) != 1 || l[0].Number != 2 {
-		t.Fatalf("known label: %+v, %v", l, err)
+	var query string
+	testutil.Forgejo(t, map[string]http.HandlerFunc{
+		"GET /api/v1/repos/acme/web": testutil.Reply(`{"name":"web"}`),
+		"GET /api/v1/repos/acme/web/issues": func(w http.ResponseWriter, r *http.Request) {
+			query = r.URL.Query().Get("labels")
+			testutil.Reply(`[`+issueTwo+`]`)(w, r)
+		},
+		"GET /api/v1/repos/acme/web/labels": testutil.Reply(`[{"id":1,"name":"bug","color":"d73a4a"}]`),
+	})
+	testutil.Set(t, &ListLabels, []string{"bug"})
+	if l, err := ListIssues("web", false); err != nil || len(l) != 1 || query != "bug" {
+		t.Fatalf("known label: %+v, %v, query %q", l, err, query)
 	}
 	testutil.Set(t, &ListLabels, []string{"nosuchlabel"})
 	if l, err := ListIssues("web", false); err != nil || len(l) != 0 {
@@ -388,6 +399,80 @@ func TestGitHub_UnknownLabels(t *testing.T) {
 	// A deleted issue answers 410
 	if _, err = GetIssue("web", "9", false); err == nil || err.Title != "No such issue" {
 		t.Errorf("deleted: %+v", err)
+	}
+}
+
+func TestSwatch(t *testing.T) {
+	// go-pretty turns its colors off without a terminal, as in a test run
+	text.EnableColors()
+	t.Cleanup(text.DisableColors)
+	for hex, code := range map[string]string{"000000": "48;5;16m", "ffffff": "48;5;231m", "d73a4a": "48;5;167m", "0075ca": "48;5;32m"} {
+		if got := swatch(hex); !strings.Contains(got, code) {
+			t.Errorf("%s: got %q, want %s", hex, got, code)
+		}
+	}
+	// A color the server made up costs a swatch, not the listing
+	if got := swatch("nope"); got != "  " {
+		t.Errorf("invalid: %q", got)
+	}
+}
+
+// The labels an issue can take: the repository's, and its organization's, one of which a repository label hides
+func TestLabels_WithOrganization(t *testing.T) {
+	defaults(t)
+	var deleted []string
+	testutil.Forgejo(t, map[string]http.HandlerFunc{
+		"GET /api/v1/repos/acme/web":        testutil.Reply(`{"name":"web"}`),
+		"GET /api/v1/repos/acme/web/labels": testutil.Reply(`[{"id":1,"name":"bug","color":"d73a4a"}]`),
+		"GET /api/v1/orgs/acme/labels": testutil.Reply(`[{"id":10,"name":"bug","color":"000000"},{"id":11,"name":"security","color":"9c27b0"},` +
+			`{"id":12,"name":"twin","color":"111111"},{"id":13,"name":"twin","color":"222222"}]`),
+		"GET /api/v1/orgs/acme/labels/{id}": testutil.Reply(`{"id":13,"name":"twin","color":"222222"}`),
+		"DELETE /api/v1/orgs/acme/labels/{id}": func(w http.ResponseWriter, r *http.Request) {
+			deleted = append(deleted, r.PathValue("id"))
+			w.WriteHeader(http.StatusNoContent)
+		},
+	})
+	var err *cerr.CustomError
+	out := testutil.Run(t, func() { _, err = ListLabelsOf("web", true) })
+	for _, want := range []string{"Scope", "org acme", "security", "hidden by the repo's"} {
+		if err != nil || !strings.Contains(out, want) {
+			t.Errorf("missing %q: %v\n%s", want, err, out)
+		}
+	}
+	// -q: what -l takes, once each
+	testutil.Set(t, &shared.QuietOutput, true)
+	if out = testutil.Run(t, func() { _, err = ListLabelsOf("web", true) }); err != nil || out != "bug\nsecurity\ntwin\n" {
+		t.Fatalf("quiet: %v\n%q", err, out)
+	}
+	testutil.Set(t, &shared.QuietOutput, false)
+
+	// --org: that organization's only, by name, or by ID where names repeat
+	testutil.Set(t, &LabelOrg, "acme")
+	testutil.Set(t, &AssumeYes, true)
+	if l, err := GetLabel("", "security", false); err != nil || l.ID != 11 {
+		t.Fatalf("org get: %+v, %v", l, err)
+	}
+	if _, err = GetLabel("", "twin", false); err == nil || err.Title != "Ambiguous label" || !strings.Contains(err.Error(), "--id (12, 13)") {
+		t.Fatalf("ambiguous: %+v", err)
+	}
+	testutil.Set(t, &LabelID, 13)
+	if testutil.Run(t, func() { err = DeleteLabels("", nil) }); err != nil || !slices.Equal(deleted, []string{"13"}) {
+		t.Fatalf("by ID: %v, %v", err, deleted)
+	}
+}
+
+// A repository of a user has no organization labels: the repository's are shown, without a scope
+func TestLabels_UserRepository(t *testing.T) {
+	defaults(t)
+	testutil.Forgejo(t, map[string]http.HandlerFunc{
+		"GET /api/v1/repos/acme/web":        testutil.Reply(`{"name":"web"}`),
+		"GET /api/v1/repos/acme/web/labels": testutil.Reply(`[{"id":1,"name":"bug","color":"d73a4a"}]`),
+		"GET /api/v1/users/acme":            testutil.Reply(`{"login":"acme"}`),
+	})
+	var err *cerr.CustomError
+	out := testutil.Run(t, func() { _, err = ListLabelsOf("web", true) })
+	if err != nil || !strings.Contains(out, "bug") || strings.Contains(out, "Scope") {
+		t.Fatalf("%v\n%s", err, out)
 	}
 }
 

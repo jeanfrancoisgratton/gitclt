@@ -7,12 +7,14 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"gitclt/forge"
 	"gitclt/shared"
 	"net/http"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
@@ -22,6 +24,15 @@ import (
 
 var hexColor = regexp.MustCompile(`^[0-9a-f]{6}$`)
 
+// Label is what issue labels shows: a label, and whose it is
+type Label struct {
+	gol.Label
+	// Scope is "repo", or the name of the organization the label belongs to
+	Scope string `json:"scope"`
+	// Hidden is an organization's label that one of the repository's, of the same name, wins over on issues
+	Hidden bool `json:"hidden,omitzero"`
+}
+
 // parseColor takes a color with or without its #, in any case; the library wants six lower case digits without it
 func parseColor(s string) (string, *cerr.CustomError) {
 	color := strings.ToLower(strings.TrimPrefix(s, "#"))
@@ -29,6 +40,30 @@ func parseColor(s string) (string, *cerr.CustomError) {
 		return "", &cerr.CustomError{Title: "Invalid color", Message: s + " is not a color: six hexadecimal digits, such as d73a4a"}
 	}
 	return color, nil
+}
+
+// labelError names what the library refuses about labels
+func labelError(title string, e error) *cerr.CustomError {
+	switch {
+	case errors.Is(e, gol.ErrNameTaken):
+		return &cerr.CustomError{Title: "Label already exists", Message: title + ": the name is already in use"}
+	case errors.Is(e, gol.ErrAmbiguousName):
+		return &cerr.CustomError{Title: "Ambiguous label",
+			Message: title + ": several labels have this name; gitclt issue labels shows their IDs, and --id designates one"}
+	case gol.IsNotFound(e):
+		return &cerr.CustomError{Title: "No such label", Code: http.StatusNotFound, Message: title + ": " + e.Error()}
+	}
+	return forge.Error(title, e)
+}
+
+// orgLabels returns the interface to an organization's labels; only Forgejo has them
+func orgLabels(c *forge.Client) (gol.OrgLabels, *cerr.CustomError) {
+	l, ok := c.Client.(gol.OrgLabels)
+	if !ok {
+		return nil, &cerr.CustomError{Title: "Unsupported operation",
+			Message: fmt.Sprintf("Connection %s: organization labels only exist on Forgejo", c.Connection.Name)}
+	}
+	return l, nil
 }
 
 func allLabels(ctx context.Context, c *forge.Client, owner, repo string) ([]gol.Label, *cerr.CustomError) {
@@ -41,83 +76,162 @@ func allLabels(ctx context.Context, c *forge.Client, owner, repo string) ([]gol.
 	return list, nil
 }
 
-// getLabel finds a label by its name
-// Forgejo lets several labels share a name, while the API addresses them by name: such a label is refused, as it could hit the wrong one
-func getLabel(ctx context.Context, c *forge.Client, owner, repo, name string) (*gol.Label, *cerr.CustomError) {
-	list, ce := allLabels(ctx, c, owner, repo)
-	if ce != nil {
-		return nil, ce
-	}
-	var found *gol.Label
-	count := 0
-	for i := range list {
-		if list[i].Name == name {
-			found = &list[i]
-			count++
+func allOrgLabels(ctx context.Context, ol gol.OrgLabels, org string) ([]gol.Label, *cerr.CustomError) {
+	list, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Label], error) {
+		return ol.ListOrgLabels(ctx, org, o)
+	})
+	if e != nil {
+		if gol.IsNotFound(e) {
+			return nil, &cerr.CustomError{Title: "No such organization", Code: http.StatusNotFound, Message: org + " is neither an organization nor a user"}
 		}
+		return nil, forge.Error("Unable to list the labels of "+org, e)
 	}
-	switch count {
-	case 0:
-		return nil, &cerr.CustomError{Title: "No such label", Code: http.StatusNotFound, Message: fmt.Sprintf("%s/%s has no label %s", owner, repo, name)}
-	case 1:
-		return found, nil
-	}
-	return nil, &cerr.CustomError{Title: "Ambiguous label",
-		Message: fmt.Sprintf("%d labels of %s/%s are named %s, and the API can only tell labels by their name: keep one in the web interface", count, owner, repo, name)}
-}
-
-// labelNameFree refuses a name already taken: GitHub does too, but Forgejo would make a second label with it
-func labelNameFree(ctx context.Context, c *forge.Client, owner, repo, name string) *cerr.CustomError {
-	list, ce := allLabels(ctx, c, owner, repo)
-	if ce != nil {
-		return ce
-	}
-	if slices.ContainsFunc(list, func(l gol.Label) bool { return l.Name == name }) {
-		return &cerr.CustomError{Title: "Label already exists", Message: fmt.Sprintf("%s/%s already has a label %s", owner, repo, name)}
-	}
-	return nil
-}
-
-// ListLabelsOf lists the labels of owner/repo
-func ListLabelsOf(repo string, displayoutput bool) ([]gol.Label, *cerr.CustomError) {
-	ctx := context.Background()
-	c, owner, repo, ce := connect(ctx, repo)
-	if ce != nil {
-		return nil, ce
-	}
-	list, ce := allLabels(ctx, c, owner, repo)
-	if ce != nil {
-		return nil, ce
-	}
-
-	if !displayoutput {
-		return list, nil
-	}
-	if JSONoutput {
-		return list, shared.PrintJSON(list, "label list")
-	}
-	if shared.QuietOutput {
-		for _, l := range list {
-			fmt.Println(l.Name)
-		}
-		return list, nil
-	}
-	if len(list) == 0 {
-		fmt.Printf("%s/%s has no label\n", owner, repo)
-		return list, nil
-	}
-	renderLabelTable(list)
 	return list, nil
 }
 
-// GetLabel shows a label of owner/repo
-func GetLabel(repo, name string, displayoutput bool) (*gol.Label, *cerr.CustomError) {
-	ctx := context.Background()
-	c, owner, repo, ce := connect(ctx, repo)
+// labelScope is where label commands work: a repository, or with --org an organization; the connection is open
+type labelScope struct {
+	c           *forge.Client
+	owner, repo string
+	org         gol.OrgLabels // set with --org
+}
+
+func (s labelScope) where() string {
+	if s.org != nil {
+		return "organization " + LabelOrg
+	}
+	return s.owner + "/" + s.repo
+}
+
+// openLabels connects for a label command: to the repository, or with --org to an organization
+func openLabels(ctx context.Context, repo string) (labelScope, *cerr.CustomError) {
+	if LabelOrg == "" {
+		c, owner, repo, ce := connect(ctx, repo)
+		return labelScope{c: c, owner: owner, repo: repo}, ce
+	}
+	c, ce := forge.Connect(ctx, shared.ConnectionName)
+	if ce != nil {
+		return labelScope{}, ce
+	}
+	ol, ce := orgLabels(c)
+	if ce != nil {
+		return labelScope{}, ce
+	}
+	return labelScope{c: c, org: ol}, nil
+}
+
+// find designates one label of the scope, by name or, with --id, by ID
+// Names can repeat on Forgejo: such a name is refused, and the ID then tells them apart
+func (s labelScope) find(ctx context.Context, name string, id int64) (*gol.Label, *cerr.CustomError) {
+	var list []gol.Label
+	var ce *cerr.CustomError
+	if s.org != nil {
+		list, ce = allOrgLabels(ctx, s.org, LabelOrg)
+	} else {
+		list, ce = allLabels(ctx, s.c, s.owner, s.repo)
+	}
 	if ce != nil {
 		return nil, ce
 	}
-	label, ce := getLabel(ctx, c, owner, repo, name)
+	var found []gol.Label
+	for _, l := range list {
+		if (id != 0 && l.ID == id) || (id == 0 && l.Name == name) {
+			found = append(found, l)
+		}
+	}
+	what := "label " + name
+	if id != 0 {
+		what = fmt.Sprintf("label with ID %d", id)
+	}
+	switch len(found) {
+	case 0:
+		return nil, &cerr.CustomError{Title: "No such label", Code: http.StatusNotFound, Message: fmt.Sprintf("%s has no %s", s.where(), what)}
+	case 1:
+		return &found[0], nil
+	}
+	ids := make([]string, len(found))
+	for i, l := range found {
+		ids[i] = strconv.FormatInt(l.ID, 10)
+	}
+	return nil, &cerr.CustomError{Title: "Ambiguous label",
+		Message: fmt.Sprintf("%d labels of %s are named %s; designate one with --id (%s)", len(found), s.where(), name, strings.Join(ids, ", "))}
+}
+
+// ListLabelsOf lists the labels an issue of owner/repo can take: the repository's, and on Forgejo its organization's,
+// a repository label winning over an organization's of the same name; with --org, only that organization's
+func ListLabelsOf(repo string, displayoutput bool) ([]Label, *cerr.CustomError) {
+	ctx := context.Background()
+	s, ce := openLabels(ctx, repo)
+	if ce != nil {
+		return nil, ce
+	}
+
+	var out []Label
+	if s.org != nil {
+		list, ce := allOrgLabels(ctx, s.org, LabelOrg)
+		if ce != nil {
+			return nil, ce
+		}
+		for _, l := range list {
+			out = append(out, Label{Label: l, Scope: LabelOrg})
+		}
+	} else {
+		list, ce := allLabels(ctx, s.c, s.owner, s.repo)
+		if ce != nil {
+			return nil, ce
+		}
+		for _, l := range list {
+			out = append(out, Label{Label: l, Scope: "repo"})
+		}
+		// A user owns no labels: the library answers an empty list. The repository's are shown even if the
+		// organization's cannot be read
+		if ol, ok := s.c.Client.(gol.OrgLabels); ok {
+			orgList, ce := allOrgLabels(ctx, ol, s.owner)
+			if ce != nil && ce.Code != http.StatusNotFound {
+				return nil, ce
+			}
+			for _, l := range orgList {
+				hidden := slices.ContainsFunc(list, func(r gol.Label) bool { return r.Name == l.Name })
+				out = append(out, Label{Label: l, Scope: s.owner, Hidden: hidden})
+			}
+		}
+	}
+
+	if !displayoutput {
+		return out, nil
+	}
+	if JSONoutput {
+		return out, shared.PrintJSON(out, "label list")
+	}
+	if shared.QuietOutput {
+		// The names an issue can take, once each
+		var names []string
+		for _, l := range out {
+			if !l.Hidden && !slices.Contains(names, l.Name) {
+				names = append(names, l.Name)
+			}
+		}
+		for _, n := range names {
+			fmt.Println(n)
+		}
+		return out, nil
+	}
+	if len(out) == 0 {
+		fmt.Printf("%s has no label\n", s.where())
+		return out, nil
+	}
+	renderLabelTable(out)
+	return out, nil
+}
+
+// GetLabel shows a label, by name or with --id by ID
+func GetLabel(repo, name string, displayoutput bool) (*gol.Label, *cerr.CustomError) {
+	ctx := context.Background()
+	s, ce := openLabels(ctx, repo)
+	if ce != nil {
+		return nil, ce
+	}
+	label, ce := s.find(ctx, name, LabelID)
 	if ce != nil {
 		return nil, ce
 	}
@@ -131,29 +245,33 @@ func GetLabel(repo, name string, displayoutput bool) (*gol.Label, *cerr.CustomEr
 	return label, nil
 }
 
-// CreateLabel creates a label in owner/repo
+// CreateLabel creates a label in owner/repo, or with --org in an organization
 func CreateLabel(repo, name string) *cerr.CustomError {
 	ctx := context.Background()
 	color, ce := parseColor(LabelColor)
 	if ce != nil {
 		return ce
 	}
-	c, owner, repo, ce := connect(ctx, repo)
+	s, ce := openLabels(ctx, repo)
 	if ce != nil {
 		return ce
 	}
-	if ce = labelNameFree(ctx, c, owner, repo, name); ce != nil {
-		return ce
+	want := gol.Label{Name: name, Color: color, Description: LabelDescription}
+	var label *gol.Label
+	var e error
+	if s.org != nil {
+		label, e = s.org.CreateOrgLabel(ctx, LabelOrg, want)
+	} else {
+		label, e = s.c.Labels().Create(ctx, s.owner, s.repo, want)
 	}
-	label, e := c.Labels().Create(ctx, owner, repo, gol.Label{Name: name, Color: color, Description: LabelDescription})
 	if e != nil {
-		return forge.Error(fmt.Sprintf("Unable to create the label %s in %s/%s", name, owner, repo), e)
+		return labelError(fmt.Sprintf("Unable to create the label %s in %s", name, s.where()), e)
 	}
 	if JSONoutput {
 		return shared.PrintJSON(label, "label")
 	}
 	if !shared.QuietOutput {
-		fmt.Println(hftx.EnabledSign(fmt.Sprintf("Created label %s in %s/%s", hftx.Brown(label.Name), owner, repo)))
+		fmt.Println(hftx.EnabledSign(fmt.Sprintf("Created label %s in %s", hftx.Brown(label.Name), s.where())))
 	}
 	return nil
 }
@@ -181,51 +299,103 @@ func EditLabel(repo, name string, changed func(string) bool) *cerr.CustomError {
 		opts.Description = gol.Ptr(LabelDescription)
 	}
 
-	c, owner, repo, ce := connect(ctx, repo)
+	s, ce := openLabels(ctx, repo)
 	if ce != nil {
 		return ce
 	}
-	if _, ce = getLabel(ctx, c, owner, repo, name); ce != nil {
+	label, ce := s.find(ctx, name, LabelID)
+	if ce != nil {
 		return ce
 	}
-	if changed("name") && LabelName != name {
-		if ce = labelNameFree(ctx, c, owner, repo, LabelName); ce != nil {
+	var e error
+	switch {
+	case s.org != nil:
+		_, e = s.org.EditOrgLabel(ctx, LabelOrg, label.ID, opts)
+	case LabelID != 0:
+		byID, ce := labelsByID(s.c)
+		if ce != nil {
 			return ce
 		}
+		_, e = byID.EditLabelByID(ctx, s.owner, s.repo, label.ID, opts)
+	default:
+		_, e = s.c.Labels().Edit(ctx, s.owner, s.repo, label.Name, opts)
 	}
-	if _, e := c.Labels().Edit(ctx, owner, repo, name, opts); e != nil {
-		return forge.Error("Unable to edit the label "+name, e)
+	if e != nil {
+		return labelError("Unable to edit the label "+label.Name, e)
 	}
 	if !shared.QuietOutput {
-		fmt.Println(hftx.EnabledSign("Updated label " + hftx.Brown(name)))
+		fmt.Println(hftx.EnabledSign(fmt.Sprintf("Updated label %s of %s", hftx.Brown(label.Name), s.where())))
 	}
 	return nil
 }
 
-// DeleteLabels deletes labels, after confirmation; every name is checked before asking
+// labelsByID addresses a repository's labels by ID, to repair names they share; only Forgejo allows such names
+func labelsByID(c *forge.Client) (gol.LabelsByID, *cerr.CustomError) {
+	l, ok := c.Client.(gol.LabelsByID)
+	if !ok {
+		return nil, &cerr.CustomError{Title: "Unsupported operation",
+			Message: fmt.Sprintf("Connection %s: labels are designated by name on this forge, which refuses repeated names", c.Connection.Name)}
+	}
+	return l, nil
+}
+
+// DeleteLabels deletes labels, after confirmation; every one is checked before asking
 // The run stops at the first failure; the labels deleted before it stay deleted
 func DeleteLabels(repo string, names []string) *cerr.CustomError {
 	ctx := context.Background()
-	names = unique(names)
-	c, owner, repo, ce := connect(ctx, repo)
+	s, ce := openLabels(ctx, repo)
 	if ce != nil {
 		return ce
 	}
-	for _, name := range names {
-		if _, ce = getLabel(ctx, c, owner, repo, name); ce != nil {
+
+	var targets []*gol.Label
+	if LabelID != 0 {
+		l, ce := s.find(ctx, "", LabelID)
+		if ce != nil {
 			return ce
 		}
+		targets = append(targets, l)
 	}
-	if !confirm(fmt.Sprintf("Delete label(s) %s of %s/%s ? They leave every issue carrying them [y/N]: ", strings.Join(names, ", "), owner, repo)) {
+	for _, name := range unique(names) {
+		l, ce := s.find(ctx, name, 0)
+		if ce != nil {
+			return ce
+		}
+		targets = append(targets, l)
+	}
+	shown := make([]string, len(targets))
+	for i, l := range targets {
+		shown[i] = l.Name
+	}
+
+	question := fmt.Sprintf("Delete label(s) %s of %s ? They leave every issue carrying them [y/N]: ", strings.Join(shown, ", "), s.where())
+	if s.org != nil {
+		question = fmt.Sprintf("Delete label(s) %s of %s ? They leave every issue carrying them, in all of its repositories [y/N]: ",
+			strings.Join(shown, ", "), s.where())
+	}
+	if !confirm(question) {
 		fmt.Println("Aborted, no label is deleted")
 		return nil
 	}
-	for _, name := range names {
-		if e := c.Labels().Delete(ctx, owner, repo, name); e != nil {
-			return forge.Error("Unable to delete the label "+name, e)
+	for _, l := range targets {
+		var e error
+		switch {
+		case s.org != nil:
+			e = s.org.DeleteOrgLabel(ctx, LabelOrg, l.ID)
+		case LabelID != 0:
+			byID, ce := labelsByID(s.c)
+			if ce != nil {
+				return ce
+			}
+			e = byID.DeleteLabelByID(ctx, s.owner, s.repo, l.ID)
+		default:
+			e = s.c.Labels().Delete(ctx, s.owner, s.repo, l.Name)
+		}
+		if e != nil {
+			return labelError("Unable to delete the label "+l.Name, e)
 		}
 		if !shared.QuietOutput {
-			fmt.Println(hftx.EnabledSign("Deleted label " + hftx.Brown(name)))
+			fmt.Println(hftx.EnabledSign("Deleted label " + hftx.Brown(l.Name)))
 		}
 	}
 	return nil

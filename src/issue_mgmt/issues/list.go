@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"gitclt/forge"
 	"gitclt/shared"
-	"slices"
 	"strings"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
@@ -36,9 +35,6 @@ func ListIssues(repo string, displayoutput bool) ([]gol.Issue, *cerr.CustomError
 		return nil, forge.Error(fmt.Sprintf("Unable to list the issues of %s/%s", owner, repo), e)
 	}
 
-	// Forgejo ignores a label it does not know, and then lists everything: an issue must really carry the labels asked for
-	list = slices.DeleteFunc(list, func(i gol.Issue) bool { return !carriesAll(i, ListLabels) })
-
 	// we only want the data, we do not need it sent to stdout
 	if !displayoutput {
 		return list, nil
@@ -58,15 +54,6 @@ func ListIssues(repo string, displayoutput bool) ([]gol.Issue, *cerr.CustomError
 	}
 	renderIssueTable(list)
 	return list, nil
-}
-
-func carriesAll(i gol.Issue, labels []string) bool {
-	for _, wanted := range labels {
-		if !slices.ContainsFunc(i.Labels, func(l string) bool { return strings.EqualFold(l, wanted) }) {
-			return false
-		}
-	}
-	return true
 }
 
 // GetIssue describes one issue of owner/repo; --comments adds what was said on it

@@ -7,6 +7,7 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"gitclt/forge"
 	"gitclt/shared"
@@ -24,18 +25,6 @@ func milestoneState(s string) (gol.MilestoneState, *cerr.CustomError) {
 		return "", &cerr.CustomError{Title: "Invalid state", Message: s + " is not one of open, closed, all"}
 	}
 	return state, nil
-}
-
-// milestoneTitleFree refuses a title already taken: GitHub does too, but Forgejo would make a second milestone with it
-func milestoneTitleFree(ctx context.Context, c *forge.Client, owner, repo, title string) *cerr.CustomError {
-	list, ce := allMilestones(ctx, c, owner, repo)
-	if ce != nil {
-		return ce
-	}
-	if slices.ContainsFunc(list, func(m gol.Milestone) bool { return m.Title == title }) {
-		return &cerr.CustomError{Title: "Milestone already exists", Message: fmt.Sprintf("%s/%s already has a milestone %s", owner, repo, title)}
-	}
-	return nil
 }
 
 // ListMilestones lists the milestones of owner/repo
@@ -112,11 +101,11 @@ func CreateMilestone(repo, title string) *cerr.CustomError {
 	if ce != nil {
 		return ce
 	}
-	if ce = milestoneTitleFree(ctx, c, owner, repo, title); ce != nil {
-		return ce
-	}
 	m, e := c.Milestones().Create(ctx, owner, repo, opts)
 	if e != nil {
+		if errors.Is(e, gol.ErrNameTaken) {
+			return &cerr.CustomError{Title: "Milestone already exists", Message: fmt.Sprintf("%s/%s already has a milestone %s", owner, repo, title)}
+		}
 		return forge.Error(fmt.Sprintf("Unable to create the milestone %s in %s/%s", title, owner, repo), e)
 	}
 	if JSONoutput {
@@ -146,15 +135,16 @@ func EditMilestone(repo, arg string, changed func(string) bool) *cerr.CustomErro
 		opts.Description = gol.Ptr(MilestoneDescription)
 	}
 	if changed("due") {
-		// Forgejo answers 200 to every way of asking, and keeps the date
+		// "" removes it; Forgejo's API cannot, and the library says so
 		if MilestoneDue == "" {
-			return &cerr.CustomError{Title: "Unsupported operation", Message: "a due date cannot be removed through the API: the web interface can"}
+			opts.ClearDueOn = true
+		} else {
+			due, ce := parseDue(MilestoneDue)
+			if ce != nil {
+				return ce
+			}
+			opts.DueOn = gol.Ptr(due)
 		}
-		due, ce := parseDue(MilestoneDue)
-		if ce != nil {
-			return ce
-		}
-		opts.DueOn = gol.Ptr(due)
 	}
 	if changed("state") {
 		state, ce := milestoneState(MilestoneState)
@@ -172,12 +162,13 @@ func EditMilestone(repo, arg string, changed func(string) bool) *cerr.CustomErro
 	if ce != nil {
 		return ce
 	}
-	if changed("title") && MilestoneTitle != m.Title {
-		if ce = milestoneTitleFree(ctx, c, owner, repo, MilestoneTitle); ce != nil {
-			return ce
-		}
-	}
 	if _, e := c.Milestones().Edit(ctx, owner, repo, m.ID, opts); e != nil {
+		switch {
+		case errors.Is(e, gol.ErrNameTaken):
+			return &cerr.CustomError{Title: "Milestone already exists", Message: fmt.Sprintf("%s/%s already has a milestone %s", owner, repo, MilestoneTitle)}
+		case errors.Is(e, gol.ErrNotSupported) && opts.ClearDueOn:
+			return &cerr.CustomError{Title: "Unsupported operation", Message: "Forgejo's API cannot remove a due date: the web interface can"}
+		}
 		return forge.Error("Unable to edit the milestone "+m.Title, e)
 	}
 	if !shared.QuietOutput {

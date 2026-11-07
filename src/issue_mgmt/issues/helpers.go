@@ -80,17 +80,14 @@ func parseIDs(args []string) ([]int64, *cerr.CustomError) {
 }
 
 // getRealIssue is getIssue for what must not touch a pull request: they share their numbers with issues, and the server
-// takes a pull request's number for an issue's without a word, even to delete it
+// takes a pull request's number for an issue's without a word
 func getRealIssue(ctx context.Context, c *forge.Client, owner, repo string, number int) (*gol.Issue, *cerr.CustomError) {
 	issue, ce := getIssue(ctx, c, owner, repo, number)
 	if ce != nil {
 		return nil, ce
 	}
-	switch _, e := c.PullRequests().Get(ctx, owner, repo, number); {
-	case e == nil:
+	if issue.IsPullRequest {
 		return nil, &cerr.CustomError{Title: "Not an issue", Message: fmt.Sprintf("#%d of %s/%s is a pull request: see gitclt pr", number, owner, repo)}
-	case !gol.IsNotFound(e):
-		return nil, forge.Error(fmt.Sprintf("Unable to check whether #%d is a pull request", number), e)
 	}
 	return issue, nil
 }
@@ -99,33 +96,14 @@ func getRealIssue(ctx context.Context, c *forge.Client, owner, repo string, numb
 func getIssue(ctx context.Context, c *forge.Client, owner, repo string, number int) (*gol.Issue, *cerr.CustomError) {
 	issue, e := c.Issues().Get(ctx, owner, repo, number)
 	if e != nil {
-		// GitHub answers 410 for an issue that was deleted
-		if gol.IsNotFound(e) || gol.StatusCode(e) == http.StatusGone {
+		// The library takes GitHub's 410, for a deleted issue, for a 404
+		if gol.IsNotFound(e) {
 			return nil, &cerr.CustomError{Title: "No such issue", Code: http.StatusNotFound,
 				Message: fmt.Sprintf("%s/%s has no issue #%d", owner, repo, number)}
 		}
 		return nil, forge.Error(fmt.Sprintf("Unable to get issue #%d", number), e)
 	}
 	return issue, nil
-}
-
-// checkLabels refuses a label that does not exist on GitHub, which would otherwise create it without a word, so that a typo
-// leaves a new label behind; Forgejo refuses by itself, and also knows the organization's labels, which this list would miss
-func checkLabels(ctx context.Context, c *forge.Client, owner, repo string, names []string) *cerr.CustomError {
-	if c.Backend() != gol.BackendGitHub || len(names) == 0 {
-		return nil
-	}
-	list, ce := allLabels(ctx, c, owner, repo)
-	if ce != nil {
-		return ce
-	}
-	for _, name := range names {
-		if !slices.ContainsFunc(list, func(l gol.Label) bool { return strings.EqualFold(l.Name, name) }) {
-			return &cerr.CustomError{Title: "No such label", Code: http.StatusNotFound,
-				Message: fmt.Sprintf("%s/%s has no label %s; create it with gitclt issue label create", owner, repo, name)}
-		}
-	}
-	return nil
 }
 
 // body is the text of --body, or of the --body-file file; set tells whether either flag was passed

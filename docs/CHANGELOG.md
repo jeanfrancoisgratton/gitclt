@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-11-07
+
+### Added
+
+- `run` commands (alias `runs`): CI workflow runs, on Forgejo Actions and GitHub Actions; Bitbucket Pipelines is not supported yet. On Forgejo, some need 16 or 17, and say so on an older server. See "CI workflow runs" in the README:
+  - `run list [-w WORKFLOW] [-s STATUS] [-e EVENT] [-b BRANCH] [--sha SHA] [-n COUNT] [-j]` (alias `ls`): lists the runs, newest first; `-q` outputs only their IDs
+  - `run get [-j] <RUN-ID>` (aliases `info`, `show`): shows a run, with its jobs
+  - `run cancel <RUN-ID>...` (alias `stop`), `run rerun <RUN-ID>`, `run delete [-y] <RUN-ID>...` (aliases `rm`, `del`): cancel skips finished runs, delete refuses one still going
+  - `run logs [-O FILE] [--force] <RUN-ID>`: saves the logs of a run's jobs, as a ZIP archive
+  - `run job list|get|rerun|log` (alias `jobs`): a run's jobs, with their steps; `log` shows a job's log as text
+  - `run artifact list|get|download|delete` (alias `artifacts`): the files runs store; `download` saves one as a ZIP archive
+- `issue labels` lists every label an issue can take: the repository's and, on Forgejo, its organization's, with a scope column and a swatch of each color
+- `issue label list|get|create|edit|delete --org ORG`: an organization's labels (Forgejo only)
+- `issue label get|edit|delete --id ID`: designate a label by the ID the list shows, where Forgejo let several share a name
+
+### Changed
+
+- Built on gitoperationslib 1.6.0, which now handles the issue traps gitclt used to work around itself: pull request numbers, label and milestone names in use, unknown label filters, GitHub's deleted issues and its silent label creation
+- `issue milestone edit --due ""` now removes the due date on GitHub; Forgejo's API still cannot, and the command says so
+- `issue label edit` and `delete` refuse a name several labels share, and point to `--id`, instead of only refusing
+
 ## [1.5.1] - 2026-11-06
 
 ### Changed
