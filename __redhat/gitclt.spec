@@ -55,6 +55,10 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Sat Nov 07 2026 Binary package builder <builder@famillegratton.net> 1.6.0-1
+- feature: workflow management, issue management refinements
+- chore: update changelog for 1.5.1-1
+
 * Fri Nov 06 2026 Binary package builder <builder@famillegratton.net> 1.5.1-1
 - enhancement: TUI : changed fg + bg colours in many ls commands
 - chore: update changelog for 1.5.0-1
