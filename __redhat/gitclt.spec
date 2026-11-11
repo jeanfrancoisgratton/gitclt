@@ -55,6 +55,11 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Wed Nov 11 2026 Binary package builder <builder@famillegratton.net> 1.7.1-1
+- enhancement: cosmetic change in how true/false is output
+- Merge branch 'main' into develop
+- chore: update changelog for 1.7.0-1
+
 * Wed Nov 11 2026 Binary package builder <builder@famillegratton.net> 1.7.0-1
 - chore: version bump
 - feature: repo create turns Actions on by default
