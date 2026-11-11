@@ -55,6 +55,11 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Wed Nov 11 2026 Binary package builder <builder@famillegratton.net> 1.7.0-1
+- chore: version bump
+- feature: repo create turns Actions on by default
+- chore: update changelog for 1.6.0-1
+
 * Sat Nov 07 2026 Binary package builder <builder@famillegratton.net> 1.6.0-1
 - feature: workflow management, issue management refinements
 - chore: update changelog for 1.5.1-1
