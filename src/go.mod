@@ -4,12 +4,12 @@ go 1.27.3
 
 require (
 	github.com/jeanfrancoisgratton/customError/v3 v3.1.1
-	github.com/jeanfrancoisgratton/gitoperationslib v1.6.0
-	github.com/jeanfrancoisgratton/helperFunctions/v5 v5.8.1
+	github.com/jeanfrancoisgratton/gitoperationslib v1.7.0
+	github.com/jeanfrancoisgratton/helperFunctions/v5 v5.9.0
 	github.com/jedib0t/go-pretty/v6 v6.8.3
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.1.0
-	golang.org/x/term v0.47.0
+	golang.org/x/term v0.48.0
 )
 
 require (
@@ -33,7 +33,7 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/xo/terminfo v1.3.1 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/text v0.43.0 // indirect
+	golang.org/x/sync v0.25.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
+	golang.org/x/text v0.44.0 // indirect
 )

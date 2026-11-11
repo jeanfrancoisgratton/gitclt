@@ -12,7 +12,9 @@ import (
 	"fmt"
 	"gitclt/forge"
 	"gitclt/shared"
+	"io"
 	"os"
+	"slices"
 	"text/tabwriter"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
@@ -77,7 +79,95 @@ func RepositoryInfo(reponame string, displayoutput bool) (*gol.Repo, *cerr.Custo
 	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Template:"), r.Template)
 	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Empty:"), r.Empty)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Web site:"), r.Website)
+	printSettings(w, r)
 	_ = w.Flush()
 
 	return r, nil
+}
+
+// infoRow is a feature or setting; an empty val is one the forge lacks or does not report, shown as n/a, never as off
+type infoRow struct {
+	label, val string
+}
+
+func boolVal(b *bool) string {
+	if b == nil {
+		return ""
+	}
+	return yesNo(*b)
+}
+
+func strVal[T ~string](s *T, empty string) string {
+	switch {
+	case s == nil:
+		return ""
+	case *s == "":
+		return empty
+	}
+	return string(*s)
+}
+
+// printGroup prints a group of features or settings, unless the forge reports none of them
+// It returns false when nothing was printed
+func printGroup(w io.Writer, title string, rows []infoRow) bool {
+	if !slices.ContainsFunc(rows, func(r infoRow) bool { return r.val != "" }) {
+		return false
+	}
+	_, _ = fmt.Fprintf(w, "%s\t\n", hftx.Blue(title))
+	for _, r := range rows {
+		val := r.val
+		if val == "" {
+			val = "n/a"
+		}
+		// Coloured like the other labels: tabwriter counts the escape codes, so all labels need the same
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("  "+r.label+":"), val)
+	}
+	return true
+}
+
+// printSettings shows the features, then the settings groups the forge has (Bitbucket has none)
+func printSettings(w io.Writer, r *gol.Repo) {
+	f := r.Features
+	if !printGroup(w, "Features:", []infoRow{
+		{"Actions", boolVal(f.Actions)}, {"Issues", boolVal(f.Issues)}, {"Wiki", boolVal(f.Wiki)},
+		{"Pull requests", boolVal(f.PullRequests)}, {"Projects", boolVal(f.Projects)}, {"Releases", boolVal(f.Releases)},
+		{"Packages", boolVal(f.Packages)}, {"Discussions", boolVal(f.Discussions)},
+	}) {
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Features:"), "not reported by this forge")
+	}
+
+	m := r.Merge
+	printGroup(w, "Merge:", []infoRow{
+		{"Merge commit", boolVal(m.MergeCommit)}, {"Rebase", boolVal(m.Rebase)}, {"Rebase then merge", boolVal(m.RebaseMerge)},
+		{"Squash", boolVal(m.Squash)}, {"Fast-forward only", boolVal(m.FastForwardOnly)},
+		{"Default method", strVal(m.DefaultMethod, "none")}, {"Delete branch", boolVal(m.DeleteBranch)},
+		{"Auto-merge", boolVal(m.AutoMerge)}, {"Update branch", boolVal(m.UpdateBranch)}, {"Rebase update", boolVal(m.RebaseUpdate)},
+	})
+
+	t := r.IssueTracker
+	external := ""
+	if t.External != nil {
+		// A zero URL is the built-in tracker
+		external = "none (built-in)"
+		if t.External.URL != "" {
+			external = t.External.URL
+			if t.External.Style != "" {
+				external += " (" + string(t.External.Style) + ")"
+			}
+		}
+	}
+	printGroup(w, "Issue tracker:", []infoRow{
+		{"Time tracking", boolVal(t.TimeTracking)}, {"Contributors only", boolVal(t.TimeTrackingContributorsOnly)},
+		{"Dependencies", boolVal(t.Dependencies)}, {"External tracker", external},
+	})
+
+	printGroup(w, "Wiki:", []infoRow{
+		{"External wiki", strVal(r.Wiki.ExternalURL, "none (built-in)")}, {"Editable by all", boolVal(r.Wiki.EditableByAll)},
+	})
+
+	a := r.Actions
+	printGroup(w, "Actions:", []infoRow{
+		{"Allowed", strVal(a.Allowed, "")}, {"Token permission", strVal(a.TokenPermission, "")},
+		{"Approve pull requests", boolVal(a.ApprovePullRequests)},
+	})
 }

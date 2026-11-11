@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-11-11
+
+### Added
+
+- `repo info` shows a repository's features (Actions, issues, wiki, pull requests, projects, releases, packages, discussions) and its merge, issue tracker, wiki and Actions settings; `n/a` is something the forge lacks or does not report, and Bitbucket reports none. `--json` includes them. See "Repository features and settings" in the README
+- `repo edit` flags for the features (`--actions`, `--issues`, `--wiki`, `--pull-requests`, `--projects`, `--releases`, `--packages`, `--discussions`) and the settings:
+  - merge: `--merge-commit`, `--rebase`, `--rebase-merge`, `--squash`, `--fast-forward-only`, `--default-merge`, `--delete-branch`, `--auto-merge`, `--update-branch`, `--rebase-update`
+  - issue tracker (Forgejo): `--time-tracking`, `--time-tracking-contributors-only`, `--dependencies`, `--external-tracker` with `--tracker-format`, `--tracker-style`, `--tracker-pattern`
+  - wiki (Forgejo): `--external-wiki`, `--wiki-editable-by-all`
+  - Actions (GitHub): `--actions-allowed`, `--actions-token`, `--actions-approve-prs`
+- `repo create --actions=false` creates a repository without Actions
+
+### Changed
+
+- Built on gitoperationslib 1.7.0
+- `repo create` enables Actions by default, on Forgejo and GitHub
+- `repo create` and `repo edit` warn, instead of failing, when the server answers success but keeps its own value for a feature or setting (e.g. Forgejo with Actions turned off for the whole instance, a wiki on a free GitHub private repository)
+
 ## [1.6.0] - 2026-11-07
 
 ### Added

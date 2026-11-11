@@ -22,6 +22,7 @@ var InitializeRepo = false
 var RepoDefaultBranch = "" // empty: see createBranch
 var RepoDescription = ""
 var PublicRepo = true
+var CreateActions = true // --actions=false creates the repository with Actions off
 
 // repo edit: only the flags explicitly passed are sent (see EditRepo)
 var EditRepoName = ""
@@ -31,3 +32,21 @@ var EditRepoDefaultBranch = ""
 var EditRepoPublic = false
 var EditRepoArchived = false
 var EditRepoTemplate = false
+
+// repo edit: features (Forgejo units, GitHub features); see editOptionsFromFlags for which forge has which
+var EditActions, EditIssues, EditWiki, EditPullRequests, EditProjects, EditReleases, EditPackages, EditDiscussions bool
+
+// repo edit: merge settings
+var EditMergeCommit, EditRebase, EditRebaseMerge, EditSquash, EditFastForwardOnly, EditDeleteBranch bool
+var EditAutoMerge, EditUpdateBranch, EditRebaseUpdate bool
+var EditDefaultMerge = ""
+
+// repo edit: issue tracker and wiki settings (Forgejo)
+var EditTimeTracking, EditTimeTrackingContributorsOnly, EditDependencies bool
+var EditExternalTracker, EditTrackerFormat, EditTrackerStyle, EditTrackerPattern = "", "", "", ""
+var EditExternalWiki = ""
+var EditWikiEditableByAll = false
+
+// repo edit: Actions settings (GitHub)
+var EditActionsAllowed, EditActionsToken = "", ""
+var EditActionsApprovePRs = false

@@ -148,10 +148,30 @@ Each command's `--help` repeats what applies to it.
 | Command                                        | Description                                                         |
 |------------------------------------------------|---------------------------------------------------------------------|
 | `gitclt repo list [-o OWNER] [-s\|-S SORT] [-j]` (`ls`) | Lists all repositories visible to the connection's user (the connection's default owner does not apply here). `-o` limits the list to a user / organization (a workspace on Bitbucket); `-s` sorts on a column in descending order, `-S` in ascending order (its first letter is enough: `i`d, `o`wner, `r`epository, `c`reated, `u`pdated; default: descending on ID, or on Repository on Bitbucket, which has no repository IDs); `-j`, `--json` outputs JSON; `-q` outputs only the `owner/name` of each repo. The sort order applies to all three outputs |
-| `gitclt repo info [-o OWNER] [-j] [<REPO>]` (`get`) | Shows the details of a repository |
-| `gitclt repo create [-o OWNER] [flags] <REPO>` (`add`) | Creates a repository. `--description`, `--default-branch` (default: `develop`, where the forge can set it: GitHub cannot at creation, and uses your account's or organization's setting; Bitbucket only can with `--initialize`, as an empty repository has no branch yet; passing the flag anyway is refused there), `--public=false` for a private repo, `--template`, `--initialize` (creates it with a `.gitignore` and a `README.md`) |
+| `gitclt repo info [-o OWNER] [-j] [<REPO>]` (`get`) | Shows the details of a repository, with its features and settings (see below) |
+| `gitclt repo create [-o OWNER] [flags] <REPO>` (`add`) | Creates a repository. `--description`, `--default-branch` (default: `develop`, where the forge can set it: GitHub cannot at creation, and uses your account's or organization's setting; Bitbucket only can with `--initialize`, as an empty repository has no branch yet; passing the flag anyway is refused there), `--public=false` for a private repo, `--template`, `--initialize` (creates it with a `.gitignore` and a `README.md`), `--actions=false` to create it without Actions (on by default; not sent to Bitbucket unless passed) |
 | `gitclt repo delete [-o OWNER] [-y] <REPO>` (`rm`, `remove`) | Deletes a repository, with everything in it, after confirmation (`-y`, `--yes` skips it; without a terminal to ask on, the repository is not deleted unless `-y` is passed) |
-| `gitclt repo edit [-o OWNER] [flags] [<REPO>]` (`modify`, `update`) | Edits a repository; **only the flags passed are sent**: `--name` (renames it), `--description`, `--website`, `--default-branch`, `--public` (`=false` makes it private), `--archived` (`=false` unarchives it), `--template`. Booleans are revoked with `=false`, and `""` clears a text field. Bitbucket cannot archive a repository, nor make it a template |
+| `gitclt repo edit [-o OWNER] [flags] [<REPO>]` (`modify`, `update`) | Edits a repository; **only the flags passed are sent**: `--name` (renames it), `--description`, `--website`, `--default-branch`, `--public` (`=false` makes it private), `--archived` (`=false` unarchives it), `--template`, and the features and settings below. Booleans are revoked with `=false`, and `""` clears a text field. Bitbucket cannot archive a repository, nor make it a template |
+
+#### Repository features and settings
+`repo info` shows them, and `repo edit` changes them. In `repo info`, `n/a` is something the forge lacks or does not report, never "off"; a settings group the forge does not have is left out. Bitbucket has none of them: `repo edit` refuses the flags there.
+
+| Group | `repo edit` flags | Forgejo | GitHub |
+|---|---|---|---|
+| Features | `--actions`, `--issues`, `--wiki`, `--pull-requests`, `--projects` | ✅ | ✅ |
+| | `--releases`, `--packages` | ✅ | ❌ |
+| | `--discussions` | ❌ | ✅ |
+| Merge | `--merge-commit`, `--rebase`, `--squash`, `--delete-branch` (delete the head branch after a merge) | ✅ | ✅ |
+| | `--rebase-merge` (rebase, then a merge commit), `--fast-forward-only`, `--rebase-update`, `--default-merge merge\|rebase\|rebase-merge\|squash\|fast-forward-only` | ✅ | ❌ |
+| | `--auto-merge`, `--update-branch` | ❌ | ✅ |
+| Issue tracker | `--time-tracking`, `--time-tracking-contributors-only`, `--dependencies`, `--external-tracker URL [--tracker-format FORMAT] [--tracker-style numeric\|alphanumeric\|regexp] [--tracker-pattern REGEXP]` | ✅ | ❌ |
+| Wiki | `--external-wiki URL`, `--wiki-editable-by-all` | ✅ | ❌ |
+| Actions settings | `--actions-allowed all\|local_only\|selected`, `--actions-token read\|write`, `--actions-approve-prs` | ❌ | ✅ |
+
+- A feature or setting the forge lacks is refused before any change. On Forgejo, merge settings need pull requests on, tracker settings need issues on, and an external wiki needs the wiki on.
+- `--external-tracker ""` and `--external-wiki ""` go back to the built-in tracker or wiki. Forgejo does not keep the built-in tracker's settings meanwhile: they come back as its defaults.
+- A server can answer success and keep its own value: Forgejo with Actions turned off for the whole instance, or GitHub's wiki or auto-merge on a private repository of a free account. The rest is applied, and gitclt warns about what was not.
+- On GitHub, Actions and the merge and Actions settings take a few more requests, so they only appear in `repo info`, not in `repo list`.
 
 ### Users: `gitclt user`
 `whoami` and the `email`, `sshkey` and `avatar` commands act on the connection's user, and need no admin rights. All the others need admin rights, and only work on Forgejo.

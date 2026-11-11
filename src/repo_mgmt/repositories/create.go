@@ -31,8 +31,17 @@ func createBranch(backend gitoperationslib.Backend) string {
 	return "develop"
 }
 
+// createFeatures turns Actions on unless --actions=false; Bitbucket has no features, so it only gets the flag when it
+// was explicitly passed (changed is cmd.Flags().Changed), and then the library refuses it
+func createFeatures(backend gitoperationslib.Backend, changed func(string) bool) gitoperationslib.RepoFeatures {
+	if backend == gitoperationslib.BackendBitbucket && !changed("actions") {
+		return gitoperationslib.RepoFeatures{}
+	}
+	return gitoperationslib.RepoFeatures{Actions: gitoperationslib.Ptr(CreateActions)}
+}
+
 // Createrepo : most of the values can be overridden from the CLI, otherwise sensible values are provided
-func CreateRepo(reponame string) *cerr.CustomError {
+func CreateRepo(reponame string, changed func(string) bool) *cerr.CustomError {
 	var c *forge.Client
 	var ce *cerr.CustomError
 	ctx := context.Background()
@@ -54,6 +63,7 @@ func CreateRepo(reponame string) *cerr.CustomError {
 		return ce
 	}
 	cro.DefaultBranch = createBranch(c.Backend())
+	cro.Features = createFeatures(c.Backend(), changed)
 
 	// gitignore templates are only applied on an initialized repo; names are case-sensitive
 	// Bitbucket has no gitignore templates
@@ -62,13 +72,21 @@ func CreateRepo(reponame string) *cerr.CustomError {
 	}
 
 	repos := c.Repos()
-	if _, e := repos.Create(ctx, cro); e != nil {
+	r, e := repos.Create(ctx, cro)
+	switch {
+	case e != nil && r == nil:
 		return &cerr.CustomError{Title: "Could not create repository", Message: e.Error()}
+	case e != nil:
+		// The repository exists, but its features could not be set, or the server kept its own value
+		// (Forgejo with Actions turned off for the whole instance)
+		fmt.Println(hftx.WarningSign("Repository " + hftx.Brown(reponame) + " was created, but: " + e.Error()))
 	}
 
 	if !shared.QuietOutput {
-		fmt.Printf("%s %s has been %s\n", hftx.EnabledSign("Repository"), hftx.Brown(reponame),
-			hftx.Green("created"))
+		if e == nil {
+			fmt.Printf("%s %s has been %s\n", hftx.EnabledSign("Repository"), hftx.Brown(reponame),
+				hftx.Green("created"))
+		}
 		if !InitializeRepo {
 			fmt.Println(hftx.WarningSign("NOTICE: The repo is not initialized, you will need to locally set it up (git init/commit/remote add/push)"))
 		}

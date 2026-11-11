@@ -6,6 +6,7 @@ package repositories
 import (
 	"encoding/json/v2"
 	"io"
+	"maps"
 	"net/http"
 	"strings"
 	"testing"
@@ -27,9 +28,16 @@ type createBody struct {
 }
 
 // A fake Forgejo where "me" is logged in and acme is an organization; the create request lands in *got
+// Forgejo creates repositories with Actions on, and its create endpoint takes no features
 func createServer(t *testing.T, got *createBody, status int) {
 	t.Helper()
-	testutil.Forgejo(t, map[string]http.HandlerFunc{
+	createServerWith(t, got, status, nil)
+}
+
+// createServerWith adds routes to createServer's, e.g. the PATCH that sets features afterwards
+func createServerWith(t *testing.T, got *createBody, status int, more map[string]http.HandlerFunc) {
+	t.Helper()
+	routes := map[string]http.HandlerFunc{
 		"GET /api/v1/user":      testutil.Reply(`{"id":1,"login":"me"}`),
 		"GET /api/v1/orgs/acme": testutil.Reply(`{"id":2,"username":"acme"}`),
 		"POST /api/v1/orgs/acme/repos": func(w http.ResponseWriter, r *http.Request) {
@@ -42,9 +50,11 @@ func createServer(t *testing.T, got *createBody, status int) {
 				return
 			}
 			w.WriteHeader(status)
-			_, _ = io.WriteString(w, `{"id":5,"owner":{"login":"acme"},"name":"web","full_name":"acme/web"}`)
+			_, _ = io.WriteString(w, `{"id":5,"owner":{"login":"acme"},"name":"web","full_name":"acme/web","has_actions":true}`)
 		},
-	})
+	}
+	maps.Copy(routes, more)
+	testutil.Forgejo(t, routes)
 }
 
 func createDefaults(t *testing.T) {
@@ -56,6 +66,7 @@ func createDefaults(t *testing.T) {
 	testutil.Set(t, &RepoDefaultBranch, "")
 	testutil.Set(t, &RepoDescription, "")
 	testutil.Set(t, &PublicRepo, true)
+	testutil.Set(t, &CreateActions, true)
 	testutil.Set(t, &shared.QuietOutput, false)
 }
 
@@ -65,7 +76,7 @@ func TestCreateRepo_Defaults(t *testing.T) {
 	createServer(t, &got, http.StatusCreated)
 
 	var err *cerr.CustomError
-	out := testutil.Run(t, func() { err = CreateRepo("web") })
+	out := testutil.Run(t, func() { err = CreateRepo("web", passed()) })
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -92,7 +103,7 @@ func TestCreateRepo_AllFlags(t *testing.T) {
 	createServer(t, &got, http.StatusCreated)
 
 	var err *cerr.CustomError
-	out := testutil.Run(t, func() { err = CreateRepo("web") })
+	out := testutil.Run(t, func() { err = CreateRepo("web", passed()) })
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -136,12 +147,81 @@ func TestCreateRepo_Errors(t *testing.T) {
 	createDefaults(t)
 	var got createBody
 	createServer(t, &got, http.StatusConflict)
-	if err := CreateRepo("web"); err == nil || err.Title != "Could not create repository" {
+	if err := CreateRepo("web", passed()); err == nil || err.Title != "Could not create repository" {
 		t.Fatalf("got %+v", err)
 	}
 
 	testutil.WriteRegistry(t, "")
-	if err := CreateRepo("web"); err == nil {
+	if err := CreateRepo("web", passed()); err == nil {
 		t.Fatal("expected an error without a connection")
+	}
+}
+
+// --actions=false: Forgejo's create endpoint takes no features, so Actions is turned off afterwards
+func TestCreateRepo_ActionsOff(t *testing.T) {
+	createDefaults(t)
+	testutil.Set(t, &CreateActions, false)
+	var got createBody
+	var bodies []map[string]any
+	createServerWith(t, &got, http.StatusCreated, map[string]http.HandlerFunc{
+		"PATCH /api/v1/repos/acme/web": testutil.Record(t, &bodies, http.StatusOK,
+			`{"id":5,"owner":{"login":"acme"},"name":"web","full_name":"acme/web","has_actions":false}`),
+	})
+
+	var err *cerr.CustomError
+	out := testutil.Run(t, func() { err = CreateRepo("web", passed("actions")) })
+	if err != nil || len(bodies) != 1 || bodies[0]["has_actions"] != false {
+		t.Fatalf("bodies %v, %v", bodies, err)
+	}
+	if !strings.Contains(out, "web has been created") {
+		t.Fatalf("output = %q", out)
+	}
+}
+
+// The server keeps Actions on (or off, for the whole instance): the repository exists, so it is a warning, not an error
+func TestCreateRepo_FeatureNotApplied(t *testing.T) {
+	createDefaults(t)
+	testutil.Set(t, &CreateActions, false)
+	testutil.Set(t, &shared.QuietOutput, true)
+	var got createBody
+	createServerWith(t, &got, http.StatusCreated, map[string]http.HandlerFunc{
+		"PATCH /api/v1/repos/acme/web": testutil.Reply(`{"id":5,"owner":{"login":"acme"},"name":"web","full_name":"acme/web","has_actions":true}`),
+	})
+
+	var err *cerr.CustomError
+	out := testutil.Run(t, func() { err = CreateRepo("web", passed("actions")) })
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	// Shown even with -q
+	if !strings.Contains(out, "web was created, but") || !strings.Contains(out, "actions off") {
+		t.Fatalf("output = %q", out)
+	}
+}
+
+// Actions is always asked for, except on Bitbucket when --actions was not passed: it has no features
+func TestCreateFeatures(t *testing.T) {
+	for _, tc := range []struct {
+		backend gol.Backend
+		passed  bool
+		value   bool
+		want    *bool
+	}{
+		{gol.BackendForgejo, false, true, gol.Ptr(true)},
+		{gol.BackendForgejo, true, false, gol.Ptr(false)},
+		{gol.BackendGitHub, false, true, gol.Ptr(true)},
+		{gol.BackendBitbucket, false, true, nil},
+		{gol.BackendBitbucket, true, true, gol.Ptr(true)},
+	} {
+		createDefaults(t)
+		testutil.Set(t, &CreateActions, tc.value)
+		changed := passed()
+		if tc.passed {
+			changed = passed("actions")
+		}
+		got := createFeatures(tc.backend, changed).Actions
+		if (got == nil) != (tc.want == nil) || (got != nil && *got != *tc.want) {
+			t.Errorf("%+v: got %v", tc, got)
+		}
 	}
 }

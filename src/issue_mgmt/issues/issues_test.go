@@ -353,6 +353,9 @@ func TestGitHub_UnknownLabels(t *testing.T) {
 		switch {
 		case r.Method == http.MethodGet && path == "/repos/acme/web":
 			fmt.Fprint(w, `{"name":"web"}`)
+		case r.Method == http.MethodGet && strings.HasPrefix(path, "/repos/acme/web/actions/"):
+			// Repos().Get also reads Actions and its settings (library 1.7.0); it does without them
+			w.WriteHeader(http.StatusNotFound)
 		case r.Method == http.MethodGet && path == "/repos/acme/web/labels":
 			fmt.Fprint(w, `[{"id":1,"name":"Bug","color":"d73a4a"}]`)
 		case r.Method == http.MethodGet && path == "/repos/acme/web/issues/2":
