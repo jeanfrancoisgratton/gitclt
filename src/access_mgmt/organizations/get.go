@@ -57,7 +57,7 @@ func OrgGet(orgname string, displayoutput bool) (*gol.Org, *cerr.CustomError) {
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Avatar URL:"), oo.AvatarURL)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Visibility:"), oo.Visibility)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("HTML URL:"), oo.HTMLURL)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Repo owners can change team access:"), oo.RepoAdminChangeTeamAccess)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Repo owners can change team access:"), shared.Sign(oo.RepoAdminChangeTeamAccess))
 	_ = w.Flush()
 
 	return oo, nil

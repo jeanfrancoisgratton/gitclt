@@ -95,8 +95,8 @@ func TestWhoAmI_TwoFactor(t *testing.T) {
 		reply string
 		want  string
 	}{
-		{`{"username":"jfg","has_2fa_enabled":true}`, "true"},
-		{`{"username":"jfg","has_2fa_enabled":false}`, "false"},
+		{`{"username":"jfg","has_2fa_enabled":true}`, "✅️"},
+		{`{"username":"jfg","has_2fa_enabled":false}`, "❌️"},
 		{`{"username":"jfg"}`, "not reported"},
 	} {
 		otherForge(t, "bitbucket", map[string]http.HandlerFunc{"GET /user": testutil.Reply(tc.reply)})

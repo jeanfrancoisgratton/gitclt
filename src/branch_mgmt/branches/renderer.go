@@ -7,6 +7,7 @@ package branches
 
 import (
 	"fmt"
+	"gitclt/shared"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -136,8 +137,8 @@ func renderBranch(b Branch, noLocal string) {
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Last commit:"), lastCommit(b.LastCommit))
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Commit title:"), title)
 		}
-		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Default:"), yesNo(b.IsDefault))
-		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Protected:"), yesNo(b.Protected))
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Default:"), shared.Sign(b.IsDefault))
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Protected:"), shared.Sign(b.Protected))
 	}
 	if noLocal == "" {
 		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Status:"), status(b))
@@ -153,6 +154,6 @@ func renderComparison(cmp *gol.Comparison) {
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Head:"), cmp.Head)
 	// From head's point of view, like the status of branch ls is from the local branch's
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Status:"), aheadBehind(cmp.Ahead, cmp.Behind))
-	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Fast-forward:"), yesNo(cmp.Ahead > 0 && cmp.Behind == 0))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Fast-forward:"), shared.Sign(cmp.Ahead > 0 && cmp.Behind == 0))
 	_ = w.Flush()
 }

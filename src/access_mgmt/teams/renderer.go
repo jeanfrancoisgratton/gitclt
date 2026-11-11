@@ -7,6 +7,7 @@ package teams
 
 import (
 	"fmt"
+	"gitclt/shared"
 	"os"
 	"slices"
 	"strings"
@@ -39,8 +40,8 @@ func printTeam(tm *gol.Team) {
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Team name:"), tm.Name)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Description:"), tm.Description)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Permission:"), tm.Permission)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Access to all repos:"), tm.IncludesAllRepos)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Can create repos:"), tm.CanCreateOrgRepo)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Access to all repos:"), shared.Sign(tm.IncludesAllRepos))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Can create repos:"), shared.Sign(tm.CanCreateOrgRepo))
 	if len(tm.Units) > 0 {
 		_, _ = fmt.Fprintf(w, "\n%s\n", hftx.Green("Units"))
 		// Sorted, as map order would change from one run to the next

@@ -7,6 +7,7 @@ package webhooks
 
 import (
 	"fmt"
+	"gitclt/shared"
 	"os"
 	"slices"
 	"strings"
@@ -79,7 +80,7 @@ func renderHook(h *gol.Webhook) {
 	printIfSet(w, "Type:", string(h.Type))
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("URL:"), h.URL)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Content type:"), h.ContentType)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Active:"), h.Active)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Active:"), shared.Sign(h.Active))
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Events:"), strings.Join(eventNames(h.Events), ", "))
 	printIfSet(w, "Branch filter:", h.BranchFilter)
 	// Its value is a credential: neither the library nor gitclt shows it

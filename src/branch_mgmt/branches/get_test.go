@@ -53,7 +53,7 @@ func TestGetBranch_BothSides(t *testing.T) {
 
 	// The server's last commit: its title only
 	out = testutil.Run(t, func() { _, ce = GetBranch("web", "main", true) })
-	for _, want := range []string{", Alice", "Commit title:   Release\n", "Protected:      yes", "in sync"} {
+	for _, want := range []string{", Alice", "Commit title:   Release\n", "Protected:      ✅️", "in sync"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("main: missing %q in:\n%s", want, out)
 		}

@@ -57,7 +57,7 @@ func TestPrintUser(t *testing.T) {
 	u := &gol.User{ID: 4, Login: "jfg", FullName: "J.F. Gratton", IsAdmin: true, Company: "ACME", StarredRepos: 3}
 
 	out := render(func(w *tabwriter.Writer) { printUser(w, u) })
-	for _, want := range []string{"Login:", "jfg", "J.F. Gratton", "Admin:", "true", "Last login:", "-"} {
+	for _, want := range []string{"Login:", "jfg", "J.F. Gratton", "Admin:", "✅️", "Last login:", "-"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in:\n%s", want, out)
 		}

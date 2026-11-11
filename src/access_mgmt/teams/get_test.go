@@ -23,7 +23,7 @@ func TestTeamGet(t *testing.T) {
 	}
 
 	out := testutil.Run(t, func() { _, err = TeamGet("acme", "devs", true) })
-	for _, want := range []string{"Organization:", "acme", "Developers", "Access to all repos:", "true", "code", "issues"} {
+	for _, want := range []string{"Organization:", "acme", "Developers", "Access to all repos:", "✅️", "code", "issues"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in:\n%s", want, out)
 		}

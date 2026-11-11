@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-11-11
+
+### Changed
+
+- Yes/no values show as ✅️ / ❌️ in the detail views: `repo info`, `user get` and `user whoami` (2FA included; `not reported` stays as is), `org get`, `team get`, `webhook … get`, `branch get`, `branch compare` and `branch protection get`. Table columns keep yes/no, and values with more than two states keep their words
+
 ## [1.7.0] - 2026-11-11
 
 ### Added

@@ -73,11 +73,11 @@ func RepositoryInfo(reponame string, displayoutput bool) (*gol.Repo, *cerr.Custo
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Updated:"), r.UpdatedAt.Local().Format("2006.01.02 15:04"))
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("HTML URL:"), r.HTMLURL)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("SSH URL:"), r.SSHURL)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Fork:"), r.Fork)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Mirror:"), r.Mirror)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Archived:"), r.Archived)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Template:"), r.Template)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Empty:"), r.Empty)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Fork:"), shared.Sign(r.Fork))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Mirror:"), shared.Sign(r.Mirror))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Archived:"), shared.Sign(r.Archived))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Template:"), shared.Sign(r.Template))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Empty:"), shared.Sign(r.Empty))
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Web site:"), r.Website)
 	printSettings(w, r)
 	_ = w.Flush()
@@ -94,7 +94,7 @@ func boolVal(b *bool) string {
 	if b == nil {
 		return ""
 	}
-	return yesNo(*b)
+	return shared.Sign(*b)
 }
 
 func strVal[T ~string](s *T, empty string) string {

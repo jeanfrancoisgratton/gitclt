@@ -32,10 +32,10 @@ func TestCompareBranches(t *testing.T) {
 		ahead, behind int
 		status, ff    string
 	}{
-		{3, 0, "ahead 3", "yes"},
-		{1, 2, "ahead 1, behind 2", "no"},
-		{0, 4, "behind 4", "no"},
-		{0, 0, "in sync", "no"},
+		{3, 0, "ahead 3", "✅️"},
+		{1, 2, "ahead 1, behind 2", "❌️"},
+		{0, 4, "behind 4", "❌️"},
+		{0, 0, "in sync", "❌️"},
 	} {
 		defaults(t)
 		compareServer(t, map[string]int{"main...develop": tc.ahead, "develop...main": tc.behind})

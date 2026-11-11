@@ -23,7 +23,7 @@ func TestOrgGet(t *testing.T) {
 
 	out := testutil.Run(t, func() { _, err = OrgGet("acme", true) })
 	for _, want := range []string{"Full name:", "ACME Inc.", "https://acme.example.com", "info@acme.example.com", "limited",
-		"Repo owners can change team access:", "true"} {
+		"Repo owners can change team access:", "✅️"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in:\n%s", want, out)
 		}

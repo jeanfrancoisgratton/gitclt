@@ -7,6 +7,7 @@ package users
 
 import (
 	"fmt"
+	"gitclt/shared"
 	"os"
 	"slices"
 	"strings"
@@ -48,10 +49,10 @@ func printUser(w *tabwriter.Writer, u *gol.User) {
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Web site:"), u.Website)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Location:"), u.Location)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Visibility:"), u.Visibility)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Admin:"), u.IsAdmin)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Active:"), u.Active)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Restricted:"), u.Restricted)
-	_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Login prohibited:"), u.ProhibitLogin)
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Admin:"), shared.Sign(u.IsAdmin))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Active:"), shared.Sign(u.Active))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Restricted:"), shared.Sign(u.Restricted))
+	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Login prohibited:"), shared.Sign(u.ProhibitLogin))
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("HTML URL:"), u.HTMLURL)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Avatar URL:"), u.AvatarURL)
 	_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("Followers:"), u.Followers)
@@ -76,7 +77,7 @@ func printUser(w *tabwriter.Writer, u *gol.User) {
 func printTwoFactor(w *tabwriter.Writer, enabled *bool) {
 	status := "not reported"
 	if enabled != nil {
-		status = fmt.Sprintf("%t", *enabled)
+		status = shared.Sign(*enabled)
 	}
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("2FA enabled:"), status)
 }
@@ -140,7 +141,7 @@ func printExtendedInfo(w *tabwriter.Writer, cu *gol.CurrentUser) {
 		_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("Auth source ID:"), cu.AuthSourceID)
 	}
 	if cu.Hireable {
-		_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Hireable:"), cu.Hireable)
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Hireable:"), shared.Sign(cu.Hireable))
 	}
 	if cu.PublicRepos != 0 || cu.TotalPrivateRepos != 0 {
 		_, _ = fmt.Fprintf(w, "%s\t%d public, %d private (%d owned)\n", hftx.Blue("Repositories:"),
@@ -163,10 +164,10 @@ func printExtendedInfo(w *tabwriter.Writer, cu *gol.CurrentUser) {
 		_, _ = fmt.Fprintf(w, "\n%s\n", hftx.Green("Settings"))
 		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Theme:"), s.Theme)
 		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Diff view style:"), s.DiffViewStyle)
-		_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Hide e-mail:"), s.HideEmail)
-		_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Hide activity:"), s.HideActivity)
-		_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Hide pronouns:"), s.HidePronouns)
-		_, _ = fmt.Fprintf(w, "%s\t%t\n", hftx.Blue("Repo unit hints:"), s.EnableRepoUnitHints)
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Hide e-mail:"), shared.Sign(s.HideEmail))
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Hide activity:"), shared.Sign(s.HideActivity))
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Hide pronouns:"), shared.Sign(s.HidePronouns))
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Repo unit hints:"), shared.Sign(s.EnableRepoUnitHints))
 	}
 
 	if len(cu.Emails) > 0 {

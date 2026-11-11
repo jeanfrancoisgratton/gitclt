@@ -7,6 +7,7 @@ package protections
 
 import (
 	"fmt"
+	"gitclt/shared"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -88,26 +89,26 @@ func renderRule(r *gol.BranchProtection, backend gol.Backend) {
 		line("Ruleset ID", fmt.Sprint(r.ID))
 	}
 	line("Required approvals", fmt.Sprint(r.RequiredApprovals))
-	line("Dismiss stale approvals", yesNo(r.DismissStaleApprovals))
+	line("Dismiss stale approvals", shared.Sign(r.DismissStaleApprovals))
 	line("Status checks", noneIfEmpty(strings.Join(r.RequiredStatusChecks, ", ")))
-	line("Must be up to date", yesNo(r.RequireUpToDate))
-	line("Signed commits", yesNo(r.RequireSignedCommits))
-	line("Applies to admins", yesNo(r.ApplyToAdmins))
+	line("Must be up to date", shared.Sign(r.RequireUpToDate))
+	line("Signed commits", shared.Sign(r.RequireSignedCommits))
+	line("Applies to admins", shared.Sign(r.ApplyToAdmins))
 	line("Direct push", who(r.PushAllowlist))
 	line("Deletion", allowedBlocked(r.AllowDeletion))
 	line("Force push", allowedBlocked(r.AllowForcePush))
 
 	switch backend {
 	case gol.BackendGitHub:
-		line("Linear history", yesNo(r.RequireLinearHistory))
-		line("Conversation resolution", yesNo(r.RequireConversationResolution))
+		line("Linear history", shared.Sign(r.RequireLinearHistory))
+		line("Conversation resolution", shared.Sign(r.RequireConversationResolution))
 	case gol.BackendBitbucket:
 		line("Merge", who(r.MergeAllowlist))
 	case gol.BackendForgejo:
 		line("Merge", who(r.MergeAllowlist))
 		line("Approvals counted from", who(r.ApprovalsAllowlist))
-		line("Blocked by rejected reviews", yesNo(r.BlockOnRejectedReviews))
-		line("Blocked by review requests", yesNo(r.BlockOnOfficialReviewRequests))
+		line("Blocked by rejected reviews", shared.Sign(r.BlockOnRejectedReviews))
+		line("Blocked by review requests", shared.Sign(r.BlockOnOfficialReviewRequests))
 		line("Protected files", noneIfEmpty(r.ProtectedFilePatterns))
 		line("Unprotected files", noneIfEmpty(r.UnprotectedFilePatterns))
 	}
