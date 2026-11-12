@@ -28,7 +28,7 @@ func WhoAmI(displayOutput bool) (*gol.CurrentUser, *cerr.CustomError) {
 		return nil, ce
 	}
 
-	cu, e := c.Directory().Me(ctx)
+	cu, e := c.Users().Me(ctx)
 	if e != nil {
 		return nil, forge.Error("Unable to fetch user information", e)
 	}

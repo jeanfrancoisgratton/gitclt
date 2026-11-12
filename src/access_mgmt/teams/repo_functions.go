@@ -19,23 +19,22 @@ import (
 // ListRepos lists the repositories a team has access to
 func ListRepos(orgname, teamname string, displayoutput bool) ([]gol.Repo, *cerr.CustomError) {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return nil, ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return nil, ce
 	}
-	team, ce := teamByName(ctx, adm, orgname, teamname)
+	team, ce := teamByName(ctx, c, orgname, teamname)
 	if ce != nil {
 		return nil, ce
 	}
 
 	repolist, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Repo], error) {
-		return adm.Teams().Repos(ctx, team.ID, o)
+		return c.Teams().Repos(ctx, orgname, team.Name, o)
 	})
 	if e != nil {
 		return nil, forge.Error(fmt.Sprintf("Unable to fetch the repository list of team %s of %s", teamname, orgname), e)
@@ -58,22 +57,21 @@ func ListRepos(orgname, teamname string, displayoutput bool) ([]gol.Repo, *cerr.
 // (the forge refuses repositories owned by anyone else, so the owner is always the team's organization)
 func AddRepoToTeam(orgname, teamname, reponame string) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
-	team, ce := teamByName(ctx, adm, orgname, teamname)
+	team, ce := teamByName(ctx, c, orgname, teamname)
 	if ce != nil {
 		return ce
 	}
 
-	if e := adm.Teams().AddRepo(ctx, team.ID, orgname, reponame); e != nil {
+	if e := c.Teams().AddRepo(ctx, orgname, team.Name, orgname, reponame); e != nil {
 		return forge.Error(fmt.Sprintf("Unable to add repository %s/%s to team %s", orgname, reponame, team.Name), e)
 	}
 
@@ -86,7 +84,6 @@ func AddRepoToTeam(orgname, teamname, reponame string) *cerr.CustomError {
 // RemoveRepoFromTeam revokes a team's access to a repository of its organization; the repository itself is kept
 func RemoveRepoFromTeam(orgname, teamname, reponame string) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
@@ -99,15 +96,15 @@ func RemoveRepoFromTeam(orgname, teamname, reponame string) *cerr.CustomError {
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
-	team, ce := teamByName(ctx, adm, orgname, teamname)
+	team, ce := teamByName(ctx, c, orgname, teamname)
 	if ce != nil {
 		return ce
 	}
 
-	if e := adm.Teams().RemoveRepo(ctx, team.ID, orgname, reponame); e != nil {
+	if e := c.Teams().RemoveRepo(ctx, orgname, team.Name, orgname, reponame); e != nil {
 		return forge.Error(fmt.Sprintf("Unable to remove repository %s/%s from team %s", orgname, reponame, team.Name), e)
 	}
 

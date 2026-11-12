@@ -38,10 +38,10 @@ func connect(ctx context.Context, repo string) (*forge.Client, gol.Collaborators
 	if ce != nil {
 		return nil, nil, "", "", ce
 	}
-	collabs, ce := c.Collaborators()
-	if ce != nil {
+	if ce = c.Require(gol.CapCollaborators, "collaborators are not available on this forge"); ce != nil {
 		return nil, nil, "", "", ce
 	}
+	collabs := c.Collaborators()
 	owner, repo, ce := c.Target(ctx, OwnerOrg, repo)
 	if ce != nil {
 		return nil, nil, "", "", ce
@@ -72,7 +72,7 @@ func List(repo string, displayoutput bool) ([]gol.Collaborator, *cerr.CustomErro
 		return nil, ce
 	}
 	list, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Collaborator], error) {
-		return collabs.ListCollaborators(ctx, owner, repo, o)
+		return collabs.List(ctx, owner, repo, o)
 	})
 	if e != nil {
 		return nil, forge.Error(fmt.Sprintf("Unable to list the collaborators of %s/%s", owner, repo), e)
@@ -120,7 +120,7 @@ func Get(repo, user string, displayoutput bool) (*gol.Collaborator, *cerr.Custom
 	if ce != nil {
 		return nil, ce
 	}
-	m, e := collabs.GetCollaborator(ctx, owner, repo, user)
+	m, e := collabs.Get(ctx, owner, repo, user)
 	if e != nil {
 		if gol.IsNotFound(e) {
 			return nil, &cerr.CustomError{Title: "No such collaborator", Code: http.StatusNotFound,
@@ -157,7 +157,7 @@ func Add(repo, user string) *cerr.CustomError {
 	if ce != nil {
 		return ce
 	}
-	invited, e := collabs.AddCollaborator(ctx, owner, repo, user, perm)
+	invited, e := collabs.Add(ctx, owner, repo, user, perm)
 	if e != nil {
 		return forge.Error(fmt.Sprintf("Unable to give %s access to %s/%s", user, owner, repo), e)
 	}
@@ -188,7 +188,7 @@ func Remove(repo string, users []string) *cerr.CustomError {
 			continue
 		}
 		unique = append(unique, user)
-		_, e := collabs.GetCollaborator(ctx, owner, repo, user)
+		_, e := collabs.Get(ctx, owner, repo, user)
 		switch {
 		case e == nil:
 		case !gol.IsNotFound(e):
@@ -215,7 +215,7 @@ func Remove(repo string, users []string) *cerr.CustomError {
 	}
 
 	for _, user := range unique {
-		if e := collabs.RemoveCollaborator(ctx, owner, repo, user); e != nil {
+		if e := collabs.Remove(ctx, owner, repo, user); e != nil {
 			return forge.Error(fmt.Sprintf("Unable to remove %s from %s/%s", user, owner, repo), e)
 		}
 		if !shared.QuietOutput {
@@ -227,12 +227,12 @@ func Remove(repo string, users []string) *cerr.CustomError {
 
 // Only GitHub invites: the other forges give access at once
 func isInvited(ctx context.Context, c *forge.Client, owner, repo, user string) (bool, *cerr.CustomError) {
-	inv, ok := c.Client.(gol.CollaboratorInvitations)
-	if !ok {
+	if !c.Capabilities().Has(gol.CapCollaboratorInvitations) {
 		return false, nil
 	}
+	inv := c.Collaborators()
 	list, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.CollaboratorInvitation], error) {
-		return inv.ListCollaboratorInvitations(ctx, owner, repo, o)
+		return inv.ListInvitations(ctx, owner, repo, o)
 	})
 	if e != nil {
 		return false, forge.Error(fmt.Sprintf("Unable to list the invitations of %s/%s", owner, repo), e)
@@ -247,13 +247,12 @@ func Invitations(repo string, displayoutput bool) ([]gol.CollaboratorInvitation,
 	if ce != nil {
 		return nil, ce
 	}
-	inv, ok := c.Client.(gol.CollaboratorInvitations)
-	if !ok {
-		return nil, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: only GitHub has invitations; this forge gives access at once", c.Connection.Name)}
+	if ce = c.Require(gol.CapCollaboratorInvitations, "only GitHub has invitations; this forge gives access at once"); ce != nil {
+		return nil, ce
 	}
+	inv := c.Collaborators()
 	list, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.CollaboratorInvitation], error) {
-		return inv.ListCollaboratorInvitations(ctx, owner, repo, o)
+		return inv.ListInvitations(ctx, owner, repo, o)
 	})
 	if e != nil {
 		return nil, forge.Error(fmt.Sprintf("Unable to list the invitations of %s/%s", owner, repo), e)

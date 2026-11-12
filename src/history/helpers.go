@@ -19,7 +19,7 @@ import (
 
 // connect opens the client on the selected connection, decides the repository and its owner (see forge.Client.Target),
 // and finds the commit history interface
-func connect(ctx context.Context, repo string) (*forge.Client, string, string, gol.History, *cerr.CustomError) {
+func connect(ctx context.Context, repo string) (*forge.Client, string, string, gol.Commits, *cerr.CustomError) {
 	c, ce := forge.Connect(ctx, shared.ConnectionName)
 	if ce != nil {
 		return nil, "", "", nil, ce
@@ -28,11 +28,10 @@ func connect(ctx context.Context, repo string) (*forge.Client, string, string, g
 	if ce != nil {
 		return nil, "", "", nil, ce
 	}
-	h, ce := c.History()
-	if ce != nil {
+	if ce = c.Require(gol.CapCommits, "the commit history is not available on this forge"); ce != nil {
 		return nil, "", "", nil, ce
 	}
-	return c, owner, repo, h, nil
+	return c, owner, repo, c.Commits(), nil
 }
 
 // checkRepo makes sure owner/repo exists, so that a 404 further down is about the reference, not the repository

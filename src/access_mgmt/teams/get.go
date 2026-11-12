@@ -7,7 +7,6 @@ package teams
 
 import (
 	"context"
-	"fmt"
 	"gitclt/forge"
 	"gitclt/shared"
 
@@ -18,41 +17,19 @@ import (
 // TeamGet fetches a team by organization and name (case-insensitive)
 func TeamGet(orgname, teamname string, displayoutput bool) (*gol.Team, *cerr.CustomError) {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return nil, ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return nil, ce
 	}
 
-	team, ce := teamByName(ctx, adm, orgname, teamname)
+	team, ce := teamByName(ctx, c, orgname, teamname)
 	if ce != nil {
 		return nil, ce
-	}
-	return team, displayTeam(team, displayoutput)
-}
-
-// TeamGetByID fetches a team by its ID, which is unique across the forge
-func TeamGetByID(id int64, displayoutput bool) (*gol.Team, *cerr.CustomError) {
-	var c *forge.Client
-	var adm gol.Admin
-	var ce *cerr.CustomError
-	ctx := context.Background()
-
-	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
-		return nil, ce
-	}
-	if adm, ce = c.Admin(); ce != nil {
-		return nil, ce
-	}
-
-	team, e := adm.Teams().Get(ctx, id)
-	if e != nil {
-		return nil, forge.Error(fmt.Sprintf("Unable to fetch team #%d", id), e)
 	}
 	return team, displayTeam(team, displayoutput)
 }

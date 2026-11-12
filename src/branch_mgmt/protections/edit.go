@@ -42,7 +42,7 @@ func EditProtection(repo, pattern string, changed func(string) bool) *cerr.Custo
 	for _, edit := range edits {
 		edit(rule)
 	}
-	if _, e := c.BranchProtections().Update(ctx, owner, repo, pattern, *rule); e != nil {
+	if _, e := c.BranchProtections().Edit(ctx, owner, repo, pattern, *rule); e != nil {
 		return forge.Error("Unable to edit the protection rule "+pattern, e)
 	}
 	if !shared.QuietOutput {

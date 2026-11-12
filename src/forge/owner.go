@@ -32,7 +32,7 @@ func (c *Client) Owner(ctx context.Context, flag string) (string, *cerr.CustomEr
 			Message: fmt.Sprintf("Connection %s: Bitbucket needs a workspace; pass -o WORKSPACE, or set the connection's owner with: gitclt conn edit %s", ac.Name, ac.Name)}
 	}
 
-	me, e := c.Directory().Me(ctx)
+	me, e := c.Users().Me(ctx)
 	if e != nil {
 		return "", Error("Unable to find out who owns the repositories (pass -o OWNER)", e)
 	}

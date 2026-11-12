@@ -276,8 +276,8 @@ func TestError_UnknownBitbucketUser(t *testing.T) {
 	}
 }
 
-// Account administration is Forgejo-only: GitHub and Bitbucket clients refuse it
-func TestAdmin(t *testing.T) {
+// Require goes by the forge's capabilities: account administration is Forgejo's only, the commit history everyone's
+func TestRequire(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"version":"15.0.2"}`)
 	}))
@@ -287,62 +287,20 @@ func TestAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if adm, aerr := c.Admin(); aerr != nil || adm == nil {
-		t.Fatalf("forgejo: got %v, %v", adm, aerr)
+	if rerr := c.Require(gol.CapAdmin, "admin"); rerr != nil {
+		t.Fatalf("forgejo: got %+v", rerr)
 	}
 
 	writeRegistry(t, `{"url":"https://github.com","token":"abc","servertype":"github"}`)
 	if c, err = Connect(context.Background(), ""); err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, aerr := c.Admin(); aerr == nil || aerr.Title != "Unsupported operation" {
-		t.Fatalf("github: got %+v", aerr)
+	if rerr := c.Require(gol.CapCommits, "history"); rerr != nil {
+		t.Fatalf("github history: got %+v", rerr)
 	}
-}
-
-// The commit history is not part of gol.Client: History() finds it with a type assertion
-func TestHistory(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, `{"version":"15.0.2"}`)
-	}))
-	defer srv.Close()
-	for _, conn := range []string{
-		`{"url":"` + srv.URL + `","token":"abc","servertype":"forgejo"}`,
-		`{"url":"https://github.com","token":"abc","servertype":"github"}`,
-	} {
-		writeRegistry(t, conn)
-		c, err := Connect(context.Background(), "")
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		if h, herr := c.History(); herr != nil || h == nil {
-			t.Fatalf("%s: got %v, %v", conn, h, herr)
-		}
-	}
-
-	// A client without it (none of the library's, today) is refused cleanly
-	c := &Client{Client: noHistory{}}
-	c.Connection.Name = "x"
-	if _, herr := c.History(); herr == nil || herr.Title != "Unsupported operation" {
-		t.Fatalf("got %+v", herr)
-	}
-}
-
-// The account interface is not part of gol.Client: Account() finds it with a type assertion
-func TestAccount(t *testing.T) {
-	writeRegistry(t, `{"url":"https://github.com","token":"abc","servertype":"github"}`)
-	c, err := Connect(context.Background(), "")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if a, aerr := c.Account(); aerr != nil || a == nil {
-		t.Fatalf("github: got %v, %v", a, aerr)
-	}
-
-	c = &Client{Client: noHistory{}}
-	c.Connection.Name = "x"
-	if _, aerr := c.Account(); aerr == nil || aerr.Title != "Unsupported operation" {
-		t.Fatalf("got %+v", aerr)
+	rerr := c.Require(gol.CapAdmin, "account administration is only available on Forgejo")
+	if rerr == nil || rerr.Title != "Unsupported operation" || !strings.HasSuffix(rerr.Message, ": account administration is only available on Forgejo") {
+		t.Fatalf("github admin: got %+v", rerr)
 	}
 }
 
@@ -379,6 +337,3 @@ func TestConnectWithPassword(t *testing.T) {
 		t.Fatalf("no OTP: got %+v", err)
 	}
 }
-
-// noHistory is a gol.Client that lacks gol.History; its methods are never called
-type noHistory struct{ gol.Client }

@@ -237,10 +237,10 @@ func LockIssue(repo, number string, unlock bool) *cerr.CustomError {
 	if ce != nil {
 		return ce
 	}
-	locks, ce := c.IssueLocks()
-	if ce != nil {
+	if ce = c.Require(gol.CapIssueLocks, "issues cannot be locked on this forge"); ce != nil {
 		return ce
 	}
+	locks := c.Issues()
 	if _, ce = getRealIssue(ctx, c, owner, repo, nums[0]); ce != nil {
 		return ce
 	}
@@ -249,12 +249,12 @@ func LockIssue(repo, number string, unlock bool) *cerr.CustomError {
 	var e error
 	if unlock {
 		verb = "Unlocked"
-		e = locks.UnlockIssue(ctx, owner, repo, nums[0])
+		e = locks.Unlock(ctx, owner, repo, nums[0])
 	} else {
 		if LockReason == "" && c.Backend() == gol.BackendForgejo {
 			return &cerr.CustomError{Title: "Missing reason", Message: "Forgejo needs a reason to lock an issue: pass -r, --reason"}
 		}
-		e = locks.LockIssue(ctx, owner, repo, nums[0], gol.LockReason(LockReason))
+		e = locks.Lock(ctx, owner, repo, nums[0], gol.LockReason(LockReason))
 	}
 	if e != nil {
 		if errors.Is(e, gol.ErrNotSupported) {

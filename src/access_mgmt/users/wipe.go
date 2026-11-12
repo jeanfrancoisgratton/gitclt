@@ -39,19 +39,18 @@ type orgPlan struct {
 // Everything is checked first: if anything blocks the wipe, nothing is changed
 func WipeUser(username string) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
 
 	// The forge would refuse most of it anyway; better to fail before anything is changed
-	me, e := c.Directory().Me(ctx)
+	me, e := c.Users().Me(ctx)
 	if e != nil {
 		return forge.Error("Unable to fetch the current user", e)
 	}
@@ -63,11 +62,11 @@ func WipeUser(username string) *cerr.CustomError {
 		return &cerr.CustomError{Title: "Cannot wipe yourself",
 			Message: fmt.Sprintf("%s is the user tied to this connection's credentials", me.Login)}
 	}
-	if _, e = adm.Users().Get(ctx, username); e != nil {
+	if _, e = c.Users().Get(ctx, username); e != nil {
 		return forge.Error("Unable to fetch user "+username, e)
 	}
 
-	plans, blockers, ce := planWipe(ctx, c, adm, username)
+	plans, blockers, ce := planWipe(ctx, c, username)
 	if ce != nil {
 		return ce
 	}
@@ -106,7 +105,7 @@ func WipeUser(username string) *cerr.CustomError {
 		var step string
 		switch p.action {
 		case orgLeave:
-			if e = adm.Orgs().RemoveMember(ctx, p.name, username); e != nil {
+			if e = c.Orgs().RemoveMember(ctx, p.name, username); e != nil {
 				return fail(fmt.Sprintf("Unable to remove user %s from %s", username, p.name), e)
 			}
 			step = "removed from " + p.name
@@ -114,7 +113,7 @@ func WipeUser(username string) *cerr.CustomError {
 				fmt.Println(hftx.EnabledSign("Removed " + hftx.Brown(username) + " from " + hftx.Brown(p.name)))
 			}
 		case orgDelete:
-			if e = adm.Orgs().Delete(ctx, p.name); e != nil {
+			if e = c.Orgs().Delete(ctx, p.name); e != nil {
 				return fail("Unable to delete organization "+p.name, e)
 			}
 			step = "deleted org " + p.name
@@ -125,7 +124,7 @@ func WipeUser(username string) *cerr.CustomError {
 		done = append(done, step)
 	}
 
-	if e = adm.Users().Delete(ctx, username, gol.DeleteUserOptions{Purge: PurgeUser}); e != nil {
+	if e = c.Users().Delete(ctx, username, gol.DeleteUserOptions{Purge: PurgeUser}); e != nil {
 		return fail("Unable to delete the user", e)
 	}
 	if !shared.QuietOutput {
@@ -135,18 +134,18 @@ func WipeUser(username string) *cerr.CustomError {
 }
 
 // planWipe decides the fate of each of the user's organizations, and lists everything that blocks the wipe
-func planWipe(ctx context.Context, c *forge.Client, adm gol.Admin, username string) ([]orgPlan, []string, *cerr.CustomError) {
+func planWipe(ctx context.Context, c *forge.Client, username string) ([]orgPlan, []string, *cerr.CustomError) {
 	var plans []orgPlan
 	var blockers []string
 
 	orgs, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Org], error) {
-		return adm.Orgs().List(ctx, username, o)
+		return c.Orgs().List(ctx, username, o)
 	})
 	if e != nil {
 		return nil, nil, forge.Error("Unable to fetch the organizations of user "+username, e)
 	}
 	for _, org := range orgs {
-		p, ce := planOrg(ctx, c, adm, org.Name, username)
+		p, ce := planOrg(ctx, c, org.Name, username)
 		if ce != nil {
 			return nil, nil, ce
 		}
@@ -172,21 +171,21 @@ func planWipe(ctx context.Context, c *forge.Client, adm gol.Admin, username stri
 
 // planOrg decides the fate of one organization
 // On Forgejo, the org's members are its teams' members: going through the teams also tells us who the owners are
-func planOrg(ctx context.Context, c *forge.Client, adm gol.Admin, orgname, username string) (orgPlan, *cerr.CustomError) {
+func planOrg(ctx context.Context, c *forge.Client, orgname, username string) (orgPlan, *cerr.CustomError) {
 	p := orgPlan{name: orgname}
 	others := map[string]bool{}
 	otherOwners := map[string]bool{}
 	isOwner := false
 
 	teams, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Team], error) {
-		return adm.Teams().List(ctx, orgname, o)
+		return c.Teams().List(ctx, orgname, o)
 	})
 	if e != nil {
 		return p, forge.Error("Unable to fetch the teams of organization "+orgname, e)
 	}
 	for _, team := range teams {
 		members, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.User], error) {
-			return adm.Teams().Members(ctx, team.ID, o)
+			return c.Teams().Members(ctx, orgname, team.Name, o)
 		})
 		if e != nil {
 			return p, forge.Error(fmt.Sprintf("Unable to fetch the member list of team %s of %s", team.Name, orgname), e)

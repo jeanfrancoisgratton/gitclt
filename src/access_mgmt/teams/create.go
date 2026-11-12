@@ -18,7 +18,6 @@ import (
 
 func CreateTeam(orgname, teamname string) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
@@ -42,11 +41,11 @@ func CreateTeam(orgname, teamname string) *cerr.CustomError {
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
 
-	if _, e := adm.Teams().Create(ctx, orgname, cto); e != nil {
+	if _, e := c.Teams().Create(ctx, orgname, cto); e != nil {
 		return forge.Error("Unable to create the team", e)
 	}
 

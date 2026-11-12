@@ -29,7 +29,7 @@ func Get(repo, ref string, displayoutput bool) (*gol.Commit, *cerr.CustomError) 
 		return nil, ce
 	}
 
-	commit, e := h.Commits().Get(ctx, owner, repo, ref)
+	commit, e := h.Get(ctx, owner, repo, ref)
 	if gol.IsNotFound(e) {
 		return nil, &cerr.CustomError{Title: "No such commit", Code: http.StatusNotFound,
 			Message: fmt.Sprintf("%s/%s has no commit, branch or tag %s", owner, repo, ref)}

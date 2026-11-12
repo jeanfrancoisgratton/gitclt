@@ -7,24 +7,25 @@ package branches
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"gitclt/forge"
 	"gitclt/shared"
 	"os"
-	"slices"
-	"strings"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
+	"github.com/jeanfrancoisgratton/gitoperationslib/branchinfo"
+	"github.com/jeanfrancoisgratton/gitoperationslib/local"
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 )
 
 // ListBranches lists the branches of owner/reponame: those of the local working copy (the current directory),
-// those on the server, or both, merged by name (the default)
+// those on the server, or both (the default), paired by the branch each local one tracks, else by name
 // Without a repo name, it is the one the current directory is a clone of (see forge.Client.Target)
 // --local alone needs neither the owner nor the repo name; when they are given, the working copy must be that repo's
 // With both, a current directory that is not a working copy of the repo only drops the local side, with a notice
+// The details come from the library's branchinfo: the clone's parts cost nothing; on the server, the comparisons with
+// the default branch and the CI states are requests per branch, the pull requests one list
 func ListBranches(reponame string, displayoutput bool) ([]Branch, *cerr.CustomError) {
 	withLocal, withServer := !RemoteOnly, !LocalOnly
 	if AllBranches || (LocalOnly && RemoteOnly) {
@@ -44,16 +45,9 @@ func ListBranches(reponame string, displayoutput bool) ([]Branch, *cerr.CustomEr
 
 	// A notice goes above the table, and stays on top with its header when paged
 	notice := ""
-	rows := map[string]*Branch{}
-	row := func(name string) *Branch {
-		if rows[name] == nil {
-			rows[name] = &Branch{Name: name}
-		}
-		return rows[name]
-	}
-
+	var clone *local.Repo
 	if withLocal {
-		lr, ce := localBranches(owner, reponame)
+		repo, ce := openClone(owner, reponame)
 		if ce != nil {
 			if !withServer {
 				return nil, ce
@@ -68,54 +62,73 @@ func ListBranches(reponame string, displayoutput bool) ([]Branch, *cerr.CustomEr
 				}
 			}
 		} else {
-			for name, sha := range lr.Branches {
-				b := row(name)
-				b.LocalSHA, b.Current = sha, name == lr.Current
-			}
+			clone = repo
+			defer clone.Close()
 		}
 	}
 
+	opts := branchinfo.Options{Local: clone, Owner: owner, Repo: reponame, Remote: cloneRemote(c, clone)}
+	if withLocal {
+		opts.AheadBehind, opts.LastCommit, opts.Parent = branchinfo.Local, branchinfo.Local, branchinfo.Local
+	}
 	if withServer {
-		list, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Branch], error) {
-			return c.Branches().List(ctx, owner, reponame, o)
-		})
-		if e != nil {
-			return nil, forge.Error(fmt.Sprintf("Unable to fetch the branches of %s/%s", owner, reponame), e)
+		opts.Client = c.Client
+		opts.AheadBehind |= branchinfo.Server
+		opts.LastCommit |= branchinfo.Server
+		opts.PullRequests, opts.Statuses = true, true
+	}
+	res, e := branchinfo.Collect(ctx, opts)
+	if e != nil {
+		if !withServer {
+			return nil, &cerr.CustomError{Title: "Unable to read the local branches", Message: e.Error()}
 		}
-		for _, sb := range list {
-			b := row(sb.Name)
-			b.ServerSHA, b.IsDefault, b.Protected, b.LastCommit = sb.SHA, sb.IsDefault, sb.Protected, sb.LastCommit
-		}
+		return nil, forge.Error(fmt.Sprintf("Unable to fetch the branches of %s/%s", owner, reponame), e)
 	}
 
-	// Where both sides differ, the server counts the commits between its branch and the local head
-	// (only the differing branches cost a comparison)
-	if withLocal && withServer {
-		for _, b := range rows {
-			if ce := compareSides(ctx, c, owner, reponame, b); ce != nil {
+	defRef := ""
+	if withLocal {
+		defRef = localDefault(clone, res.Default, opts.Remote)
+	}
+	branches := make([]Branch, 0, len(res.Branches))
+	for _, ib := range res.Branches {
+		b := fromInfo(ib)
+		if withLocal && !b.IsDefault {
+			b.MergeBase = mergeBase(clone, defRef, b.LocalSHA)
+		}
+		// Where both sides differ, the server counts the commits between its branch and the local head
+		// (only the differing branches cost a comparison)
+		if withLocal && withServer {
+			if ce := compareSides(ctx, c, owner, reponame, &b); ce != nil {
 				return nil, ce
 			}
 		}
+		branches = append(branches, b)
 	}
-
-	branches := make([]Branch, 0, len(rows))
-	for _, b := range rows {
-		branches = append(branches, *b)
-	}
-	slices.SortFunc(branches, func(a, b Branch) int { return strings.Compare(a.Name, b.Name) })
 
 	// we only want the data, we do not need it sent to stdout
 	if !displayoutput {
 		return branches, nil
 	}
+	notes := missingNotes(res.Missing)
 	if JSONoutput {
+		// The notes would break the JSON: they go to the standard error
+		for _, n := range notes {
+			fmt.Fprintln(os.Stderr, hftx.InfoSign("Not shown: "+n))
+		}
 		return branches, shared.PrintJSON(branches, "branch list")
 	}
 	banner := shared.TableHeader
 	if notice != "" {
 		banner++
 	}
-	shared.Page(notice+renderBranchTable(branches, withLocal, withServer), banner)
+	out := notice + renderBranchTable(branches, res.Default, withLocal, withServer)
+	if len(notes) > 0 && !SuppressWarnings {
+		out += "\n"
+		for _, n := range notes {
+			out += "\n" + hftx.InfoSign("Not shown: "+n)
+		}
+	}
+	shared.Page(out, banner)
 	return branches, nil
 }
 
@@ -138,7 +151,11 @@ func compareSides(ctx context.Context, c *forge.Client, owner, reponame string, 
 	if b.LocalSHA == "" || b.ServerSHA == "" || b.LocalSHA == b.ServerSHA {
 		return nil
 	}
-	cmp, e := c.Branches().Compare(ctx, owner, reponame, b.Name, b.LocalSHA)
+	name := b.Name
+	if b.ServerName != "" {
+		name = b.ServerName
+	}
+	cmp, e := c.Branches().Compare(ctx, owner, reponame, name, b.LocalSHA)
 	switch {
 	case gol.IsNotFound(e):
 		b.Unpushed = true
@@ -148,26 +165,4 @@ func compareSides(ctx context.Context, c *forge.Client, owner, reponame string, 
 		b.Ahead, b.Behind = cmp.Ahead, cmp.Behind
 	}
 	return nil
-}
-
-// localBranches reads the working copy of the current directory, and makes sure it is owner/reponame's
-func localBranches(owner, reponame string) (*shared.WorkingCopy, *cerr.CustomError) {
-	cwd, e := os.Getwd()
-	if e != nil {
-		return nil, &cerr.CustomError{Title: "Unable to read the local branches", Message: e.Error()}
-	}
-	lr, e := shared.ReadWorkingCopy(cwd)
-	if errors.Is(e, shared.ErrNoWorkingCopy) {
-		return nil, &cerr.CustomError{Title: "No local working copy", Message: cwd + " is " + e.Error()}
-	}
-	if e != nil {
-		return nil, &cerr.CustomError{Title: "Unable to read the local branches", Message: e.Error()}
-	}
-	// Without an owner (--local only), only the repo name part of the remotes' URLs is checked
-	if reponame != "" && !lr.MatchesRepo(owner, reponame) {
-		return nil, &cerr.CustomError{Title: "Not the same repository",
-			Message: fmt.Sprintf("the working copy in %s is not a clone of %s (its remotes: %s)",
-				cwd, strings.TrimPrefix(owner+"/"+reponame, "/"), strings.Join(lr.Remotes, ", "))}
-	}
-	return lr, nil
 }

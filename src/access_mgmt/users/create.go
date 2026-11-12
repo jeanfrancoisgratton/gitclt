@@ -19,7 +19,6 @@ import (
 
 func CreateUser(username string, mustchangepassword *bool) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 	cuo := gol.CreateUserOptions{
@@ -47,11 +46,11 @@ func CreateUser(username string, mustchangepassword *bool) *cerr.CustomError {
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
 
-	if _, e := adm.Users().Create(ctx, cuo); e != nil {
+	if _, e := c.Users().Create(ctx, cuo); e != nil {
 		return forge.Error("Unable to create the user", e)
 	}
 
@@ -73,7 +72,7 @@ func CreateUser(username string, mustchangepassword *bool) *cerr.CustomError {
 		euo.Admin = gol.Ptr(true)
 	}
 	if euo != (gol.EditUserOptions{}) {
-		return applyUserEdit(ctx, adm, username, euo,
+		return applyUserEdit(ctx, c, username, euo,
 			"User "+username+" was created, but setting its profile/admin fields failed (use gitclt user edit; do not re-run create)")
 	}
 	return nil

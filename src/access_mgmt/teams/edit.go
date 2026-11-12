@@ -19,7 +19,6 @@ import (
 // EditTeam only sends the fields whose flag was explicitly passed; changed is cmd.Flags().Changed
 func EditTeam(orgname, teamname string, changed func(string) bool) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
@@ -34,16 +33,16 @@ func EditTeam(orgname, teamname string, changed func(string) bool) *cerr.CustomE
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
-	team, ce := teamByName(ctx, adm, orgname, teamname)
+	team, ce := teamByName(ctx, c, orgname, teamname)
 	if ce != nil {
 		return ce
 	}
 
 	// The owner team cannot be renamed nor have its access changed: the library refuses it (gol.ErrOwnerTeam)
-	if _, e := adm.Teams().Edit(ctx, team.ID, eto); e != nil {
+	if _, e := c.Teams().Edit(ctx, orgname, team.Name, eto); e != nil {
 		return forge.Error("Unable to edit the team", e)
 	}
 

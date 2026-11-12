@@ -67,11 +67,7 @@ func tokensOf(c *forge.Client) (gol.Tokens, *cerr.CustomError) {
 	if !c.Capabilities().Has(gol.CapTokens) {
 		return nil, notSupported(c.Connection.Name)
 	}
-	acct, ce := c.Account()
-	if ce != nil {
-		return nil, ce
-	}
-	return acct.Tokens(), nil
+	return c.Account().Tokens(), nil
 }
 
 func fetchTokens(ctx context.Context, tk gol.Tokens) ([]gol.AccessToken, *cerr.CustomError) {

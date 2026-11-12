@@ -13,14 +13,12 @@ import (
 	"strings"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
-	gol "github.com/jeanfrancoisgratton/gitoperationslib"
 	hf "github.com/jeanfrancoisgratton/helperFunctions/v5"
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 )
 
 func DeleteOrg(orgname string) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
@@ -36,11 +34,11 @@ func DeleteOrg(orgname string) *cerr.CustomError {
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
 
-	if e := adm.Orgs().Delete(ctx, orgname); e != nil {
+	if e := c.Orgs().Delete(ctx, orgname); e != nil {
 		return forge.Error("Unable to delete the organization", e)
 	}
 

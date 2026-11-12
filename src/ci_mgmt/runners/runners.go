@@ -25,7 +25,7 @@ func ListRunners(repo string, displayoutput bool) ([]gol.Runner, *cerr.CustomErr
 		return nil, ce
 	}
 	list, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Runner], error) {
-		return t.runners.ListRunners(ctx, t.scope, gol.ListRunnersOptions{ListOptions: o, Inherited: Inherited})
+		return t.runners.List(ctx, t.scope, gol.ListRunnersOptions{ListOptions: o, Inherited: Inherited})
 	})
 	if e != nil {
 		return nil, runnerError("Unable to list the runners of "+t.where, e)
@@ -66,7 +66,7 @@ func GetRunner(repo, arg string, displayoutput bool) (*gol.Runner, *cerr.CustomE
 	if ce != nil {
 		return nil, ce
 	}
-	r, e := t.runners.GetRunner(ctx, t.scope, ids[0])
+	r, e := t.runners.Get(ctx, t.scope, ids[0])
 	if e != nil {
 		return nil, runnerError(fmt.Sprintf("Unable to get runner %d of %s", ids[0], t.where), e)
 	}
@@ -93,7 +93,7 @@ func RegisterRunner(repo string) *cerr.CustomError {
 		return ce
 	}
 	opts := gol.RegisterRunnerOptions{Name: RegisterName, Description: RegisterDescription, Ephemeral: RegisterEphemeral, Labels: RegisterLabels}
-	rr, e := t.runners.RegisterRunner(ctx, t.scope, opts)
+	rr, e := t.runners.Register(ctx, t.scope, opts)
 	if e != nil {
 		return runnerError("Unable to register a runner for "+t.where, e)
 	}
@@ -126,7 +126,7 @@ func RunnerToken(repo string) *cerr.CustomError {
 	if ce != nil {
 		return ce
 	}
-	tk, e := t.runners.RunnerRegistrationToken(ctx, t.scope)
+	tk, e := t.runners.RegistrationToken(ctx, t.scope)
 	if e != nil {
 		return runnerError("Unable to get a runner registration token for "+t.where, e)
 	}
@@ -156,7 +156,7 @@ func DeleteRunners(repo string, args []string) *cerr.CustomError {
 	}
 	shown := make([]string, len(ids))
 	for i, id := range ids {
-		r, e := t.runners.GetRunner(ctx, t.scope, id)
+		r, e := t.runners.Get(ctx, t.scope, id)
 		if e != nil {
 			return runnerError(fmt.Sprintf("Unable to get runner %d of %s", id, t.where), e)
 		}
@@ -167,7 +167,7 @@ func DeleteRunners(repo string, args []string) *cerr.CustomError {
 		return nil
 	}
 	for _, id := range ids {
-		if e := t.runners.DeleteRunner(ctx, t.scope, id); e != nil {
+		if e := t.runners.Delete(ctx, t.scope, id); e != nil {
 			return runnerError(fmt.Sprintf("Unable to delete runner %d of %s", id, t.where), e)
 		}
 		if !shared.QuietOutput {

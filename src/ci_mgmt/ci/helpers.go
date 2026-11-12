@@ -42,10 +42,10 @@ func open(ctx context.Context, repo string) (target, *cerr.CustomError) {
 	if ce != nil {
 		return target{}, ce
 	}
-	ci, ce := c.CI()
-	if ce != nil {
+	if ce = c.Require(gol.CapSecrets, "secrets and variables are not available on this forge"); ce != nil {
 		return target{}, ce
 	}
+	ci := c.CI()
 	switch {
 	case ScopeUser:
 		return target{ci, gol.UserCI(), "your account"}, nil

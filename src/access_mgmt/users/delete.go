@@ -20,7 +20,6 @@ import (
 
 func DeleteUser(username string) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
@@ -40,11 +39,11 @@ func DeleteUser(username string) *cerr.CustomError {
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
 
-	if e := adm.Users().Delete(ctx, username, gol.DeleteUserOptions{Purge: PurgeUser}); e != nil {
+	if e := c.Users().Delete(ctx, username, gol.DeleteUserOptions{Purge: PurgeUser}); e != nil {
 		return forge.Error("Unable to delete the user", e)
 	}
 

@@ -22,19 +22,18 @@ import (
 // ListMembers lists all members of a given organization, plain and simple
 func ListMembers(orgname string, displayoutput bool) ([]gol.User, *cerr.CustomError) {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return nil, ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return nil, ce
 	}
 
 	memberlist, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.User], error) {
-		return adm.Orgs().Members(ctx, orgname, o)
+		return c.Orgs().Members(ctx, orgname, o)
 	})
 
 	if e != nil {
@@ -57,23 +56,22 @@ func ListMembers(orgname string, displayoutput bool) ([]gol.User, *cerr.CustomEr
 // IsMemberOfOrg: simple true/false: is user USR member of the organization ORG ?
 func IsMemberOfOrg(orgname, usrname string) (bool, *cerr.CustomError) {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return false, ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return false, ce
 	}
-	b, e := adm.Orgs().IsMember(ctx, orgname, usrname)
+	b, e := c.Orgs().IsMember(ctx, orgname, usrname)
 	if e != nil {
 		return false, forge.Error(fmt.Sprintf("Unable to see if %s is part of %s", usrname, orgname), e)
 	}
 	// The library answers false on any 404, including a missing organization: tell both cases apart
 	if !b {
-		if _, e = adm.Orgs().Get(ctx, orgname); e != nil {
+		if _, e = c.Orgs().Get(ctx, orgname); e != nil {
 			return false, forge.Error("Unable to fetch organization "+orgname, e)
 		}
 	}
@@ -91,7 +89,6 @@ func IsMemberOfOrg(orgname, usrname string) (bool, *cerr.CustomError) {
 // RemoveMemberFromOrg: remove a given user from an organization
 func RemoveMemberFromOrg(orgname, usrname string) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
@@ -107,10 +104,10 @@ func RemoveMemberFromOrg(orgname, usrname string) *cerr.CustomError {
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
-	if e := adm.Orgs().RemoveMember(ctx, orgname, usrname); e != nil {
+	if e := c.Orgs().RemoveMember(ctx, orgname, usrname); e != nil {
 		return forge.Error(fmt.Sprintf("Unable to remove user %s from %s", usrname, orgname), e)
 	}
 

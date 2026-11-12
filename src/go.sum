@@ -30,8 +30,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/jeanfrancoisgratton/customError/v3 v3.1.1 h1:EyKS/iFu7gdPgmNxibvZcVFS4SGqfwpAcWlcB8URbHs=
 github.com/jeanfrancoisgratton/customError/v3 v3.1.1/go.mod h1:3EEwWepKbVvYVQ0x+py3FM8QTzheS/svMwhfiZR/y24=
-github.com/jeanfrancoisgratton/gitoperationslib v1.8.0 h1:HLNXk0R/+vPHE91q0li+wsj6/ohVvMrG9zUFqd49O6g=
-github.com/jeanfrancoisgratton/gitoperationslib v1.8.0/go.mod h1:hqxQ0kZvz7rpvC2yts5z9nOsznOoADE4a6TZRl64mxA=
+github.com/jeanfrancoisgratton/gitoperationslib v1.9.0 h1:S59bwM7Rdgn9X7FjF0pihDWlPNpgSzfiGBKayy14Rm0=
+github.com/jeanfrancoisgratton/gitoperationslib v1.9.0/go.mod h1:hqxQ0kZvz7rpvC2yts5z9nOsznOoADE4a6TZRl64mxA=
 github.com/jeanfrancoisgratton/helperFunctions/v5 v5.9.1 h1:+gbghkg0yhtwygjOEEWIHlIoZMw8dXTIhJHHxvtIwYM=
 github.com/jeanfrancoisgratton/helperFunctions/v5 v5.9.1/go.mod h1:Nay3UiFfltDF8C1rd+6szx15rZ+GzXGN1F8DI0FXptg=
 github.com/jedib0t/go-pretty/v6 v6.8.3 h1:yVSk5aemoYHCvcrtqyXklwqcgHQIQzmy/oUzFlmffSQ=

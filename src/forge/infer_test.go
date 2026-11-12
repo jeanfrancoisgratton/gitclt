@@ -1,7 +1,7 @@
 // gitclt
-// Tests how a working copy's repository is told from its remotes
+// Tests how a clone's repository is told from its remotes, on the connection's server (local.Repo.RepoOn, and the -c hint)
 
-package shared
+package forge
 
 import (
 	"errors"
@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/jeanfrancoisgratton/gitoperationslib/local"
 )
 
 func workingCopy(t *testing.T, config string) string {
@@ -28,34 +30,6 @@ func workingCopy(t *testing.T, config string) string {
 
 func remote(name, url string) string {
 	return "[remote \"" + name + "\"]\n\turl = " + url + "\n\tfetch = +refs/heads/*:refs/remotes/" + name + "/*\n"
-}
-
-func TestParseRemoteURL(t *testing.T) {
-	for _, tc := range []struct {
-		url               string
-		host, owner, repo string
-		ok                bool
-	}{
-		{"https://forge.example/acme/web.git", "forge.example", "acme", "web", true},
-		{"https://forge.example/acme/web", "forge.example", "acme", "web", true},
-		{"https://forge.example/acme/web/", "forge.example", "acme", "web", true},
-		{"https://user:pw@forge.example:3000/acme/web.git", "forge.example", "acme", "web", true},
-		{"https://forge.example/git/acme/web.git", "forge.example", "acme", "web", true},
-		{"ssh://git@forge.example:9722/acme/web.git", "forge.example", "acme", "web", true},
-		{"git@forge.example:acme/web.git", "forge.example", "acme", "web", true},
-		{"forge.example:acme/web", "forge.example", "acme", "web", true},
-		{"/srv/git/acme/web.git", "", "", "", false},
-		{"../acme/web.git", "", "", "", false},
-		{"./a:b/web.git", "", "", "", false},
-		{"file:///srv/git/acme/web.git", "", "", "", false},
-		{"https://forge.example/web", "", "", "", false},
-		{"git@forge.example:web.git", "", "", "", false},
-	} {
-		host, owner, repo, ok := ParseRemoteURL(tc.url)
-		if host != tc.host || owner != tc.owner || repo != tc.repo || ok != tc.ok {
-			t.Errorf("%s: got %q %q %q %v", tc.url, host, owner, repo, ok)
-		}
-	}
 }
 
 func TestInferRepo(t *testing.T) {
@@ -78,7 +52,7 @@ func TestInferRepo(t *testing.T) {
 		{"no scheme in the connection", remote("origin", "git@forge.example:acme/web.git"), "forge.example", "acme", "web", "origin"},
 	} {
 		root := workingCopy(t, "[core]\n\tbare = false\n"+tc.config+"[branch \"main\"]\n\tremote = origin\n\turl = not-a-remote\n")
-		got, err := InferRepo(filepath.Join(root, "src", "deep"), tc.server)
+		got, err := inferRepo(filepath.Join(root, "src", "deep"), tc.server)
 		if err != nil || got.Owner != tc.owner || got.Name != tc.repo || got.Remote != tc.remote {
 			t.Errorf("%s: got %+v, %v", tc.name, got, err)
 		}
@@ -87,17 +61,17 @@ func TestInferRepo(t *testing.T) {
 
 // Failing is right here: guessing would act on the wrong repository
 func TestInferRepo_Refusals(t *testing.T) {
-	if _, err := InferRepo(t.TempDir(), "https://forge.example"); !errors.Is(err, ErrNoWorkingCopy) {
+	if _, err := inferRepo(t.TempDir(), "https://forge.example"); !errors.Is(err, local.ErrNoWorkingCopy) {
 		t.Errorf("no working copy: %v", err)
 	}
 	for name, tc := range map[string]struct{ config, want string }{
-		"no remote":        {"[core]\n\tbare = false\n", "no remote"},
+		"no remote":        {"[core]\n\tbare = false\n", "has no remote"},
 		"another forge":    {remote("origin", "git@github.com:me/web.git"), "origin is on github.com"},
-		"only local":       {remote("disk", "/srv/web.git"), "none of this working copy's remotes"},
+		"only local":       {remote("disk", "/srv/web.git"), "no remote of the working copy is on this server"},
 		"different owners": {remote("a", "git@forge.example:acme/web.git") + remote("b", "git@forge.example:me/web.git"), "a: acme/web, b: me/web"},
-		"lookalike host":   {remote("origin", "git@notforge.example:acme/web.git"), "none of this working copy's remotes"},
+		"lookalike host":   {remote("origin", "git@notforge.example:acme/web.git"), "no remote of the working copy is on this server"},
 	} {
-		_, err := InferRepo(workingCopy(t, tc.config), "https://forge.example")
+		_, err := inferRepo(workingCopy(t, tc.config), "https://forge.example")
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: %v", name, err)
 		}
@@ -118,8 +92,16 @@ func TestInferRepo_Worktree(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(wt, ".git"), []byte("gitdir: "+gitDir+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := InferRepo(wt, "https://forge.example")
+	got, err := inferRepo(wt, "https://forge.example")
 	if err != nil || got.Owner != "acme" || got.Name != "web" {
 		t.Fatalf("got %+v, %v", got, err)
+	}
+}
+
+// A clone with no remote on the connection's server points to -c
+func TestInferRepo_Hint(t *testing.T) {
+	_, err := inferRepo(workingCopy(t, remote("origin", "git@github.com:me/web.git")), "https://forge.example")
+	if !errors.Is(err, local.ErrNoRemoteOnHost) || !strings.HasSuffix(err.Error(), "; choose the matching connection with -c") {
+		t.Fatalf("got %v", err)
 	}
 }
