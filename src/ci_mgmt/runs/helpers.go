@@ -21,7 +21,9 @@ import (
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
 	hf "github.com/jeanfrancoisgratton/helperFunctions/v5"
+	"github.com/jeanfrancoisgratton/helperFunctions/v5/pager"
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
+	"golang.org/x/term"
 )
 
 // target is an opened repository, with the interfaces to its runs and artifacts
@@ -154,4 +156,29 @@ func confirm(question string) bool {
 	}
 	a := strings.ToLower(strings.TrimSpace(hf.GetStringValFromPrompt(hftx.WarningSign(question))))
 	return a == "y" || a == "yes"
+}
+
+// interactive tells if the output can be paged: the pager needs a terminal on both sides, for its keys and its screen
+func interactive() bool {
+	return term.IsTerminal(int(os.Stdin.Fd())) && term.IsTerminal(int(os.Stdout.Fd()))
+}
+
+// pageLog shows a log through the pager, with title as its banner; Windows line endings are dropped, as the pager
+// draws its lines itself
+func pageLog(r io.ReadCloser, title string) *cerr.CustomError {
+	defer r.Close()
+	b, e := io.ReadAll(r)
+	if e != nil {
+		return &cerr.CustomError{Title: "Unable to read the log", Message: e.Error()}
+	}
+	text := strings.TrimRight(strings.ReplaceAll(string(b), "\r\n", "\n"), "\n")
+	if text == "" {
+		fmt.Println("The log is empty")
+		return nil
+	}
+	lines := append([]string{hftx.Blue(title)}, strings.Split(text, "\n")...)
+	if e = pager.Page(lines, 1, 0); e != nil {
+		return &cerr.CustomError{Title: "Unable to show the log", Message: e.Error()}
+	}
+	return nil
 }

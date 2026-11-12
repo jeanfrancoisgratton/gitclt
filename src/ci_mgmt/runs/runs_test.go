@@ -22,7 +22,7 @@ func defaults(t *testing.T) {
 	for _, s := range []*string{&OwnerOrg, &ListWorkflow, &ListStatus, &ListEvent, &ListBranch, &ListSHA, &ArtifactName, &OutputFile, &shared.ConnectionName} {
 		testutil.Set(t, s, "")
 	}
-	for _, b := range []*bool{&JSONoutput, &AssumeYes, &Overwrite, &shared.QuietOutput} {
+	for _, b := range []*bool{&JSONoutput, &AssumeYes, &Overwrite, &FollowLog, &shared.QuietOutput} {
 		testutil.Set(t, b, false)
 	}
 	testutil.Set(t, &ListLimit, 30)
@@ -271,5 +271,34 @@ func TestSize(t *testing.T) {
 		if got := size(n); got != want {
 			t.Errorf("%d: %s", n, got)
 		}
+	}
+}
+
+// -f writes the log until the job ends; job 3 has already ended, so its whole log comes in one read
+// Forgejo needs 17 for it: the library says so on 16
+func TestJobLog_Follow(t *testing.T) {
+	defaults(t)
+	testutil.Set(t, &FollowLog, true)
+	server(t, "17.0.1")
+	var err *cerr.CustomError
+	out := testutil.Run(t, func() { err = JobLog("web", "3") })
+	if err != nil || out != "hello from the build job\n" {
+		t.Fatalf("%v, output %q", err, out)
+	}
+
+	server(t, "16.0.7")
+	if err = JobLog("web", "3"); err == nil || err.Title != "Unsupported operation" || !strings.Contains(err.Message, "17") {
+		t.Fatalf("Forgejo 16: %+v", err)
+	}
+}
+
+// Not on a terminal (as in the tests), the log is written as is: the pager is only for an interactive session
+func TestJobLog_NotPagedWhenPiped(t *testing.T) {
+	defaults(t)
+	server(t, "17.0.1")
+	var err *cerr.CustomError
+	out := testutil.Run(t, func() { err = JobLog("web", "3") })
+	if err != nil || out != "hello from the build job\n" {
+		t.Fatalf("%v, output %q", err, out)
 	}
 }

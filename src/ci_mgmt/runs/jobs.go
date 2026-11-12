@@ -7,8 +7,11 @@ package runs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"gitclt/shared"
+	"os"
+	"os/signal"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
@@ -98,7 +101,7 @@ func RerunJob(repo, arg string) *cerr.CustomError {
 	return nil
 }
 
-// JobLog prints a job's log, or saves it with -O (Forgejo 16 and later, GitHub)
+// JobLog shows a job's log, paged on a terminal; saves it with -O, or follows it with -f (Forgejo 16 and later, GitHub)
 func JobLog(repo, arg string) *cerr.CustomError {
 	ctx := context.Background()
 	ids, ce := parseIDs([]string{arg}, "job")
@@ -109,12 +112,19 @@ func JobLog(repo, arg string) *cerr.CustomError {
 	if ce != nil {
 		return ce
 	}
+	if FollowLog {
+		return followJobLog(ctx, t, ids[0])
+	}
 	r, e := t.runs.WorkflowJobLogs(ctx, t.owner, t.repo, ids[0])
 	if e != nil {
 		return runError(fmt.Sprintf("Unable to get the log of job %d of %s", ids[0], t.where()), "job", e)
 	}
+
 	path := OutputFile
 	if path == "" {
+		if interactive() {
+			return pageLog(r, fmt.Sprintf("Log of job %d of %s", ids[0], t.where()))
+		}
 		path = "-"
 	}
 	n, ce := save(r, path)
@@ -123,6 +133,30 @@ func JobLog(repo, arg string) *cerr.CustomError {
 	}
 	if path != "-" && !shared.QuietOutput {
 		fmt.Println(hftx.EnabledSign(fmt.Sprintf("Saved the log of job %d to %s (%s)", ids[0], hftx.Brown(path), size(n))))
+	}
+	return nil
+}
+
+// followJobLog writes the job's log as it grows, until the job ends; Ctrl-C stops following, and is no error
+// GitHub only has a log once the job ended: the wait is said, on the standard error, or it would look hung
+func followJobLog(ctx context.Context, t target, jobID int64) *cerr.CustomError {
+	f, ok := t.c.Client.(gol.WorkflowLogFollower)
+	if !ok {
+		return &cerr.CustomError{Title: "Unsupported operation",
+			Message: fmt.Sprintf("Connection %s: following a job's log is only available on Forgejo and GitHub", t.c.Connection.Name)}
+	}
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
+	defer stop()
+
+	if t.c.Backend() == gol.BackendGitHub && !shared.QuietOutput {
+		fmt.Fprintln(os.Stderr, hftx.InProgressSign(fmt.Sprintf("Waiting for job %d to end: GitHub only has a job's log once it finished", jobID)))
+	}
+	e := f.FollowWorkflowJobLog(ctx, t.owner, t.repo, jobID, os.Stdout, gol.FollowLogOptions{})
+	switch {
+	case errors.Is(e, context.Canceled):
+		return nil
+	case e != nil:
+		return runError(fmt.Sprintf("Unable to follow the log of job %d of %s", jobID, t.where()), "job", e)
 	}
 	return nil
 }

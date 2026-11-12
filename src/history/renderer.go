@@ -64,6 +64,7 @@ func renderCommitTable(list []gol.Commit) {
 		t.AppendRow(table.Row{sha, date(c.Author.Date), c.Author.Name, title(c.Message)})
 	}
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
+	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(88)}
 	t.Style().Format.Header = text.FormatDefault
 	t.Render()
 }
@@ -135,6 +136,7 @@ func renderFiles(files []gol.ChangedFile) {
 		t.AppendRow(row)
 	}
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
+	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(33)}
 	t.Style().Format.Header = text.FormatDefault
 	t.Render()
 }

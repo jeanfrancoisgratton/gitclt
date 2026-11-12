@@ -168,10 +168,14 @@ var runJobRerunCmd = &cobra.Command{
 var runJobLogCmd = &cobra.Command{
 	Use:     "log [<REPO>] <JOB-ID>",
 	Aliases: []string{"logs"},
-	Example: "  gitclt run job log [-c CONNECTION] [-o OWNER] [-O FILE] [--force] [<REPO>] <JOB-ID>\n" +
-		"  gitclt run job log 99 | less",
+	Example: "  gitclt run job log [-c CONNECTION] [-o OWNER] [-f | -O FILE [--force]] [<REPO>] <JOB-ID>\n" +
+		"  gitclt run job log -f 99",
 	Short: "Shows a job's log, as text (Forgejo 16 and later)",
-	Long: `The log goes to the standard output, unless -O, --output names a file; an existing file is only replaced with --force.
+	Long: `On a terminal, the log is shown through a pager: Space for the next page, Enter for the next line, ^U for the previous
+page, ^G for the position, Q to quit. Piped or redirected, it is written as is to the standard output.
+-O, --output saves it to a file instead; an existing file is only replaced with --force.
+-f, --follow writes the log as it grows, until the job ends (Ctrl-C stops following, without stopping the job); it needs
+Forgejo 17. GitHub only has a job's log once the job finished: -f then waits, and writes it all at the end.
 GitHub can take a moment to have a finished job's log.`,
 	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -274,6 +278,8 @@ func init() {
 		c.Flags().StringVarP(&runs.OutputFile, "output", "O", "", "the file to write, or - for the standard output")
 		c.Flags().BoolVar(&runs.Overwrite, "force", false, "replace the file if it exists")
 	}
+	runJobLogCmd.Flags().BoolVarP(&runs.FollowLog, "follow", "f", false, "write the log as it grows, until the job ends")
+	runJobLogCmd.MarkFlagsMutuallyExclusive("follow", "output")
 	runArtifactListCmd.Flags().Int64Var(&runs.ArtifactRun, "run", 0, "only the artifacts of this run")
 	runArtifactListCmd.Flags().StringVar(&runs.ArtifactName, "name", "", "only the artifacts with this exact name")
 

@@ -435,13 +435,26 @@ The runs of a repository's workflows, on Forgejo Actions and GitHub Actions; Bit
 | `gitclt run job list [-o OWNER] [-j] [<REPO>] <RUN-ID>` (`ls`) | Lists a run's jobs; `-q` outputs only their IDs |
 | `gitclt run job get [-o OWNER] [-j] [<REPO>] <JOB-ID>` (`info`, `show`) | Shows a job, with its steps |
 | `gitclt run job rerun [-o OWNER] [<REPO>] <JOB-ID>` | Starts a finished job again, with the jobs that depend on it |
-| `gitclt run job log [-o OWNER] [-O FILE] [--force] [<REPO>] <JOB-ID>` (`logs`) | Shows a job's log, as text, or saves it with `-O` |
+| `gitclt run job log [-o OWNER] [-f \| -O FILE [--force]] [<REPO>] <JOB-ID>` (`logs`) | Shows a job's log, as text: through a pager on a terminal (Space next page, Enter next line, `^U` previous page, `^G` position, `Q` quit), as is when piped or redirected; `-O` saves it instead. `-f`, `--follow` writes the log as it grows, until the job ends (`Ctrl-C` stops following, not the job); it needs Forgejo 17, and on GitHub it waits for the job to end, as GitHub only has a log then |
 | `gitclt run artifact list [-o OWNER] [--run RUN-ID] [--name NAME] [-j] [<REPO>]` (`ls`) | Lists the artifacts, of the repository or of one run; `-q` outputs only their IDs |
 | `gitclt run artifact get [-o OWNER] [-j] [<REPO>] <ARTIFACT-ID>` (`info`) | Shows an artifact |
 | `gitclt run artifact download [-o OWNER] [-O FILE] [--force] [<REPO>] <ARTIFACT-ID>` (`dl`) | Saves an artifact as `<NAME>.zip`, or `-O`, `--output FILE`, or `-` for the standard output; an expired one cannot be downloaded |
 | `gitclt run artifact delete [-o OWNER] [-y] [<REPO>] <ARTIFACT-ID>...` (`rm`, `del`) | Deletes artifacts, after confirmation (`-y`, `--yes` skips it) |
 
 An existing file is only replaced with `--force`.
+
+### CI runners: `gitclt runner` (alias: `runners`)
+The forge's records of the CI runners, for Forgejo Actions and GitHub Actions self-hosted runners; Bitbucket is not supported. Only the forge's side: installing and starting a runner's program (`forgejo-runner`, GitHub's runner) is left to other tools, which take what `register` or `token` print. The runners are a repository's by default (`<REPO>` and `-o`, or [the clone's](#working-from-inside-a-clone)); `--org ORG` takes an organization's, `--user` the connection's user's (Forgejo), `--instance` the whole instance's (Forgejo site admins only). A runner is only reached through its own scope.
+
+| Command                                        | Description                                                         |
+|------------------------------------------------|---------------------------------------------------------------------|
+| `gitclt runner list [<SCOPE>] [--inherited] [-j] [<REPO>]` (`ls`) | Lists the runners: ID, name, state (`offline`, `idle` or `busy`, the same on every forge), labels, version, ephemeral; `-q` outputs only their IDs. `--inherited` adds those the scope can use from above it, such as a repository's organization's or the instance's (Forgejo) |
+| `gitclt runner get [<SCOPE>] [-j] [<REPO>] <RUNNER-ID>` (`info`, `show`) | Shows a runner, with the forge's own status word |
+| `gitclt runner register [<SCOPE>] --name NAME [--description TEXT] [--ephemeral] [--label LABEL,...] [<REPO>]` (`add`, `create`) | Registers a runner, and prints what its program needs, **once**: on Forgejo, the ID, UUID and token of its `.runner` file (the runner declares its own labels, so `--label` is refused; names may repeat); on GitHub, only single-use runners (`--ephemeral` required, `--description` refused, labels default to `self-hosted`), with the just-in-time configuration for `run.sh`. `-q` prints the secret alone |
+| `gitclt runner token [<SCOPE>] [<REPO>]` (`registration-token`) | Prints a registration token, for a runner's program to register with (`forgejo-runner register`, GitHub's `config.sh`); Forgejo's does not expire, GitHub's does within the hour, and its expiry is shown. `-q` prints the token alone |
+| `gitclt runner delete [<SCOPE>] [-y] [<REPO>] <RUNNER-ID>...` (`rm`, `del`) | Deletes runners' records, after confirmation (`-y`, `--yes` skips it); every runner is checked first. The runner's program is left alone |
+
+`<SCOPE>` is `-o OWNER`, `--org ORG`, `--user` or `--instance`.
 
 ### Webhooks: `gitclt webhook` (aliases: `webhooks`, `hook`, `hooks`)
 A webhook sends an HTTP request to a URL when events happen. There are five kinds, with the same commands, except for what the forges cannot do:

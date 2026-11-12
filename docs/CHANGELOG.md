@@ -7,8 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.8.0] - 2026-11-11
 
+### Added
+
+- `runner` commands (alias `runners`): the forge's records of the CI runners, on Forgejo and GitHub; Bitbucket is not supported. A repository's runners by default, an organization's with `--org`, the connection's user's with `--user` (Forgejo), the whole instance's with `--instance` (Forgejo site admins). See "CI runners" in the README:
+  - `runner list [--inherited] [-j]` (alias `ls`), `runner get [-j] <RUNNER-ID>` (aliases `info`, `show`)
+  - `runner register --name NAME [--description TEXT] [--ephemeral] [--label LABEL,...]` (aliases `add`, `create`): prints, once, what the runner's program needs (Forgejo: ID, UUID and token; GitHub: the just-in-time configuration of a single-use runner)
+  - `runner token`: a registration token, with its expiry on GitHub
+  - `runner delete [-y] <RUNNER-ID>...` (aliases `rm`, `del`)
+- `run job log -f`, `--follow`: writes a job's log as it grows, until the job ends (Forgejo 17; on GitHub, it waits for the job to end)
+
 ### Changed
 
+- `run job log` shows the log through a pager on a terminal; piped or redirected, it is written as is
+- Built on gitoperationslib 1.8.0
 - **`branch delete` and `branch rename` only act on the server**, and need `-r` (`--remote`): they used to act on the local clone by default, through the git client, and a bare command now refuses instead of deleting or renaming on the server by mistake. `-l`, `-a` and `branch delete -f` are gone; local branches are left to git (`git branch -d`, `git branch -m`). gitclt never writes to a local clone, and never needs the git client
 - `history list`, run from a clone of the repository, lists the checked out branch by default (when the server has it; otherwise the default branch, with a notice), and warns when the local branch has commits the server does not (not pushed yet), or is behind it. The help and the README now say that `history` only shows what was pushed
 

@@ -26,3 +26,6 @@ var ArtifactName = ""
 // run logs, artifact download: where the file goes, and whether an existing one is replaced
 var OutputFile = ""
 var Overwrite = false
+
+// run job log: follow the log while the job runs, instead of paging what there is
+var FollowLog = false
