@@ -21,18 +21,17 @@ import (
 // The base profile is always shown; ExtendedInfo adds the forge-specific fields.
 func UserGet(username string, displayOutput bool) (*gol.User, *cerr.CustomError) {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return nil, ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return nil, ce
 	}
 
-	u, e := adm.Users().Get(ctx, username)
+	u, e := c.Users().Get(ctx, username)
 	if e != nil {
 		return nil, forge.Error(fmt.Sprintf("Unable to fetch user %s", username), e)
 	}

@@ -30,7 +30,7 @@ func ListJobs(repo, arg string, displayoutput bool) ([]gol.WorkflowJob, *cerr.Cu
 		return nil, ce
 	}
 	list, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.WorkflowJob], error) {
-		return t.runs.ListWorkflowJobs(ctx, t.owner, t.repo, ids[0], o)
+		return t.runs.ListJobs(ctx, t.owner, t.repo, ids[0], o)
 	})
 	if e != nil {
 		return nil, runError(fmt.Sprintf("Unable to list the jobs of run %d of %s", ids[0], t.where()), "run", e)
@@ -67,7 +67,7 @@ func GetJob(repo, arg string, displayoutput bool) (*gol.WorkflowJob, *cerr.Custo
 	if ce != nil {
 		return nil, ce
 	}
-	j, e := t.runs.GetWorkflowJob(ctx, t.owner, t.repo, ids[0])
+	j, e := t.runs.GetJob(ctx, t.owner, t.repo, ids[0])
 	if e != nil {
 		return nil, runError(fmt.Sprintf("Unable to get job %d of %s", ids[0], t.where()), "job", e)
 	}
@@ -93,7 +93,7 @@ func RerunJob(repo, arg string) *cerr.CustomError {
 	if ce != nil {
 		return ce
 	}
-	if e := t.runs.RerunWorkflowJob(ctx, t.owner, t.repo, ids[0]); e != nil {
+	if e := t.runs.RerunJob(ctx, t.owner, t.repo, ids[0]); e != nil {
 		return runError(fmt.Sprintf("Unable to rerun job %d of %s", ids[0], t.where()), "job", e)
 	}
 	if !shared.QuietOutput {
@@ -116,7 +116,7 @@ func JobLog(repo, arg string) *cerr.CustomError {
 	if FollowLog {
 		return followJobLog(ctx, t, ids[0])
 	}
-	r, e := t.runs.WorkflowJobLogs(ctx, t.owner, t.repo, ids[0])
+	r, e := t.runs.JobLogs(ctx, t.owner, t.repo, ids[0])
 	if e != nil {
 		return runError(fmt.Sprintf("Unable to get the log of job %d of %s", ids[0], t.where()), "job", e)
 	}
@@ -141,10 +141,8 @@ func JobLog(repo, arg string) *cerr.CustomError {
 // followJobLog writes the job's log as it grows, until the job ends; Ctrl-C stops following, and is no error
 // GitHub only has a log once the job ended: the wait is said, on the standard error, or it would look hung
 func followJobLog(ctx context.Context, t target, jobID int64) *cerr.CustomError {
-	f, ok := t.c.Client.(gol.WorkflowLogFollower)
-	if !ok {
-		return &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: following a job's log is only available on Forgejo and GitHub", t.c.Connection.Name)}
+	if ce := t.c.Require(gol.CapWorkflowLogFollow, "following a job's log is only available on Forgejo and GitHub"); ce != nil {
+		return ce
 	}
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 	defer stop()
@@ -152,7 +150,7 @@ func followJobLog(ctx context.Context, t target, jobID int64) *cerr.CustomError 
 	if t.c.Backend() == gol.BackendGitHub && !shared.QuietOutput {
 		fmt.Fprintln(os.Stderr, hftx.InProgressSign(fmt.Sprintf("Waiting for job %d to end: GitHub only has a job's log once it finished", jobID)))
 	}
-	e := f.FollowWorkflowJobLog(ctx, t.owner, t.repo, jobID, os.Stdout, gol.FollowLogOptions{})
+	e := t.runs.FollowJobLog(ctx, t.owner, t.repo, jobID, os.Stdout, gol.FollowLogOptions{})
 	switch {
 	case errors.Is(e, context.Canceled):
 		return nil

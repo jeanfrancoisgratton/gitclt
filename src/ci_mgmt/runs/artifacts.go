@@ -32,9 +32,9 @@ func ListArtifacts(repo string, displayoutput bool) ([]gol.WorkflowArtifact, *ce
 	list, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.WorkflowArtifact], error) {
 		opts.ListOptions = o
 		if ArtifactRun != 0 {
-			return a.ListWorkflowRunArtifacts(ctx, t.owner, t.repo, ArtifactRun, opts)
+			return a.ListForRun(ctx, t.owner, t.repo, ArtifactRun, opts)
 		}
-		return a.ListWorkflowArtifacts(ctx, t.owner, t.repo, opts)
+		return a.List(ctx, t.owner, t.repo, opts)
 	})
 	if e != nil {
 		return nil, runError("Unable to list the artifacts of "+t.where(), "run", e)
@@ -75,7 +75,7 @@ func GetArtifact(repo, arg string, displayoutput bool) (*gol.WorkflowArtifact, *
 	if ce != nil {
 		return nil, ce
 	}
-	x, e := a.GetWorkflowArtifact(ctx, t.owner, t.repo, ids[0])
+	x, e := a.Get(ctx, t.owner, t.repo, ids[0])
 	if e != nil {
 		return nil, runError(fmt.Sprintf("Unable to get artifact %d of %s", ids[0], t.where()), "artifact", e)
 	}
@@ -104,7 +104,7 @@ func DownloadArtifact(repo, arg string) *cerr.CustomError {
 	if ce != nil {
 		return ce
 	}
-	x, e := a.GetWorkflowArtifact(ctx, t.owner, t.repo, ids[0])
+	x, e := a.Get(ctx, t.owner, t.repo, ids[0])
 	if e != nil {
 		return runError(fmt.Sprintf("Unable to get artifact %d of %s", ids[0], t.where()), "artifact", e)
 	}
@@ -116,7 +116,7 @@ func DownloadArtifact(repo, arg string) *cerr.CustomError {
 		// The name comes from the server: only its last element is kept, so that it cannot point elsewhere
 		path = filepath.Base(filepath.Clean("/"+x.Name)) + ".zip"
 	}
-	r, e := a.DownloadWorkflowArtifact(ctx, t.owner, t.repo, x.ID)
+	r, e := a.Download(ctx, t.owner, t.repo, x.ID)
 	if e != nil {
 		return runError(fmt.Sprintf("Unable to download artifact %d of %s", x.ID, t.where()), "artifact", e)
 	}
@@ -148,7 +148,7 @@ func DeleteArtifacts(repo string, args []string) *cerr.CustomError {
 	}
 	shown := make([]string, len(ids))
 	for i, id := range ids {
-		x, e := a.GetWorkflowArtifact(ctx, t.owner, t.repo, id)
+		x, e := a.Get(ctx, t.owner, t.repo, id)
 		if e != nil {
 			return runError(fmt.Sprintf("Unable to get artifact %d of %s", id, t.where()), "artifact", e)
 		}
@@ -159,7 +159,7 @@ func DeleteArtifacts(repo string, args []string) *cerr.CustomError {
 		return nil
 	}
 	for _, id := range ids {
-		if e := a.DeleteWorkflowArtifact(ctx, t.owner, t.repo, id); e != nil {
+		if e := a.Delete(ctx, t.owner, t.repo, id); e != nil {
 			return runError(fmt.Sprintf("Unable to delete artifact %d of %s", id, t.where()), "artifact", e)
 		}
 		if !shared.QuietOutput {

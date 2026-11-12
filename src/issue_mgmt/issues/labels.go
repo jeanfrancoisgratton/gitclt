@@ -58,12 +58,10 @@ func labelError(title string, e error) *cerr.CustomError {
 
 // orgLabels returns the interface to an organization's labels; only Forgejo has them
 func orgLabels(c *forge.Client) (gol.OrgLabels, *cerr.CustomError) {
-	l, ok := c.Client.(gol.OrgLabels)
-	if !ok {
-		return nil, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: organization labels only exist on Forgejo", c.Connection.Name)}
+	if ce := c.Require(gol.CapOrgLabels, "organization labels only exist on Forgejo"); ce != nil {
+		return nil, ce
 	}
-	return l, nil
+	return c.Orgs().Labels(), nil
 }
 
 func allLabels(ctx context.Context, c *forge.Client, owner, repo string) ([]gol.Label, *cerr.CustomError) {
@@ -78,7 +76,7 @@ func allLabels(ctx context.Context, c *forge.Client, owner, repo string) ([]gol.
 
 func allOrgLabels(ctx context.Context, ol gol.OrgLabels, org string) ([]gol.Label, *cerr.CustomError) {
 	list, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Label], error) {
-		return ol.ListOrgLabels(ctx, org, o)
+		return ol.List(ctx, org, o)
 	})
 	if e != nil {
 		if gol.IsNotFound(e) {
@@ -185,8 +183,8 @@ func ListLabelsOf(repo string, displayoutput bool) ([]Label, *cerr.CustomError) 
 		}
 		// A user owns no labels: the library answers an empty list. The repository's are shown even if the
 		// organization's cannot be read
-		if ol, ok := s.c.Client.(gol.OrgLabels); ok {
-			orgList, ce := allOrgLabels(ctx, ol, s.owner)
+		if s.c.Capabilities().Has(gol.CapOrgLabels) {
+			orgList, ce := allOrgLabels(ctx, s.c.Orgs().Labels(), s.owner)
 			if ce != nil && ce.Code != http.StatusNotFound {
 				return nil, ce
 			}
@@ -260,7 +258,7 @@ func CreateLabel(repo, name string) *cerr.CustomError {
 	var label *gol.Label
 	var e error
 	if s.org != nil {
-		label, e = s.org.CreateOrgLabel(ctx, LabelOrg, want)
+		label, e = s.org.Create(ctx, LabelOrg, want)
 	} else {
 		label, e = s.c.Labels().Create(ctx, s.owner, s.repo, want)
 	}
@@ -310,13 +308,13 @@ func EditLabel(repo, name string, changed func(string) bool) *cerr.CustomError {
 	var e error
 	switch {
 	case s.org != nil:
-		_, e = s.org.EditOrgLabel(ctx, LabelOrg, label.ID, opts)
+		_, e = s.org.Edit(ctx, LabelOrg, label.ID, opts)
 	case LabelID != 0:
 		byID, ce := labelsByID(s.c)
 		if ce != nil {
 			return ce
 		}
-		_, e = byID.EditLabelByID(ctx, s.owner, s.repo, label.ID, opts)
+		_, e = byID.EditByID(ctx, s.owner, s.repo, label.ID, opts)
 	default:
 		_, e = s.c.Labels().Edit(ctx, s.owner, s.repo, label.Name, opts)
 	}
@@ -330,13 +328,11 @@ func EditLabel(repo, name string, changed func(string) bool) *cerr.CustomError {
 }
 
 // labelsByID addresses a repository's labels by ID, to repair names they share; only Forgejo allows such names
-func labelsByID(c *forge.Client) (gol.LabelsByID, *cerr.CustomError) {
-	l, ok := c.Client.(gol.LabelsByID)
-	if !ok {
-		return nil, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: labels are designated by name on this forge, which refuses repeated names", c.Connection.Name)}
+func labelsByID(c *forge.Client) (gol.Labels, *cerr.CustomError) {
+	if ce := c.Require(gol.CapLabelsByID, "labels are designated by name on this forge, which refuses repeated names"); ce != nil {
+		return nil, ce
 	}
-	return l, nil
+	return c.Labels(), nil
 }
 
 // DeleteLabels deletes labels, after confirmation; every one is checked before asking
@@ -381,13 +377,13 @@ func DeleteLabels(repo string, names []string) *cerr.CustomError {
 		var e error
 		switch {
 		case s.org != nil:
-			e = s.org.DeleteOrgLabel(ctx, LabelOrg, l.ID)
+			e = s.org.Delete(ctx, LabelOrg, l.ID)
 		case LabelID != 0:
 			byID, ce := labelsByID(s.c)
 			if ce != nil {
 				return ce
 			}
-			e = byID.DeleteLabelByID(ctx, s.owner, s.repo, l.ID)
+			e = byID.DeleteByID(ctx, s.owner, s.repo, l.ID)
 		default:
 			e = s.c.Labels().Delete(ctx, s.owner, s.repo, l.Name)
 		}

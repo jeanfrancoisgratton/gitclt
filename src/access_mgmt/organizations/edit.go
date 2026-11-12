@@ -19,7 +19,6 @@ import (
 // EditOrg only sends the fields whose flag was explicitly passed; changed is cmd.Flags().Changed
 func EditOrg(orgname string, changed func(string) bool) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
@@ -31,11 +30,11 @@ func EditOrg(orgname string, changed func(string) bool) *cerr.CustomError {
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
 
-	if _, e := adm.Orgs().Edit(ctx, orgname, eoo); e != nil {
+	if _, e := c.Orgs().Edit(ctx, orgname, eoo); e != nil {
 		return forge.Error("Unable to edit the organization", e)
 	}
 

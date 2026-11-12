@@ -12,13 +12,11 @@ import (
 	"gitclt/shared"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
-	gol "github.com/jeanfrancoisgratton/gitoperationslib"
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 )
 
 func DeleteTeam(orgname, teamname string) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
@@ -31,16 +29,16 @@ func DeleteTeam(orgname, teamname string) *cerr.CustomError {
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
-	team, ce := teamByName(ctx, adm, orgname, teamname)
+	team, ce := teamByName(ctx, c, orgname, teamname)
 	if ce != nil {
 		return ce
 	}
 
 	// The owner team cannot be deleted: the library refuses it (gol.ErrOwnerTeam)
-	if e := adm.Teams().Delete(ctx, team.ID); e != nil {
+	if e := c.Teams().Delete(ctx, orgname, team.Name); e != nil {
 		return forge.Error("Unable to delete the team", e)
 	}
 

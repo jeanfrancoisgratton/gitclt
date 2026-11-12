@@ -18,7 +18,6 @@ import (
 
 func CreateOrg(orgname string) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 	coo := gol.CreateOrgOptions{
@@ -36,11 +35,11 @@ func CreateOrg(orgname string) *cerr.CustomError {
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
 
-	if _, e := adm.Orgs().Create(ctx, coo); e != nil {
+	if _, e := c.Orgs().Create(ctx, coo); e != nil {
 		return forge.Error("Unable to create the organization", e)
 	}
 

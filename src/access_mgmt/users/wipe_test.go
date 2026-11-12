@@ -90,6 +90,8 @@ func (f *wipeForge) start(t *testing.T) {
 			routes[fmt.Sprintf("GET /api/v1/teams/%d/members", id)] = reply(t, users)
 		}
 		routes["GET /api/v1/orgs/"+name+"/teams"] = reply(t, teams)
+		// The library finds a team's ID by its name with a search
+		routes["GET /api/v1/orgs/"+name+"/teams/search"] = reply(t, map[string]any{"ok": true, "data": teams})
 	}
 	routes["GET /api/v1/users/bob/orgs"] = reply(t, orgs)
 	testutil.Forgejo(t, routes)

@@ -80,16 +80,15 @@ func open(ctx context.Context, t Target) (target, *cerr.CustomError) {
 	}
 	switch t.kind {
 	case kindUser:
-		h, ce := c.UserHooks()
-		if ce != nil {
+		if ce := c.Require(gol.CapUserWebhooks, "user webhooks only exist on Forgejo"); ce != nil {
 			return target{}, ce
 		}
-		return target{store: h.UserWebhooks(), noun: "user webhook"}, nil
+		return target{store: c.Account().Webhooks(), noun: "user webhook"}, nil
 	case kindSystem, kindDefault:
-		h, ce := c.SiteHooks()
-		if ce != nil {
+		if ce := c.Require(gol.CapSystemWebhooks, "system and default webhooks only exist on Forgejo"); ce != nil {
 			return target{}, ce
 		}
+		h := c.Site()
 		if t.kind == kindSystem {
 			return target{store: h.SystemWebhooks(), noun: "system webhook"}, nil
 		}

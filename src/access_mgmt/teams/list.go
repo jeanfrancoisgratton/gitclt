@@ -17,19 +17,18 @@ import (
 // ListTeams lists the teams of an organization; Forgejo only shows them to the organization's members (and admins)
 func ListTeams(orgname string, displayoutput bool) ([]gol.Team, *cerr.CustomError) {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return nil, ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return nil, ce
 	}
 
 	teamlist, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Team], error) {
-		return adm.Teams().List(ctx, orgname, o)
+		return c.Teams().List(ctx, orgname, o)
 	})
 	if e != nil {
 		return nil, forge.Error("Unable to fetch the team list of organization "+orgname, e)

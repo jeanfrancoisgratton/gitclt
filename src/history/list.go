@@ -58,7 +58,7 @@ func List(repo string, displayoutput bool) ([]gol.Commit, *cerr.CustomError) {
 	}
 	for commit, e := range gol.All(ctx, opts.ListOptions, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Commit], error) {
 		opts.ListOptions = o
-		return h.Commits().List(ctx, owner, repo, opts)
+		return h.List(ctx, owner, repo, opts)
 	}) {
 		if e != nil {
 			if gol.IsNotFound(e) {

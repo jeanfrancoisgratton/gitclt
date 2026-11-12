@@ -33,7 +33,7 @@ func SetOrgAvatar(orgname, imageFile string) *cerr.CustomError {
 		return ce
 	}
 
-	if e := avatars.SetOrgAvatar(ctx, orgname, bytes.NewReader(img)); e != nil {
+	if e := avatars.SetAvatar(ctx, orgname, bytes.NewReader(img)); e != nil {
 		return users.AvatarError(e)
 	}
 
@@ -61,7 +61,7 @@ func DeleteOrgAvatar(orgname string) *cerr.CustomError {
 		}
 	}
 
-	if e := avatars.DeleteOrgAvatar(ctx, orgname); e != nil {
+	if e := avatars.DeleteAvatar(ctx, orgname); e != nil {
 		return forge.Error("Unable to delete the avatar", e)
 	}
 
@@ -71,10 +71,13 @@ func DeleteOrgAvatar(orgname string) *cerr.CustomError {
 	return nil
 }
 
-func connectOrgAvatars(ctx context.Context) (gol.OrgAvatars, *cerr.CustomError) {
+func connectOrgAvatars(ctx context.Context) (gol.Orgs, *cerr.CustomError) {
 	c, ce := forge.Connect(ctx, shared.ConnectionName)
 	if ce != nil {
 		return nil, ce
 	}
-	return c.OrgAvatars()
+	if ce = c.Require(gol.CapOrgAvatars, "organization avatars can only be managed on Forgejo"); ce != nil {
+		return nil, ce
+	}
+	return c.Orgs(), nil
 }

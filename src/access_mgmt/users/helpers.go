@@ -26,11 +26,10 @@ func connectAccount(ctx context.Context) (*forge.Client, gol.Account, *cerr.Cust
 	if ce != nil {
 		return nil, nil, ce
 	}
-	acct, ce := c.Account()
-	if ce != nil {
+	if ce = c.Require(gol.CapAccount, "account management is not available on this forge"); ce != nil {
 		return nil, nil, ce
 	}
-	return c, acct, nil
+	return c, c.Account(), nil
 }
 
 // Asks before an operation that cannot be undone, unless --yes was passed

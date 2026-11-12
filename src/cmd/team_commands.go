@@ -8,7 +8,6 @@ package cmd
 import (
 	"fmt"
 	"gitclt/access_mgmt/teams"
-	"strconv"
 
 	"github.com/spf13/cobra"
 )
@@ -36,25 +35,14 @@ var teamListCmd = &cobra.Command{
 }
 
 var teamGetCmd = &cobra.Command{
-	Use:     "get <ORG> <TEAM> | <TEAM-ID>",
+	Use:     "get <ORG> <TEAM>",
 	Aliases: []string{"info"},
-	Example: "  gitclt team get [-c CONNECTION] [--json] <ORG> <TEAM>\n" +
-		"  gitclt team get [-c CONNECTION] [--json] <TEAM-ID>",
-	Short: "Gives information about a team, by name or by ID",
-	Args:  cobra.RangeArgs(1, 2),
+	Example: "  gitclt team get [-c CONNECTION] [--json] <ORG> <TEAM>",
+	Short:   "Gives information about a team",
+	Args:    cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		var e error
-		if len(args) == 2 {
-			if _, ce := teams.TeamGet(args[0], args[1], true); ce != nil {
-				e = ce
-			}
-		} else if id, perr := strconv.ParseInt(args[0], 10, 64); perr != nil {
-			e = fmt.Errorf("%q is not a team ID; to get a team by name, use: gitclt team get <ORG> <TEAM>", args[0])
-		} else if _, ce := teams.TeamGetByID(id, true); ce != nil {
-			e = ce
-		}
-		if e != nil {
-			fmt.Println(e.Error())
+		if _, ce := teams.TeamGet(args[0], args[1], true); ce != nil {
+			fmt.Println(ce.Error())
 		}
 	},
 }

@@ -12,24 +12,22 @@ import (
 	"gitclt/shared"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
-	gol "github.com/jeanfrancoisgratton/gitoperationslib"
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 )
 
 func RenameOrg(oldname, newname string) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
 
-	if e := adm.Orgs().Rename(ctx, oldname, newname); e != nil {
+	if e := c.Orgs().Rename(ctx, oldname, newname); e != nil {
 		return forge.Error("Unable to rename the organization", e)
 	}
 

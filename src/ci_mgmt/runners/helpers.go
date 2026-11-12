@@ -40,13 +40,11 @@ func open(ctx context.Context, repo string) (target, *cerr.CustomError) {
 	if ce != nil {
 		return target{}, ce
 	}
-	r, ok := c.Client.(gol.Runners)
-	if !ok {
-		return target{}, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: runners are only available on Forgejo and GitHub", c.Connection.Name)}
+	if ce = c.Require(gol.CapRunners, "runners are only available on Forgejo and GitHub"); ce != nil {
+		return target{}, ce
 	}
 
-	t := target{c: c, runners: r}
+	t := target{c: c, runners: c.CI().Runners()}
 	switch {
 	case OrgScope != "":
 		t.scope, t.where = gol.OrgRunners(OrgScope), "organization "+OrgScope

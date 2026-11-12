@@ -21,7 +21,6 @@ import (
 // EditUser only sends the fields whose flag was explicitly passed; changed is cmd.Flags().Changed
 func EditUser(username string, changed func(string) bool) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
@@ -36,16 +35,16 @@ func EditUser(username string, changed func(string) bool) *cerr.CustomError {
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
 
-	return applyUserEdit(ctx, adm, username, euo, "Unable to edit the user")
+	return applyUserEdit(ctx, c, username, euo, "Unable to edit the user")
 }
 
 // applyUserEdit is shared with CreateUser, which needs a follow-up Edit for the fields the create endpoint lacks
-func applyUserEdit(ctx context.Context, adm gol.Admin, username string, euo gol.EditUserOptions, errTitle string) *cerr.CustomError {
-	u, e := adm.Users().Edit(ctx, username, euo)
+func applyUserEdit(ctx context.Context, c *forge.Client, username string, euo gol.EditUserOptions, errTitle string) *cerr.CustomError {
+	u, e := c.Users().Edit(ctx, username, euo)
 	if e != nil {
 		// Forgejo may ignore a switch back to public visibility, while applying everything else
 		if u != nil && errors.Is(e, gol.ErrNotSupported) {

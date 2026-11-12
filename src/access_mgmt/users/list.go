@@ -17,19 +17,18 @@ import (
 // ListUsers lists every account on the forge, as a site admin sees it (Forgejo only)
 func ListUsers(displayOutput bool) ([]gol.User, *cerr.CustomError) {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return nil, ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return nil, ce
 	}
 
 	users, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.User], error) {
-		return adm.Users().List(ctx, o)
+		return c.Users().List(ctx, o)
 	})
 	if e != nil {
 		return nil, forge.Error("Unable to fetch the user list", e)

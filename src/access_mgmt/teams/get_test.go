@@ -39,26 +39,12 @@ func TestTeamGet(t *testing.T) {
 	}
 }
 
-func TestTeamGetByID(t *testing.T) {
-	defaults(t)
-	testutil.Forgejo(t, teamRoutes(nil))
-
-	tm, err := TeamGetByID(1, false)
-	if err != nil || tm.Name != "Owners" || tm.Permission != "owner" {
-		t.Fatalf("got %+v, %v", tm, err)
-	}
-	if out := testutil.Run(t, func() { _, err = TeamGetByID(7, true) }); err != nil || !strings.Contains(out, "Developers") {
-		t.Fatalf("%v\n%s", err, out)
-	}
-}
-
 func TestTeamGet_Errors(t *testing.T) {
 	defaults(t)
 	var err *cerr.CustomError
 
 	for name, get := range map[string]func() *cerr.CustomError{
 		"name": func() *cerr.CustomError { _, e := TeamGet("acme", "devs", false); return e },
-		"id":   func() *cerr.CustomError { _, e := TeamGetByID(7, false); return e },
 	} {
 		testutil.WriteRegistry(t, "")
 		if err = get(); err == nil {
@@ -77,8 +63,5 @@ func TestTeamGet_Errors(t *testing.T) {
 			err.Title != "Unable to fetch team ghosts of "+org {
 			t.Errorf("%s: got %+v", org, err)
 		}
-	}
-	if _, err = TeamGetByID(99, false); err == nil || err.Code != http.StatusNotFound || err.Title != "Unable to fetch team #99" {
-		t.Errorf("id: got %+v", err)
 	}
 }

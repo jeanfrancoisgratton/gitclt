@@ -20,23 +20,22 @@ import (
 // ListMembers lists all members of a given team
 func ListMembers(orgname, teamname string, displayoutput bool) ([]gol.User, *cerr.CustomError) {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return nil, ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return nil, ce
 	}
-	team, ce := teamByName(ctx, adm, orgname, teamname)
+	team, ce := teamByName(ctx, c, orgname, teamname)
 	if ce != nil {
 		return nil, ce
 	}
 
 	memberlist, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.User], error) {
-		return adm.Teams().Members(ctx, team.ID, o)
+		return c.Teams().Members(ctx, orgname, team.Name, o)
 	})
 	if e != nil {
 		return nil, forge.Error(fmt.Sprintf("Unable to fetch the member list of team %s of %s", teamname, orgname), e)
@@ -59,22 +58,21 @@ func ListMembers(orgname, teamname string, displayoutput bool) ([]gol.User, *cer
 // A missing org or team is an error (the team is resolved first); a missing user is reported as "not part of"
 func IsMemberOfTeam(orgname, teamname, usrname string) (bool, *cerr.CustomError) {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return false, ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return false, ce
 	}
-	team, ce := teamByName(ctx, adm, orgname, teamname)
+	team, ce := teamByName(ctx, c, orgname, teamname)
 	if ce != nil {
 		return false, ce
 	}
 
-	b, e := adm.Teams().IsMember(ctx, team.ID, usrname)
+	b, e := c.Teams().IsMember(ctx, orgname, team.Name, usrname)
 	if e != nil {
 		return false, forge.Error(fmt.Sprintf("Unable to see if %s is part of %s/%s", usrname, orgname, team.Name), e)
 	}
@@ -92,22 +90,21 @@ func IsMemberOfTeam(orgname, teamname, usrname string) (bool, *cerr.CustomError)
 // AddMemberToTeam: add a given user to a team, which also makes them a member of the organization
 func AddMemberToTeam(orgname, teamname, usrname string) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
-	team, ce := teamByName(ctx, adm, orgname, teamname)
+	team, ce := teamByName(ctx, c, orgname, teamname)
 	if ce != nil {
 		return ce
 	}
 
-	if e := adm.Teams().AddMember(ctx, team.ID, usrname); e != nil {
+	if e := c.Teams().AddMember(ctx, orgname, team.Name, usrname); e != nil {
 		return forge.Error(fmt.Sprintf("Unable to add user %s to %s/%s", usrname, orgname, team.Name), e)
 	}
 
@@ -121,7 +118,6 @@ func AddMemberToTeam(orgname, teamname, usrname string) *cerr.CustomError {
 // if they belong to another of its teams
 func RemoveMemberFromTeam(orgname, teamname, usrname string) *cerr.CustomError {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
@@ -134,15 +130,15 @@ func RemoveMemberFromTeam(orgname, teamname, usrname string) *cerr.CustomError {
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return ce
 	}
-	team, ce := teamByName(ctx, adm, orgname, teamname)
+	team, ce := teamByName(ctx, c, orgname, teamname)
 	if ce != nil {
 		return ce
 	}
 
-	if e := adm.Teams().RemoveMember(ctx, team.ID, usrname); e != nil {
+	if e := c.Teams().RemoveMember(ctx, orgname, team.Name, usrname); e != nil {
 		return forge.Error(fmt.Sprintf("Unable to remove user %s from %s/%s", usrname, orgname, team.Name), e)
 	}
 

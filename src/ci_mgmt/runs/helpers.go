@@ -40,11 +40,10 @@ func open(ctx context.Context, repo string) (target, *cerr.CustomError) {
 	if ce != nil {
 		return target{}, ce
 	}
-	runs, ok := c.Client.(gol.WorkflowRuns)
-	if !ok {
-		return target{}, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: workflow runs are only available on Forgejo and GitHub", c.Connection.Name)}
+	if ce = c.Require(gol.CapWorkflowRuns, "workflow runs are only available on Forgejo and GitHub"); ce != nil {
+		return target{}, ce
 	}
+	runs := c.CI().Runs()
 	owner, repo, ce := c.Target(ctx, OwnerOrg, repo)
 	if ce != nil {
 		return target{}, ce
@@ -60,12 +59,10 @@ func open(ctx context.Context, repo string) (target, *cerr.CustomError) {
 
 // artifacts returns the interface to the repository's artifacts (Forgejo 16 and later, GitHub)
 func (t target) artifacts() (gol.WorkflowArtifacts, *cerr.CustomError) {
-	a, ok := t.c.Client.(gol.WorkflowArtifacts)
-	if !ok {
-		return nil, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: workflow artifacts are only available on Forgejo and GitHub", t.c.Connection.Name)}
+	if ce := t.c.Require(gol.CapWorkflowArtifacts, "workflow artifacts are only available on Forgejo and GitHub"); ce != nil {
+		return nil, ce
 	}
-	return a, nil
+	return t.c.CI().Artifacts(), nil
 }
 
 // runError names what a 404 was about; the library's ErrNotSupported says which Forgejo version is needed

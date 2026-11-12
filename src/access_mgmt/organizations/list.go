@@ -20,19 +20,18 @@ import (
 // ListOrgs lists all organization that `username` belongs to (provided the ACLs/tokens allow for it)
 func ListOrgs(username string, displayoutput bool) ([]gol.Org, *cerr.CustomError) {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return nil, ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return nil, ce
 	}
 
 	orgs, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Org], error) {
-		return adm.Orgs().List(ctx, username, o)
+		return c.Orgs().List(ctx, username, o)
 	})
 	if e != nil {
 		return nil, forge.Error("Unable to fetch the organization list", e)
@@ -63,19 +62,18 @@ func ListOrgs(username string, displayoutput bool) ([]gol.Org, *cerr.CustomError
 // ListAllOrgs lists all organization on the forge
 func ListAllOrgs(displayoutput bool) ([]gol.Org, *cerr.CustomError) {
 	var c *forge.Client
-	var adm gol.Admin
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
 	if c, ce = forge.Connect(ctx, shared.ConnectionName); ce != nil {
 		return nil, ce
 	}
-	if adm, ce = c.Admin(); ce != nil {
+	if ce = c.RequireAdmin(); ce != nil {
 		return nil, ce
 	}
 
 	orgs, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.Org], error) {
-		return adm.Orgs().ListAll(ctx, o)
+		return c.Orgs().ListAll(ctx, o)
 	})
 	if e != nil {
 		return nil, forge.Error("Unable to fetch the organization list", e)

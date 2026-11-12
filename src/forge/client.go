@@ -111,95 +111,21 @@ func isUnknownBitbucketUser(err error) bool {
 		strings.HasPrefix(ae.Message, "no member ")
 }
 
-// Returns the account-management interface (users, orgs, teams); only Forgejo implements it
-// gol.Admin is not part of gol.Client, so it is not promoted through the embedding: we need a type assertion
-func (c *Client) Admin() (gol.Admin, *cerr.CustomError) {
-	adm, ok := c.Client.(gol.Admin)
-	if !ok {
-		return nil, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: account administration is only available on Forgejo", c.Connection.Name)}
+// Require refuses early, before anything is asked or changed, what the connection's forge cannot do; why ends the message
+// (ex: "account administration is only available on Forgejo")
+// Every area of the library is an accessor on the client, which answers gol.ErrNotSupported from the call itself when
+// the forge lacks it: Require is for the commands that must know beforehand
+func (c *Client) Require(cp gol.Capability, why string) *cerr.CustomError {
+	if c.Capabilities().Has(cp) {
+		return nil
 	}
-	return adm, nil
+	return &cerr.CustomError{Title: "Unsupported operation", Message: fmt.Sprintf("Connection %s: %s", c.Connection.Name, why)}
 }
 
-// Returns the commit history interface; the three forges implement it, but it is not part of gol.Client either
-func (c *Client) History() (gol.History, *cerr.CustomError) {
-	h, ok := c.Client.(gol.History)
-	if !ok {
-		return nil, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: the commit history is not available on this forge", c.Connection.Name)}
-	}
-	return h, nil
-}
-
-// Returns the interface managing the authenticated user's own account; it is not part of gol.Client either
-func (c *Client) Account() (gol.Account, *cerr.CustomError) {
-	a, ok := c.Client.(gol.Account)
-	if !ok {
-		return nil, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: account management is not available on this forge", c.Connection.Name)}
-	}
-	return a, nil
-}
-
-// Returns the organization avatar interface; only Forgejo implements it, and it is not part of gol.Client either
-func (c *Client) OrgAvatars() (gol.OrgAvatars, *cerr.CustomError) {
-	a, ok := c.Client.(gol.OrgAvatars)
-	if !ok {
-		return nil, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: organization avatars can only be managed on Forgejo", c.Connection.Name)}
-	}
-	return a, nil
-}
-
-// Returns the interface that locks issues; Forgejo and GitHub implement it, and it is not part of gol.Client either
-func (c *Client) IssueLocks() (gol.IssueLocks, *cerr.CustomError) {
-	l, ok := c.Client.(gol.IssueLocks)
-	if !ok {
-		return nil, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: issues cannot be locked on this forge", c.Connection.Name)}
-	}
-	return l, nil
-}
-
-// Returns the interface to CI secrets and variables; the three forges implement it, but it is not part of gol.Client either
-func (c *Client) CI() (gol.CI, *cerr.CustomError) {
-	ci, ok := c.Client.(gol.CI)
-	if !ok {
-		return nil, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: secrets and variables are not available on this forge", c.Connection.Name)}
-	}
-	return ci, nil
-}
-
-// Returns the interface to a repository's collaborators; the three forges implement it, but it is not part of gol.Client either
-func (c *Client) Collaborators() (gol.Collaborators, *cerr.CustomError) {
-	m, ok := c.Client.(gol.Collaborators)
-	if !ok {
-		return nil, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: collaborators are not available on this forge", c.Connection.Name)}
-	}
-	return m, nil
-}
-
-// Returns the interface to the user's own webhooks; only Forgejo implements it, and it is not part of gol.Client either
-func (c *Client) UserHooks() (gol.UserHooks, *cerr.CustomError) {
-	h, ok := c.Client.(gol.UserHooks)
-	if !ok {
-		return nil, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: user webhooks only exist on Forgejo", c.Connection.Name)}
-	}
-	return h, nil
-}
-
-// Returns the interface to the server's system and default webhooks; only Forgejo implements it, and it is not part of gol.Client either
-func (c *Client) SiteHooks() (gol.SiteHooks, *cerr.CustomError) {
-	h, ok := c.Client.(gol.SiteHooks)
-	if !ok {
-		return nil, &cerr.CustomError{Title: "Unsupported operation",
-			Message: fmt.Sprintf("Connection %s: system and default webhooks only exist on Forgejo", c.Connection.Name)}
-	}
-	return h, nil
+// RequireAdmin refuses early the managing of users, organizations and teams (Users(), Orgs(), Teams()): only Forgejo
+// has it
+func (c *Client) RequireAdmin() *cerr.CustomError {
+	return c.Require(gol.CapAdmin, "account administration is only available on Forgejo")
 }
 
 // github.com has its API on a separate host (api.github.com), which the library uses by default

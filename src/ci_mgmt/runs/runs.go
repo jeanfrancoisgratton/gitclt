@@ -46,7 +46,7 @@ func ListRuns(repo string, displayoutput bool) ([]gol.WorkflowRun, *cerr.CustomE
 	list := []gol.WorkflowRun{}
 	for run, e := range gol.All(ctx, opts.ListOptions, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.WorkflowRun], error) {
 		opts.ListOptions = o
-		return t.runs.ListWorkflowRuns(ctx, t.owner, t.repo, opts)
+		return t.runs.List(ctx, t.owner, t.repo, opts)
 	}) {
 		if e != nil {
 			return nil, runError("Unable to list the runs of "+t.where(), "run", e)
@@ -89,13 +89,13 @@ func GetRun(repo, arg string, displayoutput bool) (*Run, *cerr.CustomError) {
 	if ce != nil {
 		return nil, ce
 	}
-	r, e := t.runs.GetWorkflowRun(ctx, t.owner, t.repo, ids[0])
+	r, e := t.runs.Get(ctx, t.owner, t.repo, ids[0])
 	if e != nil {
 		return nil, runError(fmt.Sprintf("Unable to get run %d of %s", ids[0], t.where()), "run", e)
 	}
 	out := &Run{WorkflowRun: *r}
 	jobs, e := shared.FetchAll(ctx, func(ctx context.Context, o gol.ListOptions) (gol.Page[gol.WorkflowJob], error) {
-		return t.runs.ListWorkflowJobs(ctx, t.owner, t.repo, r.ID, o)
+		return t.runs.ListJobs(ctx, t.owner, t.repo, r.ID, o)
 	})
 	switch {
 	case errors.Is(e, gol.ErrNotSupported):
@@ -131,7 +131,7 @@ func CancelRuns(repo string, args []string) *cerr.CustomError {
 	}
 	var todo []int64
 	for _, id := range ids {
-		r, e := t.runs.GetWorkflowRun(ctx, t.owner, t.repo, id)
+		r, e := t.runs.Get(ctx, t.owner, t.repo, id)
 		if e != nil {
 			return runError(fmt.Sprintf("Unable to get run %d of %s", id, t.where()), "run", e)
 		}
@@ -144,7 +144,7 @@ func CancelRuns(repo string, args []string) *cerr.CustomError {
 		todo = append(todo, id)
 	}
 	for _, id := range todo {
-		if e := t.runs.CancelWorkflowRun(ctx, t.owner, t.repo, id); e != nil {
+		if e := t.runs.Cancel(ctx, t.owner, t.repo, id); e != nil {
 			return runError(fmt.Sprintf("Unable to cancel run %d of %s", id, t.where()), "run", e)
 		}
 		if !shared.QuietOutput {
@@ -165,7 +165,7 @@ func RerunRun(repo, arg string) *cerr.CustomError {
 	if ce != nil {
 		return ce
 	}
-	if e := t.runs.RerunWorkflowRun(ctx, t.owner, t.repo, ids[0]); e != nil {
+	if e := t.runs.Rerun(ctx, t.owner, t.repo, ids[0]); e != nil {
 		return runError(fmt.Sprintf("Unable to rerun run %d of %s", ids[0], t.where()), "run", e)
 	}
 	if !shared.QuietOutput {
@@ -188,7 +188,7 @@ func DeleteRuns(repo string, args []string) *cerr.CustomError {
 	}
 	shown := make([]string, len(ids))
 	for i, id := range ids {
-		r, e := t.runs.GetWorkflowRun(ctx, t.owner, t.repo, id)
+		r, e := t.runs.Get(ctx, t.owner, t.repo, id)
 		if e != nil {
 			return runError(fmt.Sprintf("Unable to get run %d of %s", id, t.where()), "run", e)
 		}
@@ -203,7 +203,7 @@ func DeleteRuns(repo string, args []string) *cerr.CustomError {
 		return nil
 	}
 	for _, id := range ids {
-		if e := t.runs.DeleteWorkflowRun(ctx, t.owner, t.repo, id); e != nil {
+		if e := t.runs.Delete(ctx, t.owner, t.repo, id); e != nil {
 			if errors.Is(e, gol.ErrWorkflowRunActive) {
 				return &cerr.CustomError{Title: "Run not finished", Message: fmt.Sprintf("run %d started again in the meantime: cancel it first", id)}
 			}
@@ -231,7 +231,7 @@ func RunLogs(repo, arg string) *cerr.CustomError {
 	if path == "" {
 		path = "run-" + strconv.FormatInt(ids[0], 10) + "-logs.zip"
 	}
-	r, e := t.runs.WorkflowRunLogs(ctx, t.owner, t.repo, ids[0])
+	r, e := t.runs.Logs(ctx, t.owner, t.repo, ids[0])
 	if e != nil {
 		return runError(fmt.Sprintf("Unable to get the logs of run %d of %s", ids[0], t.where()), "run", e)
 	}

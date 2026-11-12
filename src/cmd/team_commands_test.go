@@ -37,8 +37,6 @@ func TestTeamCommands(t *testing.T) {
 		{[]string{"team", "ls", "--json", "acme"}, nil, `"devs"`},
 		{[]string{"team", "ls", "nope"}, nil, "Unable to fetch the team list of organization nope"},
 		{[]string{"team", "get", "acme", "devs"}, nil, "Permission:"},
-		{[]string{"team", "get", "7"}, nil, "Developers"},
-		{[]string{"team", "get", "devs"}, nil, `"devs" is not a team ID`},
 		{[]string{"team", "get", "acme", "ghosts"}, nil, "Unable to fetch team ghosts of acme"},
 		{[]string{"team", "create", "acme", "devs"}, nil, "Created team devs in acme"},
 		{[]string{"team", "create", "-p", "write", "-u", "code=read", "acme", "devs"}, nil, "use either --permission or --units"},
@@ -58,6 +56,10 @@ func TestTeamCommands(t *testing.T) {
 		if out, _ := execute(t, tc.args, tc.answers...); !strings.Contains(out, tc.want) {
 			t.Errorf("%v: output = %q", tc.args, out)
 		}
+	}
+	// Teams are addressed by organization and name only: the library no longer takes their IDs
+	if _, stderr := execute(t, []string{"team", "get", "7"}); !strings.Contains(stderr, "accepts 2 arg(s)") {
+		t.Errorf("team get 7: stderr = %q", stderr)
 	}
 }
 

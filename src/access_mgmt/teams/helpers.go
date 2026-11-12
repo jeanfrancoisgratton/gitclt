@@ -17,9 +17,9 @@ import (
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 )
 
-// teamByName resolves <ORG> <TEAM> into the team itself: the library addresses teams by ID, users by name
-func teamByName(ctx context.Context, adm gol.Admin, orgname, teamname string) (*gol.Team, *cerr.CustomError) {
-	team, e := adm.Teams().GetByName(ctx, orgname, teamname)
+// teamByName fetches <ORG> <TEAM>, the name in any case; the calls after it use the team's own spelling of it
+func teamByName(ctx context.Context, c *forge.Client, orgname, teamname string) (*gol.Team, *cerr.CustomError) {
+	team, e := c.Teams().Get(ctx, orgname, teamname)
 	if e != nil {
 		return nil, forge.Error(fmt.Sprintf("Unable to fetch team %s of %s", teamname, orgname), e)
 	}
