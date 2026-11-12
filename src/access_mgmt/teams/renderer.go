@@ -21,7 +21,6 @@ import (
 
 func renderTeamTable(list []gol.Team) {
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"ID", "Organization", "Team name", "Description", "Permission", "All repos", "Can create repos"})
 	for _, tm := range list {
 		t.AppendRow(table.Row{tm.ID, tm.Org, tm.Name, tm.Description, string(tm.Permission),
@@ -30,7 +29,7 @@ func renderTeamTable(list []gol.Team) {
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
 	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(175)}
 	t.Style().Format.Header = text.FormatDefault
-	t.Render()
+	shared.Page(t.Render(), shared.TableHeader)
 }
 
 func printTeam(tm *gol.Team) {
@@ -59,12 +58,11 @@ func printTeam(tm *gol.Team) {
 
 func renderRepoTable(list []gol.Repo) {
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"ID", "Repository", "Description", "Visibility", "Archived", "URL"})
 	for _, r := range list {
 		t.AppendRow(table.Row{r.ID, r.FullName, r.Description, string(r.Visibility), r.Archived, r.HTMLURL})
 	}
 	t.SetStyle(table.StyleColoredBlackOnRedWhite)
 	t.Style().Format.Header = text.FormatDefault
-	t.Render()
+	shared.Page(t.Render(), shared.TableHeader)
 }

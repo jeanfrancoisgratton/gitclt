@@ -54,7 +54,6 @@ func elapsed(start, stop time.Time) string {
 
 func newTable(header table.Row) table.Writer {
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(header)
 	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
 	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(77)}
@@ -62,12 +61,12 @@ func newTable(header table.Row) table.Writer {
 	return t
 }
 
-func renderRunTable(list []gol.WorkflowRun) {
+func renderRunTable(list []gol.WorkflowRun) string {
 	t := newTable(table.Row{"ID", "#", "Workflow", "Title", "Branch", "Event", "Status", "Actor", "Created"})
 	for _, r := range list {
 		t.AppendRow(table.Row{r.ID, r.Number, r.Workflow, r.Title, r.Branch, r.Event, outcome(r.Status, r.Conclusion), r.Actor, date(r.CreatedAt)})
 	}
-	t.Render()
+	return t.Render()
 }
 
 func printIfSet(w *tabwriter.Writer, label, value string) {
@@ -76,8 +75,9 @@ func printIfSet(w *tabwriter.Writer, label, value string) {
 	}
 }
 
-func renderRun(r *Run) {
-	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
+func renderRun(r *Run) string {
+	var b strings.Builder
+	w := tabwriter.NewWriter(&b, 1, 4, 2, ' ', 0)
 	_, _ = fmt.Fprintf(w, "%s\t%d (#%d)\n", hftx.Blue("Run:"), r.ID, r.Number)
 	printIfSet(w, "Title:", r.Title)
 	printIfSet(w, "Workflow:", r.Workflow)
@@ -96,24 +96,24 @@ func renderRun(r *Run) {
 	_ = w.Flush()
 	switch {
 	case r.JobsError != "":
-		fmt.Println()
-		fmt.Println(hftx.InfoSign("No jobs: " + r.JobsError))
+		b.WriteString("\n" + hftx.InfoSign("No jobs: "+r.JobsError) + "\n")
 	case len(r.Jobs) > 0:
-		fmt.Println()
-		renderJobTable(r.Jobs)
+		b.WriteString("\n" + renderJobTable(r.Jobs))
 	}
+	return b.String()
 }
 
-func renderJobTable(list []gol.WorkflowJob) {
+func renderJobTable(list []gol.WorkflowJob) string {
 	t := newTable(table.Row{"Job ID", "Name", "Status", "Attempt", "Runs on", "Duration"})
 	for _, j := range list {
 		t.AppendRow(table.Row{j.ID, j.Name, outcome(j.Status, j.Conclusion), j.Attempt, strings.Join(j.Labels, ", "), elapsed(j.StartedAt, j.CompletedAt)})
 	}
-	t.Render()
+	return t.Render()
 }
 
-func renderJob(j *gol.WorkflowJob) {
-	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
+func renderJob(j *gol.WorkflowJob) string {
+	var b strings.Builder
+	w := tabwriter.NewWriter(&b, 1, 4, 2, ' ', 0)
 	_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("Job:"), j.ID)
 	_, _ = fmt.Fprintf(w, "%s\t%d\n", hftx.Blue("Run:"), j.RunID)
 	printIfSet(w, "Name:", j.Name)
@@ -125,16 +125,17 @@ func renderJob(j *gol.WorkflowJob) {
 	printIfSet(w, "URL:", j.HTMLURL)
 	_ = w.Flush()
 	if len(j.Steps) > 0 {
-		fmt.Println()
+		b.WriteString("\n")
 		t := newTable(table.Row{"#", "Step", "Status", "Duration"})
 		for _, s := range j.Steps {
 			t.AppendRow(table.Row{s.Number, s.Name, outcome(s.Status, s.Conclusion), elapsed(s.StartedAt, s.CompletedAt)})
 		}
-		t.Render()
+		b.WriteString(t.Render())
 	}
+	return b.String()
 }
 
-func renderArtifactTable(list []gol.WorkflowArtifact) {
+func renderArtifactTable(list []gol.WorkflowArtifact) string {
 	t := newTable(table.Row{"ID", "Name", "Size", "Run", "Created", "Expires"})
 	for _, a := range list {
 		expires := date(a.ExpiresAt)
@@ -143,7 +144,7 @@ func renderArtifactTable(list []gol.WorkflowArtifact) {
 		}
 		t.AppendRow(table.Row{a.ID, a.Name, size(a.Size), a.RunID, date(a.CreatedAt), expires})
 	}
-	t.Render()
+	return t.Render()
 }
 
 func renderArtifact(a *gol.WorkflowArtifact) {

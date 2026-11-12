@@ -63,7 +63,7 @@ func ListComments(repo, number string, displayoutput bool) ([]gol.Comment, *cerr
 		fmt.Printf("Issue #%d has no comment\n", nums[0])
 		return list, nil
 	}
-	renderComments(list)
+	shared.Page(renderComments(list), 0)
 	return list, nil
 }
 

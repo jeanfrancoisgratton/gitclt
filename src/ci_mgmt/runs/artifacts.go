@@ -56,7 +56,7 @@ func ListArtifacts(repo string, displayoutput bool) ([]gol.WorkflowArtifact, *ce
 		fmt.Printf("No artifact of %s matches\n", t.where())
 		return list, nil
 	}
-	renderArtifactTable(list)
+	shared.Page(renderArtifactTable(list), shared.TableHeader)
 	return list, nil
 }
 

@@ -45,6 +45,7 @@ func Get(repo, ref string, displayoutput bool) (*gol.Commit, *cerr.CustomError) 
 	if JSONoutput {
 		return commit, shared.PrintJSON(commit, "commit info")
 	}
-	renderCommit(*commit)
+	// The commit's line stays on top
+	shared.Page(renderCommit(*commit), 1)
 	return commit, nil
 }

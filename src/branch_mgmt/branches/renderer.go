@@ -70,9 +70,8 @@ func lastCommit(lc *gol.CommitSummary) string {
 }
 
 // The columns depend on which sides are listed; the checked out branch is marked with *, like git branch does
-func renderBranchTable(list []Branch, withLocal, withServer bool) {
+func renderBranchTable(list []Branch, withLocal, withServer bool) string {
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	header := table.Row{"Branch"}
 	if withLocal {
 		header = append(header, "Local")
@@ -108,7 +107,7 @@ func renderBranchTable(list []Branch, withLocal, withServer bool) {
 	}
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
 	t.Style().Format.Header = text.FormatDefault
-	t.Render()
+	return t.Render()
 }
 
 // renderBranch shows both sides of one branch, as far as they exist

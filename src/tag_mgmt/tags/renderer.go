@@ -7,6 +7,7 @@ package tags
 
 import (
 	"fmt"
+	"gitclt/shared"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -39,7 +40,6 @@ func renderTagTable(list []Tag, withRelease bool) {
 	}
 
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	header := table.Row{"Tag", "Commit"}
 	if withRelease {
 		header = append(header, "Release")
@@ -60,7 +60,7 @@ func renderTagTable(list []Tag, withRelease bool) {
 	}
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
 	t.Style().Format.Header = text.FormatDefault
-	t.Render()
+	shared.Page(t.Render(), shared.TableHeader)
 }
 
 func renderTag(tg Tag, withRelease bool) {

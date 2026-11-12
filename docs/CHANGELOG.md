@@ -18,10 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `run job log` shows the log through a pager on a terminal; piped or redirected, it is written as is
-- Built on gitoperationslib 1.8.0
+- `run job log` shows the log through a pager on a terminal when it does not fit on the screen; piped or redirected, it is written as is
+- The lists and detail views that can grow long are paged the same way, with the table's header (and the lines above it) on top of every page: `repo ls`, `history ls`, `history get`, `issue ls`, `issue get`, `issue comment ls`, `issue label ls`, `issue milestone ls`, `pr ls`, `pr get`, `branch ls`, `tag ls`, `release ls`, `release list-assets`, `run ls`, `run get`, `run job ls`, `run job get`, `run artifact ls`, `user ls`, `org ls`, `org listall`, `org members`, `team ls`, `team members`, `team repos`, `collaborator ls` and `collaborator invitations`. `-j`, `-q` and piped output are not paged. See "Paged output" in the README
+- Built on gitoperationslib 1.8.0 and helperFunctions 5.9.1 (its pager no longer counts colors as width, nor cuts them)
 - **`branch delete` and `branch rename` only act on the server**, and need `-r` (`--remote`): they used to act on the local clone by default, through the git client, and a bare command now refuses instead of deleting or renaming on the server by mistake. `-l`, `-a` and `branch delete -f` are gone; local branches are left to git (`git branch -d`, `git branch -m`). gitclt never writes to a local clone, and never needs the git client
 - `history list`, run from a clone of the repository, lists the checked out branch by default (when the server has it; otherwise the default branch, with a notice), and warns when the local branch has commits the server does not (not pushed yet), or is behind it. The help and the README now say that `history` only shows what was pushed
+
+### Fixed
+
+- A typo in `branch ls --all`'s notice outside a clone ("shot" for "show")
 
 ## [1.7.1] - 2026-11-11
 

@@ -220,7 +220,7 @@ func ListLabelsOf(repo string, displayoutput bool) ([]Label, *cerr.CustomError) 
 		fmt.Printf("%s has no label\n", s.where())
 		return out, nil
 	}
-	renderLabelTable(out)
+	shared.Page(renderLabelTable(out), shared.TableHeader)
 	return out, nil
 }
 

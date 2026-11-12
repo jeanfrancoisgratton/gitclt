@@ -46,7 +46,6 @@ func milestoneTitle(i gol.Issue) string {
 
 func newTable(header table.Row) table.Writer {
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(header)
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
 	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(22)}
@@ -54,13 +53,13 @@ func newTable(header table.Row) table.Writer {
 	return t
 }
 
-func renderIssueTable(list []gol.Issue) {
+func renderIssueTable(list []gol.Issue) string {
 	t := newTable(table.Row{"#", "Title", "State", "Author", "Labels", "Milestone", "Assignees", "Comments", "Updated"})
 	for _, i := range list {
 		t.AppendRow(table.Row{i.Number, i.Title, string(i.State), i.Author, strings.Join(i.Labels, ", "), milestoneTitle(i),
 			strings.Join(i.Assignees, ", "), i.Comments, date(i.UpdatedAt)})
 	}
-	t.Render()
+	return t.Render()
 }
 
 func printIfSet(w *tabwriter.Writer, label, value string) {
@@ -69,8 +68,9 @@ func printIfSet(w *tabwriter.Writer, label, value string) {
 	}
 }
 
-func renderIssue(i *Issue) {
-	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
+func renderIssue(i *Issue) string {
+	var b strings.Builder
+	w := tabwriter.NewWriter(&b, 1, 4, 2, ' ', 0)
 	_, _ = fmt.Fprintf(w, "%s\t#%d %s\n", hftx.Blue("Issue:"), i.Number, i.Title)
 	state := string(i.State)
 	if i.Locked {
@@ -88,24 +88,25 @@ func renderIssue(i *Issue) {
 	printIfSet(w, "URL:", i.HTMLURL)
 	_ = w.Flush()
 	if i.Body != "" {
-		fmt.Println()
-		fmt.Println(i.Body)
+		b.WriteString("\n" + i.Body + "\n")
 	}
 	if len(i.Discussion) > 0 {
-		fmt.Println()
-		renderComments(i.Discussion)
+		b.WriteString("\n" + renderComments(i.Discussion))
 	}
+	return b.String()
 }
 
 // A comment is free text, often several lines long: a table would not suit it
-func renderComments(list []gol.Comment) {
+func renderComments(list []gol.Comment) string {
+	var b strings.Builder
 	for n, m := range list {
 		if n > 0 {
-			fmt.Println()
+			b.WriteString("\n")
 		}
-		fmt.Printf("%s %d, %s, %s\n", hftx.Blue("Comment"), m.ID, m.Author, date(m.CreatedAt))
-		fmt.Println(m.Body)
+		_, _ = fmt.Fprintf(&b, "%s %d, %s, %s\n", hftx.Blue("Comment"), m.ID, m.Author, date(m.CreatedAt))
+		b.WriteString(m.Body + "\n")
 	}
+	return b.String()
 }
 
 // A label's color can be seen, not only read: the closest one of the 256-color palette, as go-pretty's own colors are
@@ -121,7 +122,7 @@ func swatch(hex string) string {
 }
 
 // The scope column only appears when an organization's labels are listed too
-func renderLabelTable(list []Label) {
+func renderLabelTable(list []Label) string {
 	hasScope := slices.ContainsFunc(list, func(l Label) bool { return l.Scope != "repo" })
 	header := table.Row{"ID", "Name", "Color", "Description"}
 	if hasScope {
@@ -142,7 +143,7 @@ func renderLabelTable(list []Label) {
 		}
 		t.AppendRow(append(row, l.Description))
 	}
-	t.Render()
+	return t.Render()
 }
 
 func renderLabel(l *gol.Label) {
@@ -154,12 +155,12 @@ func renderLabel(l *gol.Label) {
 	_ = w.Flush()
 }
 
-func renderMilestoneTable(list []gol.Milestone) {
+func renderMilestoneTable(list []gol.Milestone) string {
 	t := newTable(table.Row{"ID", "Title", "State", "Due", "Open", "Closed", "Description"})
 	for _, m := range list {
 		t.AppendRow(table.Row{m.ID, m.Title, string(m.State), day(m.DueOn), m.OpenIssues, m.ClosedIssues, m.Description})
 	}
-	t.Render()
+	return t.Render()
 }
 
 func renderMilestone(m *gol.Milestone) {

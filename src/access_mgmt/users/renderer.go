@@ -22,11 +22,10 @@ import (
 
 const timeFormat = "2006.01.02 15:04"
 
-// RenderUserTable prints a list of users as a table; exported so that any user list (org or team members, ...)
-// renders the same way
+// RenderUserTable prints a list of users as a table, paged when it does not fit; exported so that any user list (org or
+// team members, ...) renders the same way
 func RenderUserTable(list []gol.User) {
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"ID", "Login", "Full name", "E-mail", "Visibility", "Admin",
 		"Active", "Last login", "Location"})
 	for _, u := range list {
@@ -35,7 +34,7 @@ func RenderUserTable(list []gol.User) {
 	}
 	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
 	t.Style().Format.Header = text.FormatDefault
-	t.Render()
+	shared.Page(t.Render(), shared.TableHeader)
 }
 
 // printUser writes the base profile shared by gol.User and gol.CurrentUser.

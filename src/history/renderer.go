@@ -7,7 +7,6 @@ package history
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -52,9 +51,8 @@ func who(a gol.CommitAuthor) string {
 }
 
 // Merge commits are marked with M in front of their SHA
-func renderCommitTable(list []gol.Commit) {
+func renderCommitTable(list []gol.Commit) string {
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Commit", "Date", "Author", "Title"})
 	for _, c := range list {
 		sha := "  " + short(c.SHA)
@@ -66,18 +64,19 @@ func renderCommitTable(list []gol.Commit) {
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
 	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(88)}
 	t.Style().Format.Header = text.FormatDefault
-	t.Render()
+	return t.Render()
 }
 
 // renderCommit shows one commit like git show --stat: its metadata, its full message, then its changed files
-func renderCommit(c gol.Commit) {
+func renderCommit(c gol.Commit) string {
 	parents := make([]string, len(c.Parents))
 	for i, p := range c.Parents {
 		parents[i] = short(p)
 	}
 
 	// tabulated output
-	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
+	var b strings.Builder
+	w := tabwriter.NewWriter(&b, 1, 4, 2, ' ', 0)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Commit:"), c.SHA)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Author:"), who(c.Author))
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Date:"), date(c.Author.Date))
@@ -97,18 +96,18 @@ func renderCommit(c gol.Commit) {
 	}
 	_ = w.Flush()
 
-	fmt.Println()
+	b.WriteString("\n")
 	for _, l := range strings.Split(strings.TrimRight(c.Message, "\n"), "\n") {
-		fmt.Println("    " + l)
+		b.WriteString("    " + l + "\n")
 	}
 	if len(c.Files) > 0 {
-		fmt.Println()
-		renderFiles(c.Files)
+		b.WriteString("\n" + renderFiles(c.Files))
 	}
+	return b.String()
 }
 
 // Forgejo only reports the commit's totals: the per-file line counts are then all 0, and not worth a column
-func renderFiles(files []gol.ChangedFile) {
+func renderFiles(files []gol.ChangedFile) string {
 	withCounts := false
 	for _, f := range files {
 		if f.Additions != 0 || f.Deletions != 0 {
@@ -118,7 +117,6 @@ func renderFiles(files []gol.ChangedFile) {
 	}
 
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	header := table.Row{"Status", "File"}
 	if withCounts {
 		header = append(header, "+", "-")
@@ -138,5 +136,5 @@ func renderFiles(files []gol.ChangedFile) {
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
 	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(33)}
 	t.Style().Format.Header = text.FormatDefault
-	t.Render()
+	return t.Render()
 }

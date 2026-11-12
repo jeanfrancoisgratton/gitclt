@@ -61,7 +61,7 @@ func ListMilestones(repo string, displayoutput bool) ([]gol.Milestone, *cerr.Cus
 		fmt.Printf("%s/%s has no %smilestone\n", owner, repo, strings.TrimSuffix(string(state)+" ", "all "))
 		return list, nil
 	}
-	renderMilestoneTable(list)
+	shared.Page(renderMilestoneTable(list), shared.TableHeader)
 	return list, nil
 }
 

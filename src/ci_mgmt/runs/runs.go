@@ -74,7 +74,7 @@ func ListRuns(repo string, displayoutput bool) ([]gol.WorkflowRun, *cerr.CustomE
 		fmt.Printf("No run of %s matches\n", t.where())
 		return list, nil
 	}
-	renderRunTable(list)
+	shared.Page(renderRunTable(list), shared.TableHeader)
 	return list, nil
 }
 
@@ -112,7 +112,8 @@ func GetRun(repo, arg string, displayoutput bool) (*Run, *cerr.CustomError) {
 	if JSONoutput {
 		return out, shared.PrintJSON(out, "run")
 	}
-	renderRun(out)
+	// The run's line stays on top
+	shared.Page(renderRun(out), 1)
 	return out, nil
 }
 

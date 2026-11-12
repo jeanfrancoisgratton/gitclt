@@ -7,10 +7,8 @@ package organizations
 
 import (
 	"context"
-	"fmt"
 	"gitclt/forge"
 	"gitclt/shared"
-	"os"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
@@ -49,9 +47,7 @@ func ListOrgs(username string, displayoutput bool) ([]gol.Org, *cerr.CustomError
 		return orgs, shared.PrintJSON(orgs, "organization list")
 	}
 
-	fmt.Println("\n" + hftx.ScrollSign(hftx.Gold("Managed ?")+" means that repository admins can change team access on the repo\n"))
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"ID", "Org Name", "Org Full name", "Description", "Visibility", "Managed ?", "URL"})
 	for _, o := range orgs {
 		t.AppendRow(table.Row{o.ID, o.Name, o.FullName, o.Description,
@@ -59,7 +55,7 @@ func ListOrgs(username string, displayoutput bool) ([]gol.Org, *cerr.CustomError
 	}
 	t.SetStyle(table.StyleColoredBlueWhiteOnBlack)
 	t.Style().Format.Header = text.FormatDefault
-	t.Render()
+	pageOrgTable(t)
 
 	return orgs, nil
 }
@@ -94,9 +90,7 @@ func ListAllOrgs(displayoutput bool) ([]gol.Org, *cerr.CustomError) {
 		return orgs, shared.PrintJSON(orgs, "organization list")
 	}
 
-	fmt.Println("\n" + hftx.ScrollSign(hftx.Gold("Managed ?")+" means that repository admins can change team access on the repo\n"))
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"ID", "Org Name", "Org Full name", "Description", "Visibility", "Managed ?", "URL"})
 	for _, o := range orgs {
 		t.AppendRow(table.Row{o.ID, o.Name, o.FullName, o.Description,
@@ -104,7 +98,13 @@ func ListAllOrgs(displayoutput bool) ([]gol.Org, *cerr.CustomError) {
 	}
 	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
 	t.Style().Format.Header = text.FormatDefault
-	t.Render()
+	pageOrgTable(t)
 
 	return orgs, nil
+}
+
+// pageOrgTable shows the organizations, under a note on the Managed column; the note stays on top with the header
+func pageOrgTable(t table.Writer) {
+	note := "\n" + hftx.ScrollSign(hftx.Gold("Managed ?")+" means that repository admins can change team access on the repo") + "\n\n"
+	shared.Page(note+t.Render(), 3+shared.TableHeader)
 }

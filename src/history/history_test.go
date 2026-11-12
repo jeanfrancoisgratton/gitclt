@@ -158,11 +158,9 @@ func TestParseDate(t *testing.T) {
 func TestRenderCommit(t *testing.T) {
 	when := time.Date(2026, 10, 30, 12, 0, 0, 0, time.UTC)
 	me := gol.CommitAuthor{Name: "Alice", Email: "alice@x", Login: "Alice", Date: when}
-	out := testutil.StripANSI(testutil.Run(t, func() {
-		renderCommit(gol.Commit{SHA: "abc", Message: "Rename\n", Author: me, Committer: me,
-			Stats: &gol.CommitStats{Additions: 3, Deletions: 1},
-			Files: []gol.ChangedFile{{Path: "new.go", PreviousPath: "old.go", Status: gol.FileRenamed, Additions: 3, Deletions: 1}}})
-	}))
+	out := testutil.StripANSI(renderCommit(gol.Commit{SHA: "abc", Message: "Rename\n", Author: me, Committer: me,
+		Stats: &gol.CommitStats{Additions: 3, Deletions: 1},
+		Files: []gol.ChangedFile{{Path: "new.go", PreviousPath: "old.go", Status: gol.FileRenamed, Additions: 3, Deletions: 1}}}))
 	for _, want := range []string{"Alice <alice@x>\n", "old.go → new.go", "renamed", " + ", " 3 "} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q:\n%s", want, out)
@@ -175,9 +173,7 @@ func TestRenderCommit(t *testing.T) {
 	}
 
 	// Forgejo: all per-file counts are 0, so no count columns
-	out = testutil.StripANSI(testutil.Run(t, func() {
-		renderFiles([]gol.ChangedFile{{Path: "a.go", Status: gol.FileAdded}})
-	}))
+	out = testutil.StripANSI(renderFiles([]gol.ChangedFile{{Path: "a.go", Status: gol.FileAdded}}))
 	if strings.Contains(out, " + ") {
 		t.Errorf("count columns on Forgejo:\n%s", out)
 	}

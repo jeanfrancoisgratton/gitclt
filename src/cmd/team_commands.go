@@ -14,9 +14,9 @@ import (
 )
 
 var teamCmd = &cobra.Command{
-	Use:   "team",
+	Use:     "team",
 	Aliases: []string{"teams"},
-	Short: "Team management commands",
+	Short:   "Team management commands",
 	Long: `Some of the commands are self-service, but most of the commands here need administrative rights.
 In other words: you must have the appropriate access or auth token to perform some of the tasks.
 Teams are addressed by their organization and their name (case-insensitive): <ORG> <TEAM>.`,

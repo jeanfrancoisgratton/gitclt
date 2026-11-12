@@ -42,6 +42,8 @@ func ListBranches(reponame string, displayoutput bool) ([]Branch, *cerr.CustomEr
 		}
 	}
 
+	// A notice goes above the table, and stays on top with its header when paged
+	notice := ""
 	rows := map[string]*Branch{}
 	row := func(name string) *Branch {
 		if rows[name] == nil {
@@ -60,9 +62,9 @@ func ListBranches(reponame string, displayoutput bool) ([]Branch, *cerr.CustomEr
 			withLocal = false
 			if displayoutput && !shared.QuietOutput && !JSONoutput {
 				if !SuppressWarnings {
-					fmt.Println(hftx.InfoSign(ce.Message + "; showing the server's branches only"))
+					notice = hftx.InfoSign(ce.Message+"; showing the server's branches only") + "\n"
 				} else {
-					fmt.Println(hftx.InfoSign(" We are not in the local repo so we can only shot the server's branches"))
+					notice = hftx.InfoSign(" We are not in the local repo so we can only show the server's branches") + "\n"
 				}
 			}
 		} else {
@@ -109,7 +111,11 @@ func ListBranches(reponame string, displayoutput bool) ([]Branch, *cerr.CustomEr
 	if JSONoutput {
 		return branches, shared.PrintJSON(branches, "branch list")
 	}
-	renderBranchTable(branches, withLocal, withServer)
+	banner := shared.TableHeader
+	if notice != "" {
+		banner++
+	}
+	shared.Page(notice+renderBranchTable(branches, withLocal, withServer), banner)
 	return branches, nil
 }
 

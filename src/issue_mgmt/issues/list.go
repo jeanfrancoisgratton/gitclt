@@ -52,7 +52,7 @@ func ListIssues(repo string, displayoutput bool) ([]gol.Issue, *cerr.CustomError
 		fmt.Printf("%s/%s has no %sissue\n", owner, repo, strings.TrimSuffix(string(state)+" ", "all "))
 		return list, nil
 	}
-	renderIssueTable(list)
+	shared.Page(renderIssueTable(list), shared.TableHeader)
 	return list, nil
 }
 
@@ -84,6 +84,7 @@ func GetIssue(repo, number string, displayoutput bool) (*Issue, *cerr.CustomErro
 	if JSONoutput {
 		return out, shared.PrintJSON(out, "issue")
 	}
-	renderIssue(out)
+	// The issue's line stays on top
+	shared.Page(renderIssue(out), 1)
 	return out, nil
 }

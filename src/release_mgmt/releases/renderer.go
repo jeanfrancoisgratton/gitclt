@@ -7,7 +7,7 @@ package releases
 
 import (
 	"fmt"
-	"os"
+	"gitclt/shared"
 	"time"
 
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
@@ -36,7 +36,6 @@ func kind(r gol.Release) string {
 
 func renderReleaseTable(list []gol.Release) {
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Tag", "Title", "Type", "Published", "Author", "Assets"})
 	for _, r := range list {
 		// drafts are not published: their creation date stands in
@@ -48,12 +47,11 @@ func renderReleaseTable(list []gol.Release) {
 	}
 	t.SetStyle(table.StyleColoredYellowWhiteOnBlack)
 	t.Style().Format.Header = text.FormatDefault
-	t.Render()
+	shared.Page(t.Render(), shared.TableHeader)
 }
 
 func renderAssetTable(list []gol.Asset) {
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Asset", "Size", "Downloads", "Uploaded"})
 	for _, a := range list {
 		// Forgejo's external assets are links: no size of their own
@@ -65,5 +63,5 @@ func renderAssetTable(list []gol.Asset) {
 	}
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
 	t.Style().Format.Header = text.FormatDefault
-	t.Render()
+	shared.Page(t.Render(), shared.TableHeader)
 }

@@ -127,6 +127,11 @@ gitclt -c github tag ls       # the same clone, as seen on GitHub
 
 Each command's `--help` repeats what applies to it.
 
+### Paged output
+On a terminal, an output that does not fit on the screen is shown through a pager: Space for the next page, Enter for the next line, `^U` for the previous page, `^G` for the position, `Q` to quit. A table's header stays on top of every page, as do the lines above it (`repo ls`'s count, `org ls`'s note), and the item's first line in the detail views (`issue get`, `pr get`, `history get`, `run get`, `run job get`). An output that fits, or that is piped or redirected, is written as is, as are `-j` and `-q`.
+
+Paged: `repo ls`, `history ls`, `history get`, `issue ls`, `issue get`, `issue comment ls`, `issue label ls`, `issue milestone ls`, `pr ls`, `pr get`, `branch ls`, `tag ls`, `release ls`, `release list-assets`, `run ls`, `run get`, `run job ls`, `run job get`, `run job log`, `run artifact ls`, `user ls`, `org ls`, `org listall`, `org members`, `team ls`, `team members`, `team repos`, `collaborator ls` and `collaborator invitations`.
+
 ### Other commands
 | Command                       | Description                                       |
 |-------------------------------|---------------------------------------------------|
@@ -435,7 +440,7 @@ The runs of a repository's workflows, on Forgejo Actions and GitHub Actions; Bit
 | `gitclt run job list [-o OWNER] [-j] [<REPO>] <RUN-ID>` (`ls`) | Lists a run's jobs; `-q` outputs only their IDs |
 | `gitclt run job get [-o OWNER] [-j] [<REPO>] <JOB-ID>` (`info`, `show`) | Shows a job, with its steps |
 | `gitclt run job rerun [-o OWNER] [<REPO>] <JOB-ID>` | Starts a finished job again, with the jobs that depend on it |
-| `gitclt run job log [-o OWNER] [-f \| -O FILE [--force]] [<REPO>] <JOB-ID>` (`logs`) | Shows a job's log, as text: through a pager on a terminal (Space next page, Enter next line, `^U` previous page, `^G` position, `Q` quit), as is when piped or redirected; `-O` saves it instead. `-f`, `--follow` writes the log as it grows, until the job ends (`Ctrl-C` stops following, not the job); it needs Forgejo 17, and on GitHub it waits for the job to end, as GitHub only has a log then |
+| `gitclt run job log [-o OWNER] [-f \| -O FILE [--force]] [<REPO>] <JOB-ID>` (`logs`) | Shows a job's log, as text: through a pager on a terminal when it does not fit on the screen (see [paged output](#paged-output)), as is when piped or redirected; `-O` saves it instead. `-f`, `--follow` writes the log as it grows, until the job ends (`Ctrl-C` stops following, not the job); it needs Forgejo 17, and on GitHub it waits for the job to end, as GitHub only has a log then |
 | `gitclt run artifact list [-o OWNER] [--run RUN-ID] [--name NAME] [-j] [<REPO>]` (`ls`) | Lists the artifacts, of the repository or of one run; `-q` outputs only their IDs |
 | `gitclt run artifact get [-o OWNER] [-j] [<REPO>] <ARTIFACT-ID>` (`info`) | Shows an artifact |
 | `gitclt run artifact download [-o OWNER] [-O FILE] [--force] [<REPO>] <ARTIFACT-ID>` (`dl`) | Saves an artifact as `<NAME>.zip`, or `-O`, `--output FILE`, or `-` for the standard output; an expired one cannot be downloaded |
@@ -622,6 +627,7 @@ if lerr != nil {
 - it stops at the first error, and returns it
 - page size: `shared.ListPageSize` (50), which is safe on all forges (Forgejo's maximum is a server setting, 50 by default; GitHub's and Bitbucket's are 100)
 - a list of users renders with `users.RenderUserTable()`, whoever it comes from (`org members`, `team members`, ...)
+- a list that can grow long is shown with `shared.Page(output, banner)`: build the table without `SetOutputMirror()`, and pass it `t.Render()`, with `shared.TableHeader` as the banner (plus the lines written above the table, if any). Anything printed to stdout before it would be wiped by the pager's screen, so it goes in `output`
 
 ### 4. Creating, editing, deleting
 The library's option structs use the library's own types; nil pointer fields in `Edit...Options` mean "leave unchanged" (`gol.Ptr()` builds a pointer from a value):

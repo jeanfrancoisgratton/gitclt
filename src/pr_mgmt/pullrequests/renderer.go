@@ -7,7 +7,7 @@ package pullrequests
 
 import (
 	"fmt"
-	"os"
+	"gitclt/shared"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -57,7 +57,6 @@ func mergeable(pr gol.PullRequest) string {
 
 func renderPRTable(list []gol.PullRequest) {
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"#", "Title", "Branches", "Author", "Status", "Updated"})
 	for _, pr := range list {
 		t.AppendRow(table.Row{pr.Number, pr.Title, branches(pr), pr.Author, status(pr), date(pr.UpdatedAt)})
@@ -65,12 +64,13 @@ func renderPRTable(list []gol.PullRequest) {
 	t.SetStyle(table.StyleColoredBlackOnYellowWhite)
 	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bg256Color(94)}
 	t.Style().Format.Header = text.FormatDefault
-	t.Render()
+	shared.Page(t.Render(), shared.TableHeader)
 }
 
-func renderPR(pr PullRequest) {
+func renderPR(pr PullRequest) string {
 	// tabulated output
-	w := tabwriter.NewWriter(os.Stdout, 1, 4, 2, ' ', 0)
+	var b strings.Builder
+	w := tabwriter.NewWriter(&b, 1, 4, 2, ' ', 0)
 	_, _ = fmt.Fprintf(w, "%s\t#%d %s\n", hftx.Blue("Pull request:"), pr.Number, pr.Title)
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Branches:"), branches(pr.PullRequest))
 	_, _ = fmt.Fprintf(w, "%s\t%s\n", hftx.Blue("Head commit:"), short(pr.Head.SHA))
@@ -103,8 +103,8 @@ func renderPR(pr PullRequest) {
 	}
 	_ = w.Flush()
 
-	if b := strings.TrimSpace(pr.Body); b != "" {
-		fmt.Println()
-		fmt.Println(b)
+	if body := strings.TrimSpace(pr.Body); body != "" {
+		b.WriteString("\n" + body + "\n")
 	}
+	return b.String()
 }

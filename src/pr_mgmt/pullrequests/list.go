@@ -92,6 +92,7 @@ func GetPR(repo, number string, displayoutput bool) (*PullRequest, *cerr.CustomE
 	if JSONoutput {
 		return out, shared.PrintJSON(out, "pull request info")
 	}
-	renderPR(*out)
+	// The pull request's line stays on top
+	shared.Page(renderPR(*out), 1)
 	return out, nil
 }

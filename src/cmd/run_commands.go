@@ -171,8 +171,9 @@ var runJobLogCmd = &cobra.Command{
 	Example: "  gitclt run job log [-c CONNECTION] [-o OWNER] [-f | -O FILE [--force]] [<REPO>] <JOB-ID>\n" +
 		"  gitclt run job log -f 99",
 	Short: "Shows a job's log, as text (Forgejo 16 and later)",
-	Long: `On a terminal, the log is shown through a pager: Space for the next page, Enter for the next line, ^U for the previous
-page, ^G for the position, Q to quit. Piped or redirected, it is written as is to the standard output.
+	Long: `On a terminal, a log that does not fit on the screen is shown through a pager: Space for the next page, Enter for the
+next line, ^U for the previous page, ^G for the position, Q to quit. Piped or redirected, it is written as is to the
+standard output.
 -O, --output saves it to a file instead; an existing file is only replaced with --force.
 -f, --follow writes the log as it grows, until the job ends (Ctrl-C stops following, without stopping the job); it needs
 Forgejo 17. GitHub only has a job's log once the job finished: -f then waits, and writes it all at the end.

@@ -52,7 +52,7 @@ func ListJobs(repo, arg string, displayoutput bool) ([]gol.WorkflowJob, *cerr.Cu
 		fmt.Printf("Run %d of %s has no job\n", ids[0], t.where())
 		return list, nil
 	}
-	renderJobTable(list)
+	shared.Page(renderJobTable(list), shared.TableHeader)
 	return list, nil
 }
 
@@ -77,7 +77,8 @@ func GetJob(repo, arg string, displayoutput bool) (*gol.WorkflowJob, *cerr.Custo
 	if JSONoutput {
 		return j, shared.PrintJSON(j, "job")
 	}
-	renderJob(j)
+	// The job's line stays on top
+	shared.Page(renderJob(j), 1)
 	return j, nil
 }
 
@@ -122,7 +123,7 @@ func JobLog(repo, arg string) *cerr.CustomError {
 
 	path := OutputFile
 	if path == "" {
-		if interactive() {
+		if hftx.Interactive() {
 			return pageLog(r, fmt.Sprintf("Log of job %d of %s", ids[0], t.where()))
 		}
 		path = "-"

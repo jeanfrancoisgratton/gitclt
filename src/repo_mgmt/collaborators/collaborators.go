@@ -58,7 +58,6 @@ func connect(ctx context.Context, repo string) (*forge.Client, gol.Collaborators
 
 func newTable(header table.Row) table.Writer {
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(header)
 	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
 	t.Style().Format.Header = text.FormatDefault
@@ -110,7 +109,7 @@ func List(repo string, displayoutput bool) ([]gol.Collaborator, *cerr.CustomErro
 		}
 		t.AppendRow(row)
 	}
-	t.Render()
+	shared.Page(t.Render(), shared.TableHeader)
 	return list, nil
 }
 
@@ -280,6 +279,6 @@ func Invitations(repo string, displayoutput bool) ([]gol.CollaboratorInvitation,
 	for _, i := range list {
 		t.AppendRow(table.Row{i.Login, string(i.Permission), i.Expired, i.CreatedAt.Local().Format("2006.01.02 15:04"), i.HTMLURL})
 	}
-	t.Render()
+	shared.Page(t.Render(), shared.TableHeader)
 	return list, nil
 }

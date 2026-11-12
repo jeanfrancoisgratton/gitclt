@@ -68,13 +68,13 @@ func ListRepositories(displayoutput bool) ([]gol.Repo, *cerr.CustomError) {
 		}
 		return nil, nil
 	}
-	fmt.Printf("Number of repositories on %s: %s\n", hftx.Green(c.Connection.Name), hftx.Green(fmt.Sprintf("%d", len(repos))))
+	count := fmt.Sprintf("Number of repositories on %s: %s", hftx.Green(c.Connection.Name), hftx.Green(fmt.Sprintf("%d", len(repos))))
 	if len(repos) == 0 {
+		fmt.Println(count)
 		return nil, nil
 	}
 
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	// No IDs on Bitbucket: the column is dropped
 	header := table.Row{"Owner", "Repository", "Visibility", "Created", "Last updated", "Empty", "URL", "Web site"}
 	if hasIDs {
@@ -92,7 +92,8 @@ func ListRepositories(displayoutput bool) ([]gol.Repo, *cerr.CustomError) {
 	}
 	t.SetStyle(table.StyleColoredBlackOnBlueWhite)
 	t.Style().Format.Header = text.FormatDefault
-	t.Render()
+	// The count stays on top, with the header
+	shared.Page(count+"\n"+t.Render(), 1+shared.TableHeader)
 
 	return nil, nil
 }

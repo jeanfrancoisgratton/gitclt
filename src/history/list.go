@@ -85,7 +85,7 @@ func List(repo string, displayoutput bool) ([]gol.Commit, *cerr.CustomError) {
 			fmt.Printf("No commit of %s/%s matches\n", owner, repo)
 		}
 	} else {
-		renderCommitTable(commits)
+		shared.Page(renderCommitTable(commits), shared.TableHeader)
 	}
 	if notice := unpushedNotice(ctx, c, owner, repo, opts.Ref, r.DefaultBranch, wc); notice != "" && !shared.QuietOutput {
 		fmt.Println(hftx.WarningSign(notice))
