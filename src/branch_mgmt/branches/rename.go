@@ -21,7 +21,7 @@ import (
 // On the server, the open pull requests and the protection rules follow the branch
 func RenameBranch(repo, branch, newName string) *cerr.CustomError {
 	var c *forge.Client
-	var lr *localRepo
+	var lr *shared.WorkingCopy
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
@@ -48,10 +48,10 @@ func RenameBranch(repo, branch, newName string) *cerr.CustomError {
 		if _, e := exec.LookPath("git"); e != nil {
 			return &cerr.CustomError{Title: "git not found", Message: "renaming local branches needs the git client: " + e.Error()}
 		}
-		if _, ok := lr.branches[branch]; !ok {
+		if _, ok := lr.Branches[branch]; !ok {
 			return &cerr.CustomError{Title: "No such branch", Message: "the local working copy has no branch " + branch}
 		}
-		if _, ok := lr.branches[newName]; ok {
+		if _, ok := lr.Branches[newName]; ok {
 			return &cerr.CustomError{Title: "Branch already exists", Message: "the local working copy already has a branch " + newName}
 		}
 	}

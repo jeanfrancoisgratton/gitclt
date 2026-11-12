@@ -25,7 +25,7 @@ func Get(repo, ref string, displayoutput bool) (*gol.Commit, *cerr.CustomError) 
 	if ce != nil {
 		return nil, ce
 	}
-	if ce = checkRepo(ctx, c, owner, repo); ce != nil {
+	if _, ce = checkRepo(ctx, c, owner, repo); ce != nil {
 		return nil, ce
 	}
 

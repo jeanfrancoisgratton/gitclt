@@ -1,12 +1,9 @@
 // gitclt
-// Tests reading a local working copy's .git directory: branches (loose and packed), HEAD, remotes, worktrees
+// A fake local working copy, for the tests of the commands that read one (shared.ReadWorkingCopy is tested in shared)
 
 package branches
 
 import (
-	"errors"
-	"gitclt/shared"
-	"maps"
 	"os"
 	"path/filepath"
 	"testing"
@@ -50,69 +47,4 @@ func fakeWorkingCopy(t *testing.T) string {
 		"src/main.go": "package main\n",
 	})
 	return root
-}
-
-func TestReadLocalRepo(t *testing.T) {
-	root := fakeWorkingCopy(t)
-
-	// From a subdirectory: the working copy is found in a parent
-	r, err := readLocalRepo(filepath.Join(root, "src"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := map[string]string{"main": shaMain, "develop": shaDevelop, "feature/x": shaFeature}
-	if !maps.Equal(r.branches, want) || r.current != "develop" {
-		t.Fatalf("branches=%v, current=%q", r.branches, r.current)
-	}
-	if len(r.remotes) != 1 || r.remotes[0] != "git@forge.example:acme/web.git" {
-		t.Fatalf("remotes=%q", r.remotes)
-	}
-
-	// Detached HEAD: no current branch
-	writeFiles(t, root, map[string]string{".git/HEAD": shaMain + "\n"})
-	if r, err = readLocalRepo(root); err != nil || r.current != "" {
-		t.Fatalf("detached: %+v, %v", r, err)
-	}
-}
-
-func TestReadLocalRepo_Worktree(t *testing.T) {
-	root := fakeWorkingCopy(t)
-	wt := t.TempDir()
-	writeFiles(t, root, map[string]string{
-		".git/worktrees/hotfix/HEAD":      "ref: refs/heads/feature/x\n",
-		".git/worktrees/hotfix/commondir": "../..\n",
-	})
-	writeFiles(t, wt, map[string]string{".git": "gitdir: " + filepath.Join(root, ".git/worktrees/hotfix") + "\n"})
-
-	r, err := readLocalRepo(wt)
-	if err != nil || r.current != "feature/x" || r.branches["develop"] != shaDevelop || len(r.remotes) != 1 {
-		t.Fatalf("%+v, %v", r, err)
-	}
-}
-
-func TestReadLocalRepo_NoWorkingCopy(t *testing.T) {
-	if _, err := readLocalRepo(t.TempDir()); !errors.Is(err, shared.ErrNoWorkingCopy) {
-		t.Fatalf("got %v", err)
-	}
-}
-
-func TestMatchesRepo(t *testing.T) {
-	for _, tc := range []struct {
-		url, owner, repo string
-		want             bool
-	}{
-		{"https://forge.example/acme/web.git", "acme", "web", true},
-		{"https://forge.example/acme/web/", "ACME", "Web", true},
-		{"git@forge.example:acme/web.git", "acme", "web", true},
-		{"ssh://git@forge.example:2222/acme/web", "acme", "web", true},
-		{"https://forge.example/acme/web.git", "", "web", true},
-		{"https://forge.example/acme/web.git", "other", "web", false},
-		{"https://forge.example/acme/website.git", "acme", "web", false},
-		{"web", "", "web", false},
-	} {
-		r := &localRepo{remotes: []string{"https://elsewhere/x/y", tc.url}}
-		if got := r.matchesRepo(tc.owner, tc.repo); got != tc.want {
-			t.Errorf("%s vs %s/%s: got %t", tc.url, tc.owner, tc.repo, got)
-		}
-	}
 }

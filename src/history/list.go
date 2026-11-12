@@ -14,10 +14,13 @@ import (
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
 	gol "github.com/jeanfrancoisgratton/gitoperationslib"
+	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 )
 
 // List shows the commits of owner/repo reachable from ListRef, newest first, like git log does; only pushed commits
-// are seen. At most ListLimit commits are fetched, so a long history does not mean paging through all of it
+// are seen, and a notice says when the local branch has others. Without ListRef, from a clone of the repository, the
+// checked out branch is listed (when the server has it), else the default branch.
+// At most ListLimit commits are fetched, so a long history does not mean paging through all of it
 func List(repo string, displayoutput bool) ([]gol.Commit, *cerr.CustomError) {
 	ctx := context.Background()
 
@@ -37,8 +40,15 @@ func List(repo string, displayoutput bool) ([]gol.Commit, *cerr.CustomError) {
 	if ce != nil {
 		return nil, ce
 	}
-	if ce = checkRepo(ctx, c, owner, repo); ce != nil {
+	r, ce := checkRepo(ctx, c, owner, repo)
+	if ce != nil {
 		return nil, ce
+	}
+	// From a clone of this repository, the checked out branch is listed by default, and local commits missing from the
+	// list are pointed out; elsewhere, only the server is looked at
+	wc := localClone(owner, repo)
+	if opts.Ref == "" {
+		opts.Ref = defaultRef(ctx, c, owner, repo, wc)
 	}
 
 	commits := []gol.Commit{}
@@ -74,8 +84,11 @@ func List(repo string, displayoutput bool) ([]gol.Commit, *cerr.CustomError) {
 		if !shared.QuietOutput {
 			fmt.Printf("No commit of %s/%s matches\n", owner, repo)
 		}
-		return commits, nil
+	} else {
+		renderCommitTable(commits)
 	}
-	renderCommitTable(commits)
+	if notice := unpushedNotice(ctx, c, owner, repo, opts.Ref, r.DefaultBranch, wc); notice != "" && !shared.QuietOutput {
+		fmt.Println(hftx.WarningSign(notice))
+	}
 	return commits, nil
 }

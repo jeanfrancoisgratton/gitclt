@@ -36,15 +36,16 @@ func connect(ctx context.Context, repo string) (*forge.Client, string, string, g
 }
 
 // checkRepo makes sure owner/repo exists, so that a 404 further down is about the reference, not the repository
-func checkRepo(ctx context.Context, c *forge.Client, owner, repo string) *cerr.CustomError {
-	if _, e := c.Repos().Get(ctx, owner, repo); e != nil {
+func checkRepo(ctx context.Context, c *forge.Client, owner, repo string) (*gol.Repo, *cerr.CustomError) {
+	r, e := c.Repos().Get(ctx, owner, repo)
+	if e != nil {
 		if gol.IsNotFound(e) {
-			return &cerr.CustomError{Title: "No such repository", Code: http.StatusNotFound,
+			return nil, &cerr.CustomError{Title: "No such repository", Code: http.StatusNotFound,
 				Message: fmt.Sprintf("%s/%s does not exist", owner, repo)}
 		}
-		return forge.Error(fmt.Sprintf("Unable to get the repository %s/%s", owner, repo), e)
+		return nil, forge.Error(fmt.Sprintf("Unable to get the repository %s/%s", owner, repo), e)
 	}
-	return nil
+	return r, nil
 }
 
 // parseDate reads --since / --until: a day (local time) or an RFC 3339 timestamp; empty means no bound

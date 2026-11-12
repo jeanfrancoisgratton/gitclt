@@ -26,7 +26,10 @@ var historyListCmd = &cobra.Command{
 	Example: "  gitclt history list [-c CONNECTION] [-o OWNER] [-r REF] [-p PATH] [-n COUNT] [--since DATE] [--until DATE] [-j] [<REPO>]\n" +
 		"  gitclt history ls -r develop -p src/history -n 10 myrepo",
 	Short: "Lists the commits of a repository, newest first",
-	Long: `The commits are those reachable from --ref (a branch, tag or commit; default: the default branch).
+	Long: `This is the server's history: commits that are not pushed yet are not in it.
+The commits are those reachable from --ref (a branch, tag or commit). Without --ref, from a clone of the repository,
+the checked out branch is listed, if the server has it; otherwise, the default branch.
+From a clone, a notice says when your local branch has commits the server does not, or is behind it.
 --path keeps the commits that touched this file or directory.
 --since and --until take a day (YYYY-MM-DD, local time; --until includes the whole day) or an RFC 3339 timestamp;
 only GitHub can filter by date. -n 0 lists the whole history. Merge commits are marked with M.`,
@@ -60,7 +63,7 @@ func init() {
 	historyCmd.AddCommand(historyListCmd, historyGetCmd)
 
 	historyCmd.PersistentFlags().StringVarP(&history.OwnerOrg, "owner", "o", "", ownerFlagHelp)
-	historyListCmd.Flags().StringVarP(&history.ListRef, "ref", "r", "", "branch, tag or commit to start from (default: the default branch)")
+	historyListCmd.Flags().StringVarP(&history.ListRef, "ref", "r", "", "branch, tag or commit to start from (default: the checked out branch, from a clone; else the default branch)")
 	historyListCmd.Flags().StringVarP(&history.ListPath, "path", "p", "", "only the commits that touched this file or directory")
 	historyListCmd.Flags().IntVarP(&history.ListLimit, "limit", "n", 30, "maximum number of commits to list (0: all)")
 	historyListCmd.Flags().StringVar(&history.ListSince, "since", "", "only the commits authored on or after this date (GitHub only)")

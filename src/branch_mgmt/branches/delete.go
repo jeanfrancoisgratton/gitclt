@@ -22,7 +22,7 @@ import (
 // The first failure stops the run; the branches before it stay deleted
 func DeleteBranch(repo string, branches []string) *cerr.CustomError {
 	var c *forge.Client
-	var lr *localRepo
+	var lr *shared.WorkingCopy
 	var ce *cerr.CustomError
 	ctx := context.Background()
 
@@ -50,7 +50,7 @@ func DeleteBranch(repo string, branches []string) *cerr.CustomError {
 			return &cerr.CustomError{Title: "git not found", Message: "deleting local branches needs the git client: " + e.Error()}
 		}
 		for _, branch := range branches {
-			if _, ok := lr.branches[branch]; !ok {
+			if _, ok := lr.Branches[branch]; !ok {
 				return &cerr.CustomError{Title: "No such branch", Message: "the local working copy has no branch " + branch}
 			}
 		}

@@ -32,7 +32,7 @@ func GetBranch(repo, branch string, displayoutput bool) (*Branch, *cerr.CustomEr
 	lr, lce := localBranches(owner, repo)
 	withLocal := lce == nil
 	if withLocal {
-		b.LocalSHA, b.Current = lr.branches[branch], branch == lr.current
+		b.LocalSHA, b.Current = lr.Branches[branch], branch == lr.Current
 	}
 
 	sb, e := c.Branches().Get(ctx, owner, repo, branch)

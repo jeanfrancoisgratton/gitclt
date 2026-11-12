@@ -10,7 +10,7 @@ var OwnerOrg = ""
 
 var JSONoutput = false
 
-// history ls: where to start from (empty: the default branch), which file or directory the commits must touch,
+// history ls: where to start from (empty: the checked out branch from a clone, else the default branch), which file or directory the commits must touch,
 // and how many commits to show at most (0: all of them)
 var ListRef = ""
 var ListPath = ""

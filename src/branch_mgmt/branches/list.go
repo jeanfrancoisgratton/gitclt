@@ -66,9 +66,9 @@ func ListBranches(reponame string, displayoutput bool) ([]Branch, *cerr.CustomEr
 				}
 			}
 		} else {
-			for name, sha := range lr.branches {
+			for name, sha := range lr.Branches {
 				b := row(name)
-				b.LocalSHA, b.Current = sha, name == lr.current
+				b.LocalSHA, b.Current = sha, name == lr.Current
 			}
 		}
 	}
@@ -145,12 +145,12 @@ func compareSides(ctx context.Context, c *forge.Client, owner, reponame string, 
 }
 
 // localBranches reads the working copy of the current directory, and makes sure it is owner/reponame's
-func localBranches(owner, reponame string) (*localRepo, *cerr.CustomError) {
+func localBranches(owner, reponame string) (*shared.WorkingCopy, *cerr.CustomError) {
 	cwd, e := os.Getwd()
 	if e != nil {
 		return nil, &cerr.CustomError{Title: "Unable to read the local branches", Message: e.Error()}
 	}
-	lr, e := readLocalRepo(cwd)
+	lr, e := shared.ReadWorkingCopy(cwd)
 	if errors.Is(e, shared.ErrNoWorkingCopy) {
 		return nil, &cerr.CustomError{Title: "No local working copy", Message: cwd + " is " + e.Error()}
 	}
@@ -158,10 +158,10 @@ func localBranches(owner, reponame string) (*localRepo, *cerr.CustomError) {
 		return nil, &cerr.CustomError{Title: "Unable to read the local branches", Message: e.Error()}
 	}
 	// Without an owner (--local only), only the repo name part of the remotes' URLs is checked
-	if reponame != "" && !lr.matchesRepo(owner, reponame) {
+	if reponame != "" && !lr.MatchesRepo(owner, reponame) {
 		return nil, &cerr.CustomError{Title: "Not the same repository",
 			Message: fmt.Sprintf("the working copy in %s is not a clone of %s (its remotes: %s)",
-				cwd, strings.TrimPrefix(owner+"/"+reponame, "/"), strings.Join(lr.remotes, ", "))}
+				cwd, strings.TrimPrefix(owner+"/"+reponame, "/"), strings.Join(lr.Remotes, ", "))}
 	}
 	return lr, nil
 }
