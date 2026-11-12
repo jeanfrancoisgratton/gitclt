@@ -55,6 +55,13 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Thu Nov 12 2026 Binary package builder <builder@famillegratton.net> 1.8.0-1
+- feature: long lists and detail views are paged, with the table header kept on top
+- feature: adding runner subcommands
+- feature: branch rm and rename act on the server only, no git client needed
+- feature: history ls defaults to the checked out branch and warns about unpushed commits
+- chore: update changelog for 1.7.1-1
+
 * Wed Nov 11 2026 Binary package builder <builder@famillegratton.net> 1.7.1-1
 - enhancement: cosmetic change in how true/false is output
 - Merge branch 'main' into develop
