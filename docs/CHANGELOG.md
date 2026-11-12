@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-11-11
+
+### Changed
+
+- **`branch delete` and `branch rename` only act on the server**, and need `-r` (`--remote`): they used to act on the local clone by default, through the git client, and a bare command now refuses instead of deleting or renaming on the server by mistake. `-l`, `-a` and `branch delete -f` are gone; local branches are left to git (`git branch -d`, `git branch -m`). gitclt never writes to a local clone, and never needs the git client
+- `history list`, run from a clone of the repository, lists the checked out branch by default (when the server has it; otherwise the default branch, with a notice), and warns when the local branch has commits the server does not (not pushed yet), or is behind it. The help and the README now say that `history` only shows what was pushed
+
 ## [1.7.1] - 2026-11-11
 
 ### Changed

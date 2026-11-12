@@ -11,13 +11,11 @@ var JSONoutput = false
 var AssumeYes = false
 var SuppressWarnings = false
 
-// branch rm: delete local branches that are not merged (git branch -D)
-var ForceDelete = false
-
 // Owner / organization of the repository on the server
 var OwnerOrg = ""
 
 // Which branches branch ls shows: AllBranches overrides the other two, and neither (or both) of them also means all
+// branch rm and rename need RemoteOnly (-r): they only act on the server
 var LocalOnly = false
 var RemoteOnly = false
 var AllBranches = false

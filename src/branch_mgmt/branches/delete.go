@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"gitclt/forge"
 	"gitclt/shared"
-	"os/exec"
 	"strings"
 
 	cerr "github.com/jeanfrancoisgratton/customError/v3"
@@ -18,54 +17,30 @@ import (
 	hftx "github.com/jeanfrancoisgratton/helperFunctions/v5/terminalfx"
 )
 
-// DeleteBranch deletes branches of owner/repo: in the local working copy (the default), on the server, or both
+// errServerOnly refuses rm and rename without -r: they used to act on the local working copy by default, and a bare
+// command must not now delete or rename on the server by mistake
+func errServerOnly(action, gitCommand string) *cerr.CustomError {
+	return &cerr.CustomError{Title: "Server branches only",
+		Message: "gitclt " + action + "s branches on the server only, and needs -r (--remote) to say so; " +
+			"local branches are git's job (" + gitCommand + ")"}
+}
+
+// DeleteBranch deletes branches of owner/repo on the server; the local working copy is never touched
 // The first failure stops the run; the branches before it stay deleted
 func DeleteBranch(repo string, branches []string) *cerr.CustomError {
-	var c *forge.Client
-	var lr *shared.WorkingCopy
-	var ce *cerr.CustomError
+	if !RemoteOnly {
+		return errServerOnly("delete", "git branch -d")
+	}
 	ctx := context.Background()
-
-	// -a, or -l and -r together, mean both sides; neither flag means the local side only
-	withLocal, withServer := !RemoteOnly, RemoteOnly
-	if AllBranches || (LocalOnly && RemoteOnly) {
-		withLocal, withServer = true, true
-	}
-
-	// The owner is only known once connected (see forge.Client.Owner), and the local side is checked against it;
-	// on the local side alone, only an explicit -o is checked
-	owner := OwnerOrg
-	if withServer {
-		if c, owner, repo, ce = connect(ctx, repo); ce != nil {
-			return ce
-		}
-	}
-
-	// Check everything before asking: the working copy must be a clone of the repo, and git must be there to write to it
-	if withLocal {
-		if lr, ce = localBranches(owner, repo); ce != nil {
-			return ce
-		}
-		if _, e := exec.LookPath("git"); e != nil {
-			return &cerr.CustomError{Title: "git not found", Message: "deleting local branches needs the git client: " + e.Error()}
-		}
-		for _, branch := range branches {
-			if _, ok := lr.Branches[branch]; !ok {
-				return &cerr.CustomError{Title: "No such branch", Message: "the local working copy has no branch " + branch}
-			}
-		}
+	c, owner, repo, ce := connect(ctx, repo)
+	if ce != nil {
+		return ce
 	}
 
 	// Deletion cannot be undone; ask unless --yes was passed
 	if !AssumeYes {
-		sides := "local"
-		switch {
-		case withLocal && withServer:
-			sides = "local + server, " + owner + "/" + repo
-		case withServer:
-			sides = "server, " + owner + "/" + repo
-		}
-		answer := hf.GetStringValFromPrompt(hftx.WarningSign(fmt.Sprintf("Delete branch(es) %s (%s) ? [y/N]: ", strings.Join(branches, ", "), sides)))
+		answer := hf.GetStringValFromPrompt(hftx.WarningSign(fmt.Sprintf("Delete branch(es) %s on the server, %s/%s ? [y/N]: ",
+			strings.Join(branches, ", "), owner, repo)))
 		if a := strings.ToLower(strings.TrimSpace(answer)); a != "y" && a != "yes" {
 			fmt.Println("Aborted, no branch is deleted")
 			return nil
@@ -73,55 +48,12 @@ func DeleteBranch(repo string, branches []string) *cerr.CustomError {
 	}
 
 	for _, branch := range branches {
-		// Local first: git refuses an unmerged or checked out branch, and the server's copy is then left alone
-		if withLocal {
-			if ce = deleteLocalBranch(branch); ce != nil {
-				return ce
-			}
-			if !shared.QuietOutput {
-				fmt.Println(hftx.EnabledSign("Deleted local branch " + hftx.Brown(branch)))
-			}
+		if e := c.Branches().Delete(ctx, owner, repo, branch); e != nil {
+			return forge.Error("Unable to delete the branch "+branch+" on the server", e)
 		}
-		if withServer {
-			if e := c.Branches().Delete(ctx, owner, repo, branch); e != nil {
-				return forge.Error("Unable to delete the branch "+branch+" on the server", e)
-			}
-			if !shared.QuietOutput {
-				fmt.Println(hftx.EnabledSign("Deleted server branch " + hftx.Brown(branch)))
-			}
+		if !shared.QuietOutput {
+			fmt.Println(hftx.EnabledSign("Deleted server branch " + hftx.Brown(branch)))
 		}
 	}
 	return nil
-}
-
-// deleteLocalBranch has git do the deletion: it handles the refs, packed-refs, reflog and config, and its safety rules
-// (no unmerged branch without --force, no branch checked out here or in another worktree)
-func deleteLocalBranch(branch string) *cerr.CustomError {
-	flag := "-d"
-	if ForceDelete {
-		flag = "-D"
-	}
-	if out, e := exec.Command("git", "branch", flag, branch).CombinedOutput(); e != nil {
-		msg := gitMessage(out, e)
-		if strings.Contains(msg, "not fully merged") {
-			msg += " (use --force to delete it anyway)"
-		}
-		return &cerr.CustomError{Title: "Unable to delete the local branch " + branch, Message: msg}
-	}
-	return nil
-}
-
-// gitMessage turns a failed git command's output into one line
-// git's hints are dropped: they point to its own flags (git branch -D), not to gitclt's
-func gitMessage(out []byte, e error) string {
-	var lines []string
-	for l := range strings.Lines(string(out)) {
-		if l = strings.TrimSpace(l); l != "" && !strings.HasPrefix(l, "hint:") {
-			lines = append(lines, l)
-		}
-	}
-	if len(lines) == 0 {
-		return e.Error()
-	}
-	return strings.Join(lines, "; ")
 }

@@ -16,6 +16,8 @@ var branchCmd = &cobra.Command{
 	Use:     "branch",
 	Aliases: []string{"bra"},
 	Short:   "Branch management commands",
+	Long: `list and get also show the branches of the local clone, read straight from its .git directory;
+delete and rename only act on the server. gitclt never writes to a local clone, and never needs the git client.`,
 }
 
 var branchListCmd = &cobra.Command{
@@ -42,15 +44,15 @@ If the current directory is not a working copy of the repository, --all shows th
 }
 
 var branchDeleteCmd = &cobra.Command{
-	Use:     "delete [<REPO>] <BRANCH>...",
+	Use:     "delete -r [<REPO>] <BRANCH>...",
 	Aliases: []string{"rm", "del"},
-	Example: "  gitclt branch delete [-c CONNECTION] [-o OWNER] [-l | -r | -a] [-f] [-y] [<REPO>] <BRANCH>...\n" +
-		"  gitclt branch rm -a myrepo feature/x feature/y",
-	Short: "Deletes repository branches: local (the default), on the server, or both",
-	Long: `The local branches are those of the git working copy in the current directory (or one of its parents),
-which must be a clone of the repository; the git client does the deletion, so it must be installed.
-git refuses to delete the checked out branch, or a branch that is not merged (unless --force is passed).
---all (or -l and -r together) deletes on both sides, local first.
+	Example: "  gitclt branch delete [-c CONNECTION] [-o OWNER] -r [-y] [<REPO>] <BRANCH>...\n" +
+		"  gitclt branch rm -r myrepo feature/x feature/y",
+	Short: "Deletes repository branches on the server (local branches are left to git)",
+	Long: `This deletes branches on the server only: gitclt never deletes a local branch, nor needs the git client.
+For a local branch, use git branch -d (or -D).
+-r (--remote) is required: before 1.8.0, this command deleted local branches by default, and a bare command must not
+now delete on the server by mistake.
 The run stops at the first failure; the branches deleted before it stay deleted.`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -76,16 +78,17 @@ var branchGetCmd = &cobra.Command{
 }
 
 var branchRenameCmd = &cobra.Command{
-	Use:     "rename [<REPO>] <BRANCH> <NEW-NAME>",
+	Use:     "rename -r [<REPO>] <BRANCH> <NEW-NAME>",
 	Aliases: []string{"mv"},
-	Example: "  gitclt branch rename [-c CONNECTION] [-o OWNER] [-l | -r | -a] [<REPO>] <BRANCH> <NEW-NAME>\n" +
-		"  gitclt branch mv -a myrepo dev develop",
-	Short: "Renames a repository branch: local (the default), on the server, or both",
-	Long: `The local branches are those of the git working copy in the current directory (or one of its parents),
-which must be a clone of the repository; the git client does the renaming, so it must be installed.
-On the server, the open pull requests and the protection rules follow the branch.
---all (or -l and -r together) renames on both sides, local first,
-and the local branch then tracks the server's new name.`,
+	Example: "  gitclt branch rename [-c CONNECTION] [-o OWNER] -r [<REPO>] <BRANCH> <NEW-NAME>\n" +
+		"  gitclt branch mv -r myrepo dev develop",
+	Short: "Renames a repository branch on the server (local branches are left to git)",
+	Long: `This renames a branch on the server only: gitclt never renames a local branch, nor needs the git client.
+For a local branch, use git branch -m; a clone tracking the old name can then follow with
+git branch -u origin/NEW-NAME (after a git fetch).
+-r (--remote) is required: before 1.8.0, this command renamed the local branch by default, and a bare command must not
+now rename on the server by mistake.
+The open pull requests and the protection rules follow the branch.`,
 	Args: cobra.RangeArgs(2, 3),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo, rest := splitRepo(args, 2)
@@ -124,16 +127,11 @@ func init() {
 	branchListCmd.Flags().BoolVarP(&branches.SuppressWarnings, "warnings", "w", false, "suppress all warnings")
 
 	branchDeleteCmd.Flags().BoolVarP(&branches.AssumeYes, "yes", "y", false, "confirm deletion")
-	branchDeleteCmd.Flags().BoolVarP(&branches.LocalOnly, "local", "l", false, "delete the local branches (default)")
-	branchDeleteCmd.Flags().BoolVarP(&branches.RemoteOnly, "remote", "r", false, "delete the branches on the server")
-	branchDeleteCmd.Flags().BoolVarP(&branches.AllBranches, "all", "a", false, "delete both the local branches and the server's, overriding -l and -r")
-	branchDeleteCmd.Flags().BoolVarP(&branches.ForceDelete, "force", "f", false, "delete local branches even if they are not merged")
+	branchDeleteCmd.Flags().BoolVarP(&branches.RemoteOnly, "remote", "r", false, "delete the branches on the server (required: local branches are left to git)")
 
 	branchGetCmd.Flags().BoolVarP(&branches.JSONoutput, "json", "j", false, "output as JSON")
 
-	branchRenameCmd.Flags().BoolVarP(&branches.LocalOnly, "local", "l", false, "rename the local branch (default)")
-	branchRenameCmd.Flags().BoolVarP(&branches.RemoteOnly, "remote", "r", false, "rename the branch on the server")
-	branchRenameCmd.Flags().BoolVarP(&branches.AllBranches, "all", "a", false, "rename both the local branch and the server's, overriding -l and -r")
+	branchRenameCmd.Flags().BoolVarP(&branches.RemoteOnly, "remote", "r", false, "rename the branch on the server (required: local branches are left to git)")
 
 	branchCompareCmd.Flags().BoolVarP(&branches.JSONoutput, "json", "j", false, "output as JSON")
 
