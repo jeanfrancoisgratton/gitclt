@@ -5,6 +5,7 @@ package branches
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
 	"slices"
 	"strings"
@@ -25,11 +26,12 @@ func defaults(t *testing.T) {
 
 // The server has main (default, protected) and develop, at the same commits as the working copy's main and stale develop,
 // and a release branch the working copy does not have
-// Its compare endpoint answers with counts[base...head] (the number of commits of head missing from base), 404 otherwise
-func branchServer(t *testing.T, counts map[string]int) (compares *int) {
+// Its compare endpoint answers with counts[base...head] (the number of commits of head missing from base), 404 otherwise;
+// extra adds routes
+func branchServer(t *testing.T, counts map[string]int, extra ...map[string]http.HandlerFunc) (compares *int) {
 	t.Helper()
 	compares = new(int)
-	testutil.Forgejo(t, map[string]http.HandlerFunc{
+	routes := map[string]http.HandlerFunc{
 		"GET /api/v1/repos/acme/web": testutil.Reply(`{"name":"web","owner":{"login":"acme"},"default_branch":"main"}`),
 		"GET /api/v1/repos/acme/web/branches": testutil.Reply(`[
 			{"name":"main","commit":{"id":"` + shaMain + `","message":"Release","author":{"name":"Alice"},"timestamp":"2026-10-20T14:00:00Z"},"protected":true},
@@ -44,7 +46,11 @@ func branchServer(t *testing.T, counts map[string]int) (compares *int) {
 			}
 			testutil.Reply(fmt.Sprintf(`{"total_commits":%d}`, n))(w, r)
 		},
-	})
+	}
+	for _, more := range extra {
+		maps.Copy(routes, more)
+	}
+	testutil.Forgejo(t, routes)
 	return compares
 }
 
@@ -71,8 +77,9 @@ func TestListBranches_All(t *testing.T) {
 	if !slices.Equal(names(list), []string{"develop", "feature/x", "main", "release/1.0"}) {
 		t.Fatalf("got %v", names(list))
 	}
-	// Only develop differs on both sides: one comparison, two requests on Forgejo
-	if d := list[0]; !d.Current || d.LocalSHA != shaDevelop || d.ServerSHA != shaOld || d.Ahead != 2 || d.Behind != 1 || *compares != 2 {
+	// Each server branch is compared with the default one (3 requests), and only develop differs on both sides: one
+	// more comparison, two requests on Forgejo
+	if d := list[0]; !d.Current || d.LocalSHA != shaDevelop || d.ServerSHA != shaOld || d.Ahead != 2 || d.Behind != 1 || *compares != 5 {
 		t.Errorf("develop: %+v", d)
 	}
 	if m := list[2]; !m.IsDefault || !m.Protected || m.LocalSHA != m.ServerSHA || m.LastCommit == nil || m.LastCommit.Author != "Alice" {

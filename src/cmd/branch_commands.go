@@ -32,8 +32,15 @@ when a repository is given, that working copy must be a clone of it.
 Without a repository, it is the one the current directory is a clone of; --local alone needs none, and reads the working copy.
 The owner defaults to the clone's, for its repository; else the connection's owner, else your username.
 --all (or -l and -r together, or neither) lists both sides; it overrides -l and -r.
-The branches are then merged by name, and their status tells if both sides point to the same commit.
-If the current directory is not a working copy of the repository, --all shows the server's branches only.`,
+A local branch is paired with the server branch it tracks, else with the one of the same name; their status tells if
+both sides point to the same commit. If the current directory is not a working copy of the repository, --all shows the
+server's branches only.
+Columns: the branch it was created from (Parent: only when the clone's reflogs tell it, see branch get), the branch it
+tracks (Upstream), how far ahead of and behind the default branch it is (the clone's count for a local branch), whether
+it is merged into it, their merge base, the CI state of the server's head, its last commit and its open pull requests.
+On the server, the comparisons with the default branch and the CI states cost requests per branch (one to three for the
+CI state, depending on the forge), and GitHub's last commits one more each: on a repository with many branches, -l is
+free, and quicker. What the server refuses, or the forge cannot tell, is listed under the table (-w hides it).`,
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo, _ := splitRepo(args, 0)
@@ -65,10 +72,18 @@ The run stops at the first failure; the branches deleted before it stay deleted.
 
 var branchGetCmd = &cobra.Command{
 	Use: "get [<REPO>] <BRANCH>",
-	Example: "  gitclt branch get [-c CONNECTION] [-o OWNER] [--json] [<REPO>] <BRANCH>\n" +
+	Example: "  gitclt branch get [-c CONNECTION] [-o OWNER] [-l | -r] [--json] [<REPO>] <BRANCH>\n" +
 		"  gitclt branch get myrepo feature/x",
-	Short: "Shows extended information about a repository branch",
-	Args:  cobra.RangeArgs(1, 2),
+	Short: "Shows extended information about a repository branch: local, on the server, or both (the default)",
+	Long: `Both sides by default: the branch of the working copy in the current directory (when it is a clone of the
+repository), and the server's; -l (--local) or -r (--remote) keeps one, -l alone needs no connection.
+Locally: what it tracks, and the branch it was created from: exact when the clone's reflogs tell it (the clone where it
+was created, within 90 days), else a guess from the history, with the branches as likely when they share its commit.
+On the server: its CI state with every status reported on its head, and its open pull requests.
+Both: how far ahead of and behind the default branch it is (the clone's count when it has the branch), whether it is
+merged, and their merge base (the clone's).
+What the server refuses, the forge cannot tell, or the clone lacks (a shallow clone) is listed at the end.`,
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo, rest := splitRepo(args, 1)
 		if _, e := branches.GetBranch(repo, rest[0], true); e != nil {
@@ -130,6 +145,8 @@ func init() {
 	branchDeleteCmd.Flags().BoolVarP(&branches.RemoteOnly, "remote", "r", false, "delete the branches on the server (required: local branches are left to git)")
 
 	branchGetCmd.Flags().BoolVarP(&branches.JSONoutput, "json", "j", false, "output as JSON")
+	branchGetCmd.Flags().BoolVarP(&branches.LocalOnly, "local", "l", false, "only show the local branch")
+	branchGetCmd.Flags().BoolVarP(&branches.RemoteOnly, "remote", "r", false, "only show the branch on the server")
 
 	branchRenameCmd.Flags().BoolVarP(&branches.RemoteOnly, "remote", "r", false, "rename the branch on the server (required: local branches are left to git)")
 

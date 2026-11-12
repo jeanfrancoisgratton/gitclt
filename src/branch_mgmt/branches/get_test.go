@@ -113,6 +113,7 @@ func TestGetBranch_Errors(t *testing.T) {
 	// A server failure other than a 404 is an error, even when the branch is local
 	testutil.Set(t, &OwnerOrg, "acme")
 	testutil.Forgejo(t, map[string]http.HandlerFunc{
+		"GET /api/v1/repos/acme/web":                  testutil.Reply(`{"name":"web","owner":{"login":"acme"},"default_branch":"main"}`),
 		"GET /api/v1/repos/acme/web/branches/develop": testutil.Status(http.StatusInternalServerError),
 	})
 	if _, ce := GetBranch("web", "develop", false); ce == nil || ce.Code != http.StatusInternalServerError {

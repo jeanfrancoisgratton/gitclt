@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-11-12
+
+### Added
+
+- `branch ls` shows, for each branch, the branch it was created from (when the clone's reflogs tell it), the branch it tracks, how far ahead of and behind the default branch it is, whether it is merged, the merge base, the CI state of the server's head and the open pull requests from it; what the server refuses or the forge cannot tell is listed under the table (`-w` hides it). The `Default` and `Protected` columns are gone from the table (`branch get` and `--json` still show them)
+- `branch get` adds the same, in full: the CI state with every status, the pull requests with their title and target, the branch it was created from, exact or guessed (with the branches as likely), and the parts that could not be read
+- `branch get -l`, `--local` and `-r`, `--remote` keep one side, as `branch ls` does; both by default
+
+### Changed
+
+- `branch ls` and `branch get` pair a local branch with the server branch it tracks, no longer only with the one of the same name
+- Built on gitoperationslib 1.9.0 and its new layout: every area of the library is reached the same way, and what a forge lacks is refused with the library's reason. The commands work as before, `--json` output included
+- Reading the local clone (the repository and owner of the current directory, `branch ls`'s local side, `history ls`'s checked out branch) is now done by the library's `local` package, still without the git client. A remote that is a local path no longer counts as a clone of a server repository
+- **`team get <TEAM-ID>` is gone**: teams are addressed by organization and name only (`team get <ORG> <TEAM>`), as the library no longer takes team IDs
+
 ## [1.8.0] - 2026-11-11
 
 ### Added
