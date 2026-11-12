@@ -55,6 +55,11 @@ install -Dpm 0755 %{_builddir}/%{name}-%{version}/%{_binaryname} %{buildroot}%{_
 
 
 %changelog
+* Thu Nov 12 2026 Binary package builder <builder@famillegratton.net> 1.9.0-1
+- feature: branch ls and get show parent, upstream, default-branch comparison, CI state and open pull requests
+- breaking: re-aligned gitclt with the refactored gitoperationslib
+- version bump, prepping for refactoring
+
 * Thu Nov 12 2026 Binary package builder <builder@famillegratton.net> 1.8.0-1
 - feature: long lists and detail views are paged, with the table header kept on top
 - feature: adding runner subcommands
